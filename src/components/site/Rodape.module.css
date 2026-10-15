@@ -1,0 +1,112 @@
+.rodape {
+  background: var(--marca-escuro);
+  color: var(--texto-claro);
+  padding-block: clamp(48px, 7vw, 88px) 32px;
+}
+
+.faixa {
+  height: 12px;
+  background:
+    repeating-conic-gradient(var(--marca-escuro) 0 25%, var(--texto-claro) 0 50%) 0 0 / 12px 12px;
+  opacity: 0.9;
+}
+
+.grade {
+  display: grid;
+  gap: 40px;
+}
+
+@media (min-width: 900px) {
+  .grade {
+    grid-template-columns: 1.3fr repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+.marca {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.sigla {
+  font-variation-settings: 'wdth' 118;
+  font-style: italic;
+  font-weight: 850;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.sigla b {
+  color: var(--amarelo);
+  font-weight: inherit;
+}
+
+.coluna h2 {
+  margin-bottom: 14px;
+  color: var(--amarelo);
+}
+
+.coluna ul {
+  display: grid;
+  gap: 8px;
+}
+
+.coluna a {
+  text-decoration: none;
+  color: var(--texto-claro-2);
+}
+
+.coluna a:hover {
+  color: var(--texto-claro);
+  text-decoration: underline;
+}
+
+.canal {
+  display: grid;
+  gap: 2px;
+}
+
+.canal small {
+  font-family: var(--fonte-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+.redes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.redes a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--linha-clara);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.redes a:hover {
+  border-color: var(--amarelo);
+}
+
+.base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--linha-clara);
+  font-size: 0.8125rem;
+  color: var(--texto-claro-2);
+}
+
+.base a {
+  color: inherit;
+}

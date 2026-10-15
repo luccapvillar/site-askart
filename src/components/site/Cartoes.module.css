@@ -1,0 +1,143 @@
+/* Cartões de notícia, etapa, piloto e documento */
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--min, 300px)), 1fr));
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.cartao {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-radius: var(--raio-g);
+  overflow: hidden;
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  transition: transform 0.25s var(--curva), box-shadow 0.25s var(--curva);
+}
+
+.cartao:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sombra);
+}
+
+:global(.escuro) .cartao {
+  background: var(--asfalto-2);
+  border-color: var(--linha-clara);
+}
+
+.midia {
+  aspect-ratio: 16 / 10;
+  background: var(--papel-2);
+  overflow: hidden;
+}
+
+.midia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s var(--curva);
+}
+
+.cartao:hover .midia img {
+  transform: scale(1.04);
+}
+
+.semImagem {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background:
+    repeating-conic-gradient(rgb(0 0 0 / 0.05) 0 25%, transparent 0 50%) 0 0 / 28px 28px,
+    linear-gradient(135deg, var(--verde-escuro), var(--asfalto));
+  color: rgb(255 255 255 / 0.5);
+}
+
+.corpo {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px 18px 20px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+  color: var(--texto-2);
+}
+
+:global(.escuro) .meta {
+  color: var(--texto-claro-2);
+}
+
+.titulo a {
+  text-decoration: none;
+}
+
+/* Área clicável do cartão inteiro */
+.titulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.resumo {
+  color: var(--texto-2);
+  font-size: 0.9375rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Etapa: data em destaque */
+.etapa {
+  grid-template-columns: auto 1fr;
+  grid-template-rows: none;
+  align-items: stretch;
+}
+
+.data {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  min-width: 92px;
+  padding: 16px 12px;
+  background: var(--asfalto);
+  color: var(--texto-claro);
+  text-align: center;
+}
+
+.dia {
+  font-variation-settings: 'wdth' 118;
+  font-style: italic;
+  font-weight: 850;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.mes {
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amarelo);
+}
+
+.semana {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  text-transform: capitalize;
+}
+
+.cancelada .data {
+  background: var(--neutro);
+}
+
+.cancelada .titulo {
+  text-decoration: line-through;
+}
