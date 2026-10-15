@@ -53,7 +53,7 @@ function comparavel(valor: unknown): unknown {
   if (valor && typeof valor === 'object') {
     const obj = valor as Record<string, unknown>
     // Documento populado de um relacionamento: compara só o id
-    if ('id' in obj && ('createdAt' in obj || 'updatedAt' in obj)) return idDe(obj)
+    if ('id' in obj && ('createdAt' in obj || 'updatedAt' in obj)) return comparavel(idDe(obj))
     const saida: Record<string, unknown> = {}
     for (const chave of Object.keys(obj).sort()) {
       const v = comparavel(obj[chave])

@@ -4,7 +4,8 @@
  * - temporada encerrada congelada (só administrador reabre);
  * - ao encerrar, grava a fotografia final e o pódio de cada categoria;
  * - classificações (temporada-categorias) criadas sozinhas para cada categoria da temporada;
- * - categoria só sai da temporada se não tiver inscrições, etapas ou corridas nela.
+ * - categoria só sai da temporada se não tiver inscrições, corridas, ajustes ou linhas manuais nela;
+ *   etapas ainda por realizar acompanham as categorias que entram e saem.
  */
 import type {
   CollectionAfterChangeHook,
@@ -97,7 +98,10 @@ async function corridasPendentes(req: PayloadRequest, temporadaId: ID) {
   return corridas.filter((c) => (c.resultados?.length ?? 0) > 0 && c.contaParaClassificacao !== false)
 }
 
-/** Confere se uma categoria pode sair da temporada (nada lançado para ela). */
+/**
+ * Confere se uma categoria pode sair da temporada: só se nada foi lançado para ela (inscrições,
+ * corridas, ajustes ou linhas manuais). Etapas que só a listavam são acertadas depois, sozinhas.
+ */
 async function conferirRemocaoDeCategorias(req: PayloadRequest, temporadaId: ID, removidas: ID[]) {
   if (!removidas.length) return
   const categorias = await carregarCategorias(req, removidas)
@@ -107,10 +111,10 @@ async function conferirRemocaoDeCategorias(req: PayloadRequest, temporadaId: ID,
       and: [{ temporada: { equals: temporadaId } }, { categoria: { equals: categoria.id } }],
     })
     if (inscricoes) motivos.push(`${inscricoes} inscrição(ões)`)
-    const etapas = await contar(req, COLECOES.etapas, {
-      and: [{ temporada: { equals: temporadaId } }, { categorias: { equals: categoria.id } }],
+    const corridas = await contar(req, COLECOES.corridas, {
+      and: [{ 'etapa.temporada': { equals: temporadaId } }, { categorias: { equals: categoria.id } }],
     })
-    if (etapas) motivos.push(`${etapas} etapa(s)`)
+    if (corridas) motivos.push(`${corridas} corrida(s)`)
     const classificacao = (
       await buscar<TemporadaCategoriaDoc>(req, COLECOES.temporadaCategorias, {
         where: { and: [{ temporada: { equals: temporadaId } }, { categoria: { equals: categoria.id } }] },
@@ -123,10 +127,26 @@ async function conferirRemocaoDeCategorias(req: PayloadRequest, temporadaId: ID,
       falharNoCampo(req, COLECOES.temporadas, [
         {
           caminho: 'categorias',
-          mensagem: `A categoria "${rotuloCategoria(categoria)}" não pode sair desta temporada porque tem ${motivos.join(', ')}. Tire a categoria das etapas e desative as inscrições antes.`,
+          mensagem:
+            `A categoria "${rotuloCategoria(categoria)}" não pode sair desta temporada porque já tem ${motivos.join(', ')}. ` +
+            'Para tirá-la do site, desmarque "Publicada" na classificação dela (menu Classificações).',
         },
       ])
     }
+  }
+}
+
+/** Categoria retirada da temporada sai também das etapas que a listavam (a conferência garantiu que não há corridas). */
+async function tirarCategoriasDasEtapas(req: PayloadRequest, temporada: TemporadaDoc, anterior: TemporadaDoc) {
+  const atuais = idsDe(temporada.categorias)
+  const removidas = idsDe(anterior.categorias).filter((id) => !contemId(atuais, id))
+  if (!removidas.length) return
+  const etapas = await buscar<EtapaDoc>(req, COLECOES.etapas, {
+    where: { and: [{ temporada: { equals: temporada.id } }, { categorias: { in: removidas } }] },
+  })
+  for (const etapa of etapas) {
+    const restantes = idsDe(etapa.categorias).filter((id) => !contemId(removidas, id))
+    await atualizar(req, COLECOES.etapas, etapa.id, { categorias: restantes })
   }
 }
 
@@ -221,8 +241,10 @@ async function sincronizarClassificacoes(req: PayloadRequest, temporada: Tempora
  * categorias anteriores (o padrão da etapa é "as categorias da temporada").
  */
 async function levarCategoriasNovasParaEtapas(req: PayloadRequest, temporada: TemporadaDoc, anterior: TemporadaDoc) {
-  const antes = idsDe(anterior.categorias)
-  const novas = idsDe(temporada.categorias).filter((id) => !contemId(antes, id))
+  const atuais = idsDe(temporada.categorias)
+  // Categorias que já estavam e continuam (as retiradas acabaram de sair das etapas)
+  const antes = idsDe(anterior.categorias).filter((id) => contemId(atuais, id))
+  const novas = atuais.filter((id) => !contemId(idsDe(anterior.categorias), id))
   if (!novas.length || !antes.length) return
   const etapas = await buscar<EtapaDoc>(req, COLECOES.etapas, {
     where: { and: [{ temporada: { equals: temporada.id } }, { status: { in: ['agendada', 'confirmada', 'adiada'] } }] },
@@ -242,6 +264,7 @@ export const aposSalvarTemporada: CollectionAfterChangeHook = async ({ doc, prev
     await sincronizarClassificacoes(req, temporada)
   }
   if (anterior && mudouAlgum(temporada, anterior, ['categorias'])) {
+    await tirarCategoriasDasEtapas(req, temporada, anterior)
     await levarCategoriasNovasParaEtapas(req, temporada, anterior)
   }
 
