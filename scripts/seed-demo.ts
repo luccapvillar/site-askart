@@ -39,6 +39,9 @@ const emBrasilia = (dia: string, hora: string) => new Date(`${dia}T${hora}:00-03
 async function enviarFoto(payload: Payload, arquivo: string, dados: { alt: string; credito?: string; legenda?: string }) {
   const filePath = path.join(raiz, arquivo)
   if (!fs.existsSync(filePath)) throw new Error(`Foto não encontrada: ${arquivo}`)
+  // Reaproveita a foto se ela já foi enviada antes (seed:limpar mantém as fotos)
+  const existente = await payload.find({ collection: 'midia', where: { alt: { equals: dados.alt } }, limit: 1, depth: 0 })
+  if (existente.docs[0]) return existente.docs[0].id as Id
   const doc = await payload.create({ collection: 'midia', data: dados, filePath, context: contexto })
   return doc.id as Id
 }
