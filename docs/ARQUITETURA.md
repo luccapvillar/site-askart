@@ -2,6 +2,20 @@
 
 Escopo do cliente: [`ESPECIFICACAO.md`](ESPECIFICACAO.md). Esta versão incorpora a revisão independente (cobertura dos 40 itens, regras de kart, segurança e experiência do administrador).
 
+## 0. Norte do cliente → decisões (prioridade máxima)
+
+As anotações do cliente ([ESPECIFICACAO.md](ESPECIFICACAO.md#-norte-do-cliente-anotações-à-mão-15102026)) definem a forma do site. O modelo de dados abaixo já suporta tudo; estas são as decisões de produto que derivam delas:
+
+- **Menu principal com 4 abas:** **BKS** · **Kartódromo** · **Notícias** · **Contato** (+ início pelo logo). As demais páginas (pilotos, categorias, documentos, galeria, histórico, estatísticas) ficam acessíveis dentro dessas abas e pela busca.
+- **BKS (Brasília Kart Series)** = campeonato principal (`configuracoes.campeonatoPrincipal`). A aba BKS (`/bks`) tem sub-abas: **Calendário** (clicar na etapa abre a programação com os horários de cada categoria), **Classificação** (tabela de liderança por categoria: piloto e pontos), **Resultados** (por etapa), **História**, **Fotos**, **Regulamento**. A logo do BKS (`campeonatos.logo`) aparece no topo da aba, no calendário e nos cartões de etapa.
+- **Etapas:** além dos campos da §4, `localMapa` (link do mapa do local; padrão = mapa do kartódromo) e `linkIngressos` (link da **IZY Pass** para comprar treinos livres e corridas daquela etapa). Link geral da IZY Pass em `configuracoes.izyPass`, exibido na aba BKS e no kartódromo.
+- **Programação por categoria:** a página da etapa mostra os horários de cada categoria (das corridas e dos treinos da etapa); o calendário abre essa programação.
+- **Kartódromo (`/kartodromo`):** onde fica (mapa), história, **taxas e valores** (tabela editável: item, valor, observação — ex.: pista, ambulância), **tabela de treinos por categoria** (dias e horários), **como treinar lá** (passo a passo), notícias do kartódromo, contatos importantes, **perguntas frequentes**, Instagram.
+- **Perguntas frequentes:** coleção `perguntas` (pergunta, resposta, seção `bks` | `kartodromo` | `geral`, ordem), editável.
+- **Moderador:** o papel `editor` é exibido como **Moderador** no painel. Só administrador e moderador publicam e editam; o site público não tem nenhuma edição.
+- **Nível "site governamental":** visual institucional e sóbrio — clareza, hierarquia, acessibilidade (contraste AA, navegação por teclado, textos simples), credibilidade; a identidade ASKART/BKS e as fotos dão o caráter esportivo, sem exagero de efeitos.
+- **Assistente com IA (fase 2):** no painel, o moderador escreve o que quer ("publica uma notícia sobre a 3ª etapa", "o Fulano fez 25 pontos", "muda o treino de sábado para 9h"). A IA (Claude, via API) transforma o pedido em alterações concretas usando as mesmas regras e permissões do moderador, **mostra uma prévia** e só aplica depois da confirmação; tudo fica no registro de atividades. Requer a variável `ANTHROPIC_API_KEY`.
+
 ## 1. Pilha e ambiente
 
 | Camada | Escolha |

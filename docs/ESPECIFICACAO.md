@@ -1,5 +1,36 @@
 # Especificação do cliente — Site oficial da ASKART
 
+## ⭐ Norte do cliente (anotações à mão, 15/10/2026)
+
+Imagem original: [`anotacoes-cliente-2026-10-15.jpg`](anotacoes-cliente-2026-10-15.jpg). **Esta é a prioridade do projeto**; o texto detalhado mais abaixo complementa. ■ = "precisa ter a capacidade de ser editado pelo moderador".
+
+**BKS = Brasília Kart Series** (o campeonato principal).
+
+1. **Abas do site:** BKS · Kartódromo · Contatos · Notícias.
+2. **BKS:**
+   - ■ Calendário com as datas de cada etapa do ano; **clicar na data mostra os horários de cada categoria**.
+   - ■ Tabela de liderança de cada categoria, com nome dos pilotos e número de pontos.
+   - ■ Resultado de cada etapa numa sub-aba chamada **Resultados**.
+   - ■ Onde cada etapa vai ser, **com link para o mapa**.
+   - História do campeonato.
+   - ■ **Link da IZY Pass** para comprar treinos livres e corridas de cada etapa.
+   - Usar a **logo do BKS** em vários lugares e **várias fotos do campeonato**.
+3. **Kartódromo:**
+   - Onde fica. História dele. Logo da ASKART em alguns lugares.
+   - Taxas e valores (de pista, ambulância etc. — palavra parcialmente ilegível na anotação; confirmar).
+   - ■ Tabela de dias e horários de treino de cada categoria.
+   - Como treinar lá.
+   - ■ Notícias (avisar se algo aconteceu ou vai acontecer lá).
+   - ■ Contatos importantes (telefone, WhatsApp e e-mail).
+   - Aba de **dúvidas recorrentes** (perguntas frequentes).
+   - Instagram em algum lugar.
+4. O site é da **instituição ASKART**: precisa ser **bem profissional (nível site governamental)**. Várias coisas são atualizadas ao longo do tempo por um **moderador** (tabela de liderança, pontos de cada piloto etc.); a edição tem que ser **fácil** e **só o moderador** pode fazer. Ele também faz **posts como notícias ou anúncios**.
+5. Seria bom ter uma **IA integrada**: o moderador manda para ela o que quer postar ou alterar e ela **já atualiza automaticamente** no site.
+
+---
+
+## Pedido detalhado (texto enviado em 15/10/2026)
+
 Texto enviado pelo cliente em 15/10/2026 (fonte oficial do escopo). Resumo fiel, item por item; os 40 itens originais são a referência de aceite.
 
 **Projeto:** site oficial, completo, moderno, profissional e funcional da **ASKART — Associação de Kart de Brasília**, responsável pela administração do **Kartódromo Ayrton Senna do Guará** (Brasília/DF) e pela organização dos campeonatos de kart de Brasília. Não é um site estático: é uma **plataforma dinâmica com banco de dados e painel administrativo robusto**, em que o administrador controla, edita, adiciona, remove, atualiza e publica praticamente tudo do site público. **Não inventar informações oficiais**; quando não fornecidas, deixar a estrutura pronta.
