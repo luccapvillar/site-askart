@@ -1,0 +1,1313 @@
+/**
+ * Motor de classificação (docs/ARQUITETURA.md §4 e §5) — funções PURAS, sem banco e sem Payload.
+ *
+ * Recebe a regra de pontuação, as etapas, as corridas (com resultados), as inscrições e os ajustes de uma
+ * temporada × categoria e devolve a classificação calculada. O adaptador que busca os documentos no banco
+ * fica em `src/lib/carregar-competicao.ts`.
+ *
+ * Decisões de regra (valem para todo o site; o texto de ajuda do painel deve dizer o mesmo):
+ * - Só contam etapas com status `realizada` e corridas com status `oficial`. "Conta para a classificação"
+ *   desligado = a corrida não dá pontos de tabela, volta mais rápida nem participação (a tomada de tempo
+ *   continua valendo para a pole).
+ * - Pontos de tabela = tabela da corrida × fator da etapa × fator da corrida. Pole, volta mais rápida e
+ *   participação são bônus fixos (não multiplicam).
+ * - Vitórias, pódios, corridas, contagem de posições e voltas mais rápidas são contados POR CORRIDA que conta
+ *   (baterias, pré-final, final…), nunca na tomada de tempo. A pole vem da tomada de tempo (P1 da etapa).
+ * - "Pontos manuais" de uma linha substituem os pontos daquela corrida (tabela + volta mais rápida +
+ *   participação). A pole é da etapa e não é afetada.
+ * - Penalidade de pontos (na linha da corrida) e ajustes (na classificação) são aplicados DEPOIS dos descartes
+ *   e nunca são descartados.
+ * - Convidado nunca pontua nem aparece na classificação. Em `reclassificar-elegiveis` os titulares sobem
+ *   (o 2º na pista, atrás de um convidado, recebe os pontos e a vitória de 1º); em `manter-posicoes` cada um
+ *   fica com a sua posição e os pontos do convidado simplesmente não são dados a ninguém.
+ * - Pontos têm 1 casa decimal: todas as contas são feitas em DÉCIMOS inteiros (sem erro de ponto flutuante).
+ */
+
+export type Id = string | number
+
+// ───────────────────────────── valores dos campos (iguais aos do painel) ─────────────────────────────
+
+export type StatusEtapa = 'agendada' | 'confirmada' | 'adiada' | 'cancelada' | 'realizada'
+export type StatusCorrida = 'rascunho' | 'oficial' | 'cancelada'
+export type TipoCorrida = 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'
+export type StatusResultado = 'classificado' | 'nao-classificado' | 'abandono' | 'desclassificado' | 'nao-largou'
+export type TipoPenalidade = 'tempo' | 'posicoes' | 'pontos' | 'advertencia'
+export type CondicaoInscricao = 'titular' | 'convidado'
+export type StatusInscricao = 'ativa' | 'desistente' | 'transferida' | 'excluida'
+export type RequisitoParticipacao = 'presente' | 'largou' | 'classificado'
+export type RegraAbandono = 'pela-posicao' | 'so-participacao' | 'zero'
+export type RegraConvidados = 'reclassificar-elegiveis' | 'manter-posicoes'
+export type UnidadeDescarte = 'etapa' | 'corrida'
+export type CriterioDesempate = 'mais-vitorias' | 'contagem-de-posicoes' | 'melhor-resultado-ultima-etapa' | 'mais-poles'
+export type TipoAjuste = 'penalidade' | 'bonificacao' | 'correcao'
+
+/** Critério que separou dois pilotos empatados em pontos. */
+export type CriterioAplicado = CriterioDesempate | 'ordem-alfabetica'
+
+export const ROTULOS_CRITERIO: Record<CriterioAplicado, string> = {
+  'mais-vitorias': 'Mais vitórias',
+  'contagem-de-posicoes': 'Mais 1º lugares, depois 2º lugares e assim por diante',
+  'melhor-resultado-ultima-etapa': 'Melhor resultado na última etapa (voltando etapa a etapa)',
+  'mais-poles': 'Mais poles',
+  'ordem-alfabetica': 'Ordem alfabética (empate não resolvido pelo regulamento)',
+}
+
+// ───────────────────────────── tipos de entrada ─────────────────────────────
+
+/** Tabela de pontos da regra: `pontos[0]` = pontos do 1º, `pontos[1]` = do 2º… (posições além da lista = 0). */
+export interface TabelaPontos {
+  /** id da linha do array no Payload (opcional). */
+  id?: Id | null
+  nome?: string | null
+  pontos: number[]
+}
+
+/** Descartes (grupo `descartes` de regras-pontuacao). */
+export interface RegraDescartes {
+  /** Quantos resultados (piores) são descartados. 0/vazio = sem descarte. */
+  quantidade?: number | null
+  /** Descarta etapas inteiras ou corridas avulsas. Padrão: etapa. */
+  unidade?: UnidadeDescarte | null
+  /**
+   * Descarte só passa a valer quando a categoria tiver ESTE número de etapas realizadas (vazio = sempre).
+   * Em qualquer caso só se descarta quando sobra pelo menos um resultado (unidades realizadas > quantidade).
+   */
+  aPartirDeEtapas?: number | null
+  /** A última etapa do calendário da temporada pode ser descartada? Padrão: sim. */
+  ultimaEtapaDescartavel?: boolean | null
+}
+
+/** Regra de pontuação (coleção regras-pontuacao). Campos vazios assumem REGRA_PADRAO. */
+export interface Regra {
+  tabelas?: TabelaPontos[] | null
+  pontosPole?: number | null
+  pontosVoltaRapida?: number | null
+  pontosParticipacao?: number | null
+  /** Quem ganha os pontos de participação em cada corrida que conta. */
+  requisitoParticipacao?: RequisitoParticipacao | null
+  /** `pela-posicao`: quem abandona é classificado depois dos que terminaram (por voltas) e pontua pela posição;
+   *  `so-participacao`: só os pontos de participação; `zero`: nada. */
+  abandono?: RegraAbandono | null
+  /** % mínimo das voltas do vencedor (ou das voltas previstas) para ser classificado. 0/vazio = sem mínimo. */
+  percentualMinimoVoltas?: number | null
+  convidados?: RegraConvidados | null
+  descartes?: RegraDescartes | null
+  /** Ordem dos critérios de desempate. Vazio/ausente = CRITERIOS_PADRAO; lista vazia explícita = só ordem alfabética. */
+  criteriosDesempate?: CriterioDesempate[] | null
+}
+
+export interface Etapa {
+  id: Id
+  numero: number
+  nome?: string | null
+  /** Data/hora de início (ISO). Usada para a ordem cronológica (etapa adiada realizada depois de outra). */
+  inicio?: string | Date | null
+  status: StatusEtapa
+  /** Fator de pontuação da etapa (ex.: 2 = pontos em dobro). Padrão 1. */
+  fatorPontuacao?: number | null
+  /** Categorias que correm a etapa (vazio = todas). */
+  categorias?: Id[] | null
+}
+
+export interface Penalidade {
+  tipo: TipoPenalidade
+  /** `tempo`: segundos somados ao tempo total; `posicoes`: quantas posições perde; `pontos`: pontos perdidos. */
+  valor?: number | null
+  motivo?: string | null
+}
+
+/** Uma linha de `corridas.resultados`. */
+export interface LinhaResultado {
+  inscricao: Id | null
+  /** Posição na pista (ordem de chegada). */
+  posicaoChegada?: number | null
+  /** Padrão: classificado. */
+  status?: StatusResultado | null
+  voltas?: number | null
+  /** Melhor volta em milissegundos. */
+  melhorVolta?: number | null
+  /** Tempo total de prova em milissegundos (necessário para aplicar penalidade de tempo automaticamente). */
+  tempoTotal?: number | null
+  /** Penalidade única (formato da ARQUITETURA). */
+  penalidade?: Penalidade | null
+  /** Várias penalidades (aceito também, somadas à `penalidade`). */
+  penalidades?: Penalidade[] | null
+  /** Posição oficial gravada. Só é tratada como CORREÇÃO MANUAL quando há `motivoPosicaoOficial`. */
+  posicaoOficial?: number | null
+  motivoPosicaoOficial?: string | null
+  /** Substitui os pontos calculados desta corrida para esta inscrição. */
+  pontosManuais?: number | null
+  /** Marcação manual de volta mais rápida (substitui o cálculo pela menor melhor volta). */
+  voltaMaisRapida?: boolean | null
+  observacao?: string | null
+}
+
+export interface Corrida {
+  id: Id
+  etapa: Id
+  /** Categorias que largam juntas nesta corrida (normalmente uma). */
+  categorias?: Id[] | null
+  nome?: string | null
+  tipo?: TipoCorrida | null
+  /** Tabela de pontos da regra a usar (id da linha ou nome). Vazio = 1ª tabela da regra. */
+  tabela?: Id | null
+  /** Padrão: sim. */
+  contaParaClassificacao?: boolean | null
+  /** Fator da corrida (ex.: 0,5 em corrida interrompida). Padrão 1. */
+  fatorPontuacao?: number | null
+  inicio?: string | Date | null
+  voltasPrevistas?: number | null
+  status: StatusCorrida
+  /** Inscrição(ões) com a volta mais rápida definida à mão (substitui o cálculo). */
+  voltaMaisRapidaManual?: Id | Id[] | null
+  resultados?: LinhaResultado[] | null
+}
+
+export interface Inscricao {
+  id: Id
+  categoria: Id
+  piloto: Id
+  /** Nome a exibir (nome de exibição do piloto ou nome). */
+  nome: string
+  pilotoSlug?: string | null
+  numero?: number | string | null
+  equipe?: Id | null
+  equipeNome?: string | null
+  /** Padrão: titular. */
+  condicao?: CondicaoInscricao | null
+  /** Padrão: ativa. */
+  status?: StatusInscricao | null
+}
+
+/**
+ * Ajuste de pontos da classificação (temporada-categorias.ajustes). Sinal: `penalidade` sempre tira,
+ * `bonificacao` sempre soma, `correcao` usa o sinal digitado.
+ */
+export interface Ajuste {
+  inscricao: Id
+  /** Etapa do ajuste (opcional): só vale quando a etapa já foi realizada e aparece na coluna dela. */
+  etapa?: Id | null
+  tipo?: TipoAjuste | null
+  pontos: number
+  motivo?: string | null
+}
+
+export interface EntradaClassificacao {
+  regra: Regra
+  /** Categoria da classificação. */
+  categoria: Id
+  /** Outras categorias cujos resultados entram nesta classificação (ex.: geral que soma duas categorias). */
+  incluiResultadosDe?: Id[] | null
+  /** Todas as etapas da temporada (qualquer status). */
+  etapas: Etapa[]
+  /** Corridas da temporada (qualquer status; o motor filtra). */
+  corridas: Corrida[]
+  /** Inscrições da temporada (pelo menos as das categorias do grupo). */
+  inscricoes: Inscricao[]
+  ajustes?: Ajuste[] | null
+  /** Calcula a classificação "após a etapa X" (inclusive). */
+  ateEtapa?: Id | null
+  /** Calcula posicaoAnterior (classificação até a etapa anterior). Padrão: sim. */
+  comPosicaoAnterior?: boolean
+}
+
+// ───────────────────────────── tipos de saída ─────────────────────────────
+
+export interface ResultadoEtapaLinha {
+  etapa: Id
+  numero: number
+  /** Pontos da etapa antes de penalidades/ajustes (corridas + pole). */
+  pontos: number
+  /** Posição do piloto na etapa (entre os pilotos da classificação); null = sem posição oficial na etapa. */
+  posicao: number | null
+  /** Etapa inteira descartada. */
+  descartado: boolean
+  /** Pontos descartados nesta etapa (no descarte por corrida pode ser parte da etapa). */
+  pontosDescartados: number
+  /** Corridas descartadas (descarte por corrida). */
+  corridasDescartadas: Id[]
+  /** Penalidades de pontos das corridas + ajustes ligados a esta etapa (nunca descartados). */
+  ajustes: number
+  participou: boolean
+  desclassificado: boolean
+  pole: boolean
+}
+
+export interface LinhaClassificacao {
+  /** Chave estável da linha (id do piloto). */
+  chave: string
+  posicao: number
+  /** Posição na classificação até a etapa anterior (null = não havia classificação anterior ou o piloto não estava nela). */
+  posicaoAnterior: number | null
+  /** Inscrição principal (da categoria da classificação, quando existir). */
+  inscricao: Id | null
+  inscricoes: Id[]
+  piloto: Id | null
+  nome: string
+  pilotoSlug?: string | null
+  numero: number | string | null
+  equipe: Id | null
+  equipeNome?: string | null
+  categoria: Id | null
+  pontos: number
+  /** Soma das etapas antes dos descartes e ajustes. */
+  pontosBrutos: number
+  pontosDescartados: number
+  /** Penalidades de pontos + ajustes (com sinal). */
+  ajustes: number
+  vitorias: number
+  podios: number
+  corridas: number
+  poles: number
+  voltasRapidas: number
+  /** Etapas em que o piloto correu. */
+  etapas: number
+  porEtapa: ResultadoEtapaLinha[]
+  /** Critério que o separou do piloto de cima, quando empatados em pontos. */
+  desempate: CriterioAplicado | null
+  /** Linha digitada no modo manual. */
+  manual?: boolean
+  observacao?: string | null
+}
+
+export interface EmpateResolvido {
+  pontos: number
+  posicoes: number[]
+  /** Para cada par (posição i, i+1) do grupo, o critério que decidiu. */
+  resolvidoPor: CriterioAplicado[]
+}
+
+export interface CriteriosAplicados {
+  desempate: CriterioDesempate[]
+  descartes: {
+    unidade: UnidadeDescarte
+    quantidade: number
+    aPartirDeEtapas: number
+    ultimaEtapaDescartavel: boolean
+    /** Já está valendo nesta classificação? */
+    aplicado: boolean
+  } | null
+  convidados: RegraConvidados
+  abandono: RegraAbandono
+  requisitoParticipacao: RequisitoParticipacao
+  percentualMinimoVoltas: number
+  empates: EmpateResolvido[]
+}
+
+export interface ResultadoClassificacao {
+  linhas: LinhaClassificacao[]
+  criterios: CriteriosAplicados
+  /** Etapas realizadas que contam para esta categoria (até `ateEtapa`, se informado). */
+  etapasRealizadas: number
+  /** Etapas consideradas, em ordem cronológica. */
+  etapas: { id: Id; numero: number; nome: string | null }[]
+  /** Avisos para o administrador (dados incompletos ou inconsistentes). */
+  avisos: string[]
+}
+
+// ───────────────────────────── padrões e utilitários ─────────────────────────────
+
+export const CRITERIOS_PADRAO: CriterioDesempate[] = ['mais-vitorias', 'contagem-de-posicoes', 'melhor-resultado-ultima-etapa']
+
+export const REGRA_PADRAO = {
+  requisitoParticipacao: 'largou' as RequisitoParticipacao,
+  abandono: 'so-participacao' as RegraAbandono,
+  convidados: 'reclassificar-elegiveis' as RegraConvidados,
+  unidadeDescarte: 'etapa' as UnidadeDescarte,
+}
+
+const k = (id: Id | null | undefined): string => (id === null || id === undefined ? '' : String(id))
+
+const numeroOu = (v: unknown, padrao: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : padrao
+
+/** Converte pontos em décimos inteiros, arredondando meio para longe de zero (sem ruído de ponto flutuante). */
+export function paraDecimos(pontos: number): number {
+  if (!Number.isFinite(pontos)) return 0
+  const x = Number((Math.abs(pontos) * 10).toFixed(6))
+  return Math.sign(pontos) * Math.round(x)
+}
+
+export const deDecimos = (decimos: number): number => decimos / 10
+
+/** Arredonda para 1 casa decimal. */
+export const arredondar1 = (pontos: number): number => deDecimos(paraDecimos(pontos))
+
+const tempo = (v: string | Date | null | undefined): number | null => {
+  if (v === null || v === undefined || v === '') return null
+  const t = v instanceof Date ? v.getTime() : new Date(v).getTime()
+  return Number.isFinite(t) ? t : null
+}
+
+/** Sem acento, minúsculo e sem espaços extras (para achar a tabela pelo nome). */
+const normalizarNome = (t: string) =>
+  t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+const comparaNome = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true })
+
+/**
+ * Ordem cronológica das etapas: por data de início quando todas têm data; senão pelo número.
+ * (Uma etapa adiada e realizada depois de outra entra na ordem real em que aconteceu.)
+ */
+export function ordenarEtapas<T extends Pick<Etapa, 'numero' | 'inicio'>>(etapas: T[]): T[] {
+  const todasComData = etapas.every((e) => tempo(e.inicio) !== null)
+  return [...etapas].sort((a, b) => {
+    if (todasComData) {
+      const d = (tempo(a.inicio) as number) - (tempo(b.inicio) as number)
+      if (d !== 0) return d
+    }
+    return a.numero - b.numero
+  })
+}
+
+function ordenarCorridas(corridas: Corrida[]): Corrida[] {
+  const todasComData = corridas.every((c) => tempo(c.inicio) !== null)
+  if (!todasComData) return corridas
+  return corridas
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => (tempo(a.c.inicio) as number) - (tempo(b.c.inicio) as number) || a.i - b.i)
+    .map((x) => x.c)
+}
+
+function tabelaDaCorrida(regra: Regra, corrida: Corrida, avisos: string[]): number[] {
+  const tabelas = regra.tabelas ?? []
+  if (!tabelas.length) return []
+  const ref = corrida.tabela
+  if (ref === null || ref === undefined || ref === '') return tabelas[0].pontos ?? []
+  const alvo = normalizarNome(k(ref))
+  const t = tabelas.find((x) => k(x.id) === k(ref) || normalizarNome(x.nome ?? '') === alvo)
+  if (!t) {
+    avisos.push(`A corrida "${corrida.nome ?? corrida.id}" usa a tabela "${ref}", que não existe na regra: ela ficou sem pontos de tabela.`)
+    return []
+  }
+  return t.pontos ?? []
+}
+
+function fator(v: number | null | undefined, onde: string, avisos: string[]): number {
+  if (v === null || v === undefined) return 1
+  if (!Number.isFinite(v) || v < 0) {
+    avisos.push(`Fator de pontuação inválido em ${onde}: foi usado 1.`)
+    return 1
+  }
+  return v
+}
+
+function penalidadesDa(linha: LinhaResultado): Penalidade[] {
+  const lista: Penalidade[] = []
+  if (linha.penalidade?.tipo) lista.push(linha.penalidade)
+  for (const p of linha.penalidades ?? []) if (p?.tipo) lista.push(p)
+  return lista
+}
+
+const somaPenalidade = (linha: LinhaResultado, tipo: TipoPenalidade) =>
+  penalidadesDa(linha)
+    .filter((p) => p.tipo === tipo)
+    .reduce((s, p) => s + Math.abs(numeroOu(p.valor, 0)), 0)
+
+const idsDe = (v: Id | Id[] | null | undefined): string[] =>
+  v === null || v === undefined ? [] : (Array.isArray(v) ? v : [v]).map(k).filter(Boolean)
+
+// ───────────────────────────── resultado de uma corrida ─────────────────────────────
+
+export interface OpcoesResultadoCorrida {
+  /** Inscrições (para saber categoria, piloto e se é convidado). */
+  inscricoes?: Inscricao[] | Map<string, Inscricao> | null
+  /** Grupo de categorias da classificação: a posição que pontua é a posição DENTRO do grupo. Vazio = todas. */
+  categorias?: Id[] | null
+  /** Fator de pontuação da etapa. */
+  fatorEtapa?: number | null
+}
+
+export interface LinhaResultadoCalculada {
+  /** Índice da linha na lista original de resultados. */
+  indice: number
+  inscricao: Id | null
+  piloto: Id | null
+  nome: string | null
+  numero: number | string | null
+  categoria: Id | null
+  convidado: boolean
+  statusInformado: StatusResultado
+  /** Status depois das regras (ex.: classificado com poucas voltas vira `nao-classificado`). */
+  status: StatusResultado
+  posicaoChegada: number | null
+  /** Posição oficial geral da corrida (todas as categorias), depois de penalidades. */
+  posicaoOficial: number | null
+  /** A posição oficial veio de correção manual (com motivo). */
+  posicaoOficialManual: boolean
+  /** Posição entre as categorias do grupo. */
+  posicaoCategoria: number | null
+  /** Posição usada para pontos, vitórias e pódios (sem convidados, conforme a regra). */
+  posicaoParaPontos: number | null
+  pontosTabela: number
+  pontosVoltaRapida: number
+  pontosParticipacao: number
+  /** Soma calculada (tabela + volta mais rápida + participação). */
+  pontosCalculados: number
+  pontosManuais: number | null
+  /** Pontos que valem (manuais, quando houver; 0 para convidado e desclassificado). */
+  pontos: number
+  /** Pontos perdidos por penalidade (valor negativo), descontados depois dos descartes. */
+  penalidadePontos: number
+  voltaMaisRapida: boolean
+  largou: boolean
+  desclassificado: boolean
+  penalidades: Penalidade[]
+}
+
+export interface ResultadoCorrida {
+  corrida: Id
+  conta: boolean
+  linhas: LinhaResultadoCalculada[]
+  /** Inscrição com a volta mais rápida no grupo (null = ninguém). */
+  voltaMaisRapida: Id | null
+  /** Voltas de referência para o percentual mínimo. */
+  voltasReferencia: number | null
+  avisos: string[]
+}
+
+const ORDEM_STATUS: Record<StatusResultado, number> = {
+  classificado: 0,
+  abandono: 1,
+  'nao-classificado': 2,
+  desclassificado: 3,
+  'nao-largou': 4,
+}
+
+/**
+ * Calcula posições oficiais e pontos de UMA corrida. Usado pelo motor e pela tela "Lançar resultados"
+ * (prévia), e pode ser usado no hook da corrida para gravar `posicaoOficial`.
+ *
+ * Ordem oficial: classificados pela chegada (penalidade de tempo reordena quando há tempo total de todos),
+ * depois quem abandonou com o mínimo de voltas (pela chegada, senão por mais voltas); penalidade de posições
+ * empurra o piloto N posições para trás; correções manuais (com motivo) ficam fixas na posição digitada.
+ * Desclassificado, não largou e não classificado ficam sem posição.
+ * Abandono só pontua pela posição (e conta vitória/pódio) quando a regra é `pela-posicao`.
+ */
+export function calcularResultadoCorrida(
+  corrida: Corrida,
+  regra: Regra,
+  opcoes: OpcoesResultadoCorrida = {},
+): ResultadoCorrida {
+  const avisos: string[] = []
+  const nomeCorrida = corrida.nome ?? String(corrida.id)
+  const mapaIns =
+    opcoes.inscricoes instanceof Map
+      ? opcoes.inscricoes
+      : new Map((opcoes.inscricoes ?? []).map((i) => [k(i.id), i] as const))
+  const grupo = opcoes.categorias?.length ? new Set(opcoes.categorias.map(k)) : null
+  const abandono = regra.abandono ?? REGRA_PADRAO.abandono
+  const convidados = regra.convidados ?? REGRA_PADRAO.convidados
+  const requisito = regra.requisitoParticipacao ?? REGRA_PADRAO.requisitoParticipacao
+  const pct = Math.max(0, numeroOu(regra.percentualMinimoVoltas, 0))
+  const tipo = corrida.tipo ?? 'bateria'
+  const ehTomada = tipo === 'tomada-de-tempo'
+  const conta = corrida.contaParaClassificacao !== false
+
+  // 1) Normaliza as linhas (descarta sem inscrição e duplicadas).
+  type Interna = {
+    linha: LinhaResultado
+    indice: number
+    ins: Inscricao | undefined
+    status: StatusResultado
+    statusInformado: StatusResultado
+    posicionado: boolean
+    posicaoOficial: number | null
+    manual: boolean
+  }
+  const vistas = new Set<string>()
+  const internas: Interna[] = []
+  ;(corrida.resultados ?? []).forEach((linha, indice) => {
+    const chave = k(linha?.inscricao)
+    if (!chave) {
+      avisos.push(`${nomeCorrida}: linha ${indice + 1} sem piloto/inscrição foi ignorada.`)
+      return
+    }
+    if (vistas.has(chave)) {
+      avisos.push(`${nomeCorrida}: a mesma inscrição aparece mais de uma vez; só a primeira linha foi considerada.`)
+      return
+    }
+    vistas.add(chave)
+    const statusInformado = linha.status ?? 'classificado'
+    internas.push({
+      linha,
+      indice,
+      ins: mapaIns.get(chave),
+      status: statusInformado,
+      statusInformado,
+      posicionado: false,
+      posicaoOficial: null,
+      manual: false,
+    })
+  })
+
+  // 2) Percentual mínimo de voltas (referência: voltas do vencedor = maior nº de voltas entre os classificados).
+  const voltasClassificados = internas
+    .filter((x) => x.status === 'classificado' && typeof x.linha.voltas === 'number')
+    .map((x) => x.linha.voltas as number)
+  const voltasReferencia = voltasClassificados.length
+    ? Math.max(...voltasClassificados)
+    : typeof corrida.voltasPrevistas === 'number'
+      ? corrida.voltasPrevistas
+      : null
+  const atingeMinimo = (x: Interna) =>
+    !pct || voltasReferencia === null || typeof x.linha.voltas !== 'number'
+      ? true
+      : x.linha.voltas * 100 >= voltasReferencia * pct
+
+  // Classificado com menos voltas que o mínimo vira "não classificado". Abandono recebe posição oficial
+  // (depois de quem terminou) se tiver o mínimo de voltas; se ele pontua pela posição depende da regra.
+  for (const x of internas) {
+    if (x.status === 'classificado' && !atingeMinimo(x)) x.status = 'nao-classificado'
+    if (x.status === 'classificado' || (x.status === 'abandono' && atingeMinimo(x))) x.posicionado = true
+  }
+  /** Pontua pela posição (tabela, vitória, pódio, volta mais rápida, requisito "classificado"). */
+  const pontuaPelaPosicao = (x: Interna) =>
+    x.posicaoOficial !== null && (x.status === 'classificado' || (x.status === 'abandono' && abandono === 'pela-posicao'))
+
+  // 3) Correções manuais da posição oficial (precisam de motivo). DSQ e "não largou" nunca têm posição.
+  for (const x of internas) {
+    const motivo = (x.linha.motivoPosicaoOficial ?? '').trim()
+    if (!motivo || typeof x.linha.posicaoOficial !== 'number' || x.linha.posicaoOficial < 1) continue
+    if (x.status === 'desclassificado' || x.status === 'nao-largou') {
+      avisos.push(`${nomeCorrida}: posição oficial manual ignorada para piloto desclassificado ou que não largou.`)
+      continue
+    }
+    x.manual = true
+    x.posicionado = true
+  }
+
+  // 4) Ordem automática dos posicionados.
+  const porChegada = (a: Interna, b: Interna) =>
+    (a.linha.posicaoChegada ?? Infinity) - (b.linha.posicaoChegada ?? Infinity) ||
+    (b.linha.voltas ?? -1) - (a.linha.voltas ?? -1) ||
+    a.indice - b.indice
+  const automaticos = internas.filter((x) => x.posicionado && !x.manual)
+  let classificados = automaticos.filter((x) => x.status === 'classificado').sort(porChegada)
+  const abandonos = automaticos.filter((x) => x.status !== 'classificado').sort(porChegada)
+
+  if (classificados.some((x) => x.linha.posicaoChegada == null)) {
+    avisos.push(`${nomeCorrida}: há classificados sem posição de chegada; eles foram colocados no fim, por número de voltas.`)
+  }
+
+  // Penalidade de tempo: reordena pelo tempo total + penalidade, entre pilotos com o mesmo número de voltas.
+  const comTempo = classificados.filter((x) => somaPenalidade(x.linha, 'tempo') > 0)
+  if (comTempo.length) {
+    if (classificados.every((x) => typeof x.linha.tempoTotal === 'number')) {
+      const ajustado = (x: Interna) => (x.linha.tempoTotal as number) + somaPenalidade(x.linha, 'tempo') * 1000
+      classificados = [...classificados].sort(
+        (a, b) => (b.linha.voltas ?? 0) - (a.linha.voltas ?? 0) || ajustado(a) - ajustado(b) || porChegada(a, b),
+      )
+    } else {
+      avisos.push(
+        `${nomeCorrida}: há penalidade de tempo, mas falta o tempo total de algum classificado. A ordem de chegada foi mantida — informe os tempos ou corrija a posição oficial (com motivo).`,
+      )
+    }
+  }
+
+  // Penalidade de posições: quem perde N posições passa para logo depois de quem estava N posições atrás.
+  const ordemAuto = [...classificados, ...abandonos]
+    .map((x, i) => ({ x, chaveOrdem: i + 1 + (somaPenalidade(x.linha, 'posicoes') > 0 ? somaPenalidade(x.linha, 'posicoes') + 0.5 : 0), i }))
+    .sort((a, b) => a.chaveOrdem - b.chaveOrdem || a.i - b.i)
+    .map((y) => y.x)
+
+  // 5) Encaixa as correções manuais nas posições digitadas e completa com a ordem automática.
+  const manuais = internas.filter((x) => x.manual).sort((a, b) => (a.linha.posicaoOficial as number) - (b.linha.posicaoOficial as number) || a.indice - b.indice)
+  const total = ordemAuto.length + manuais.length
+  const vagas: (Interna | null)[] = Array.from({ length: total }, () => null)
+  for (const x of manuais) {
+    let p = Math.min(Math.max(1, Math.trunc(x.linha.posicaoOficial as number)), total) - 1
+    if (vagas[p]) {
+      avisos.push(`${nomeCorrida}: duas correções manuais para a posição ${p + 1}; uma foi movida para a próxima posição livre.`)
+      while (p < total && vagas[p]) p++
+      if (p >= total) p = vagas.findIndex((v) => v === null)
+    }
+    vagas[p] = x
+  }
+  let cursor = 0
+  for (const x of ordemAuto) {
+    while (vagas[cursor]) cursor++
+    vagas[cursor] = x
+  }
+  vagas.forEach((x, i) => {
+    if (x) x.posicaoOficial = i + 1
+  })
+
+  // 6) Grupo (categorias da classificação), convidados e posição para pontos.
+  const noGrupo = internas.filter((x) => !grupo || (x.ins && grupo.has(k(x.ins.categoria))))
+  const ehConvidado = (x: Interna) => x.ins?.condicao === 'convidado'
+  const posicionadosGrupo = noGrupo.filter((x) => x.posicaoOficial !== null).sort((a, b) => (a.posicaoOficial as number) - (b.posicaoOficial as number))
+  const posCategoria = new Map<Interna, number>()
+  posicionadosGrupo.forEach((x, i) => posCategoria.set(x, i + 1))
+  // Quem abandona fica atrás de todos os que terminaram, então não altera a posição deles.
+  const posPontos = new Map<Interna, number>()
+  if (convidados === 'reclassificar-elegiveis') {
+    posicionadosGrupo.filter((x) => !ehConvidado(x)).forEach((x, i) => pontuaPelaPosicao(x) && posPontos.set(x, i + 1))
+  } else {
+    posicionadosGrupo.filter((x) => !ehConvidado(x) && pontuaPelaPosicao(x)).forEach((x) => posPontos.set(x, posCategoria.get(x) as number))
+  }
+
+  // 7) Volta mais rápida (só em corrida que conta e não é tomada de tempo), entre os posicionados do grupo.
+  let vmr: Interna | null = null
+  const daVoltaRapida = conta && !ehTomada
+  if (daVoltaRapida) {
+    const marcadas = new Set(idsDe(corrida.voltaMaisRapidaManual))
+    const manuaisVmr = noGrupo.filter((x) => x.linha.voltaMaisRapida === true || marcadas.has(k(x.linha.inscricao)))
+    const elegiveis = manuaisVmr.filter((x) => !ehConvidado(x) && x.statusInformado !== 'desclassificado')
+    if (elegiveis.length) {
+      vmr = elegiveis.sort((a, b) => (a.posicaoOficial ?? Infinity) - (b.posicaoOficial ?? Infinity) || a.indice - b.indice)[0]
+    } else {
+      const candidatos = (soElegiveis: boolean) =>
+        posicionadosGrupo
+          .filter(pontuaPelaPosicao)
+          .filter((x) => typeof x.linha.melhorVolta === 'number' && (x.linha.melhorVolta as number) > 0)
+          .filter((x) => !soElegiveis || !ehConvidado(x))
+          .sort((a, b) => (a.linha.melhorVolta as number) - (b.linha.melhorVolta as number) || (a.posicaoOficial as number) - (b.posicaoOficial as number))
+      // Marcação manual para um convidado do grupo vale como se ele tivesse feito a volta.
+      const convidadoMarcado = manuaisVmr.some((x) => ehConvidado(x))
+      const melhor = convidadoMarcado ? manuaisVmr.find(ehConvidado) ?? null : candidatos(false)[0] ?? null
+      if (melhor && !ehConvidado(melhor)) vmr = melhor
+      else if (melhor && convidados === 'reclassificar-elegiveis') vmr = candidatos(true)[0] ?? null
+    }
+  }
+
+  // 8) Pontos.
+  const tabela = conta ? tabelaDaCorrida(regra, corrida, avisos) : []
+  const fatorTotal = fator(opcoes.fatorEtapa, 'etapa', avisos) * fator(corrida.fatorPontuacao, nomeCorrida, avisos)
+  const pVmr = paraDecimos(numeroOu(regra.pontosVoltaRapida, 0))
+  const pPart = paraDecimos(numeroOu(regra.pontosParticipacao, 0))
+
+  const linhas: LinhaResultadoCalculada[] = noGrupo.map((x) => {
+    const convidado = ehConvidado(x)
+    const desclassificado = x.status === 'desclassificado'
+    const largou = x.status !== 'nao-largou'
+    const posicaoParaPontos = posPontos.get(x) ?? null
+    let tab = 0
+    let vr = 0
+    let part = 0
+    if (conta && !convidado && !desclassificado) {
+      if (posicaoParaPontos !== null) tab = paraDecimos(numeroOu(tabela[posicaoParaPontos - 1], 0) * fatorTotal)
+      if (vmr === x) vr = pVmr
+      if (!ehTomada && pPart) {
+        const ok = requisito === 'presente' ? true : requisito === 'largou' ? largou : pontuaPelaPosicao(x)
+        const zeradoPorAbandono = x.status === 'abandono' && abandono === 'zero'
+        if (ok && !zeradoPorAbandono) part = pPart
+      }
+    }
+    const calculados = tab + vr + part
+    const manuais = typeof x.linha.pontosManuais === 'number' && Number.isFinite(x.linha.pontosManuais) ? paraDecimos(x.linha.pontosManuais) : null
+    const valem = !conta || convidado ? 0 : manuais ?? calculados
+    const penal = convidado ? 0 : -paraDecimos(somaPenalidade(x.linha, 'pontos'))
+    return {
+      indice: x.indice,
+      inscricao: x.linha.inscricao,
+      piloto: x.ins?.piloto ?? null,
+      nome: x.ins?.nome ?? null,
+      numero: x.ins?.numero ?? null,
+      categoria: x.ins?.categoria ?? null,
+      convidado,
+      statusInformado: x.statusInformado,
+      status: x.status,
+      posicaoChegada: x.linha.posicaoChegada ?? null,
+      posicaoOficial: x.posicaoOficial,
+      posicaoOficialManual: x.manual,
+      posicaoCategoria: posCategoria.get(x) ?? null,
+      posicaoParaPontos,
+      pontosTabela: deDecimos(tab),
+      pontosVoltaRapida: deDecimos(vr),
+      pontosParticipacao: deDecimos(part),
+      pontosCalculados: deDecimos(calculados),
+      pontosManuais: manuais === null ? null : deDecimos(manuais),
+      pontos: deDecimos(valem),
+      penalidadePontos: deDecimos(penal) || 0,
+      voltaMaisRapida: vmr === x,
+      largou,
+      desclassificado,
+      penalidades: penalidadesDa(x.linha),
+    }
+  })
+
+  linhas.sort(
+    (a, b) =>
+      (a.posicaoOficial ?? Infinity) - (b.posicaoOficial ?? Infinity) ||
+      ORDEM_STATUS[a.status] - ORDEM_STATUS[b.status] ||
+      (a.posicaoChegada ?? Infinity) - (b.posicaoChegada ?? Infinity) ||
+      a.indice - b.indice,
+  )
+
+  return {
+    corrida: corrida.id,
+    conta,
+    linhas,
+    voltaMaisRapida: vmr?.linha.inscricao ?? null,
+    voltasReferencia,
+    avisos,
+  }
+}
+
+/**
+ * Confere uma lista de resultados antes de gravar (para o hook/validação da corrida e a tela de lançamento).
+ * Devolve mensagens em português; lista vazia = tudo certo.
+ */
+export function validarResultadosCorrida(resultados: LinhaResultado[]): string[] {
+  const erros: string[] = []
+  const inscricoes = new Map<string, number>()
+  const chegadas = new Map<number, number>()
+  resultados.forEach((l, i) => {
+    const n = i + 1
+    const ins = k(l?.inscricao)
+    if (!ins) erros.push(`Linha ${n}: escolha o piloto (inscrição).`)
+    else if (inscricoes.has(ins)) erros.push(`Linha ${n}: este piloto já está na linha ${inscricoes.get(ins)}.`)
+    else inscricoes.set(ins, n)
+    const status = l.status ?? 'classificado'
+    if (typeof l.posicaoChegada === 'number') {
+      if (!Number.isInteger(l.posicaoChegada) || l.posicaoChegada < 1) erros.push(`Linha ${n}: a posição de chegada deve ser um número inteiro a partir de 1.`)
+      else if (chegadas.has(l.posicaoChegada)) erros.push(`Linha ${n}: a posição de chegada ${l.posicaoChegada} já está na linha ${chegadas.get(l.posicaoChegada)}.`)
+      else chegadas.set(l.posicaoChegada, n)
+    } else if (status === 'classificado') {
+      erros.push(`Linha ${n}: piloto classificado precisa da posição de chegada.`)
+    }
+    for (const p of penalidadesDa(l)) {
+      if (p.tipo !== 'advertencia' && !(typeof p.valor === 'number' && p.valor > 0)) {
+        erros.push(`Linha ${n}: informe o valor da penalidade (${p.tipo === 'tempo' ? 'segundos' : p.tipo === 'posicoes' ? 'posições' : 'pontos'}).`)
+      }
+      if (!(p.motivo ?? '').trim()) erros.push(`Linha ${n}: informe o motivo da penalidade.`)
+    }
+    if (typeof l.posicaoOficial === 'number' && (l.motivoPosicaoOficial ?? '').trim() && (status === 'desclassificado' || status === 'nao-largou')) {
+      erros.push(`Linha ${n}: piloto desclassificado ou que não largou não tem posição oficial.`)
+    }
+    if (typeof l.pontosManuais === 'number' && paraDecimos(l.pontosManuais) / 10 !== l.pontosManuais) {
+      erros.push(`Linha ${n}: os pontos manuais aceitam no máximo 1 casa decimal.`)
+    }
+  })
+  return erros
+}
+
+// ───────────────────────────── classificação da temporada × categoria ─────────────────────────────
+
+type EtapaAcum = {
+  pontos: number // décimos: corridas + pole (antes de penalidades)
+  extras: number // décimos não descartáveis no descarte por corrida (pole e tabela da tomada)
+  corridas: Map<string, number> // corrida (que conta) → décimos
+  penalidades: number
+  ajustes: number
+  dsq: boolean
+  dsqCorridas: Set<string>
+  participou: boolean
+  temPosicao: boolean
+  posicoes: Map<string, number | null> // corrida que conta → posição para pontos
+  pole: boolean
+}
+
+type PilotoAcum = {
+  chave: string
+  principal: Inscricao
+  inscricoes: Inscricao[]
+  etapas: Map<string, EtapaAcum>
+  vitorias: number
+  podios: number
+  corridas: number
+  poles: number
+  voltasRapidas: number
+  contagem: number[]
+  ajustesGerais: number
+}
+
+const novaEtapaAcum = (): EtapaAcum => ({
+  pontos: 0,
+  extras: 0,
+  corridas: new Map(),
+  penalidades: 0,
+  ajustes: 0,
+  dsq: false,
+  dsqCorridas: new Set(),
+  participou: false,
+  temPosicao: false,
+  posicoes: new Map(),
+  pole: false,
+})
+
+const sinalAjuste = (a: Ajuste): number => {
+  const v = numeroOu(a.pontos, 0)
+  if (a.tipo === 'penalidade') return -Math.abs(v)
+  if (a.tipo === 'bonificacao') return Math.abs(v)
+  return v
+}
+
+/** Etapas da temporada relevantes para o grupo (pela lista de categorias da etapa; vazia = todas). */
+const etapaDoGrupo = (e: Etapa, grupo: Set<string>) => !e.categorias?.length || e.categorias.some((c) => grupo.has(k(c)))
+
+const corridaDoGrupo = (c: Corrida, grupo: Set<string>, mapaIns: Map<string, Inscricao>) =>
+  c.categorias?.length
+    ? c.categorias.some((x) => grupo.has(k(x)))
+    : (c.resultados ?? []).some((l) => {
+        const i = mapaIns.get(k(l?.inscricao))
+        return !!i && grupo.has(k(i.categoria))
+      })
+
+type Nucleo = {
+  linhas: LinhaClassificacao[]
+  criterios: CriteriosAplicados
+  etapasConsideradas: Etapa[]
+  avisos: string[]
+}
+
+function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa[], comAvisos: boolean): Nucleo {
+  const avisos: string[] = []
+  const regra = entrada.regra ?? {}
+  const grupo = new Set([k(entrada.categoria), ...(entrada.incluiResultadosDe ?? []).map(k)].filter(Boolean))
+  const mapaIns = new Map(entrada.inscricoes.map((i) => [k(i.id), i] as const))
+  const idsConsiderados = new Set(etapasConsideradas.map((e) => k(e.id)))
+
+  // Corridas oficiais das etapas consideradas, do grupo, em ordem cronológica dentro de cada etapa.
+  const corridasPorEtapa = new Map<string, Corrida[]>()
+  for (const c of entrada.corridas) {
+    if (c.status !== 'oficial' || !idsConsiderados.has(k(c.etapa)) || !corridaDoGrupo(c, grupo, mapaIns)) continue
+    const lista = corridasPorEtapa.get(k(c.etapa)) ?? []
+    lista.push(c)
+    corridasPorEtapa.set(k(c.etapa), lista)
+  }
+  for (const [id, lista] of corridasPorEtapa) corridasPorEtapa.set(id, ordenarCorridas(lista))
+
+  // Etapas que efetivamente contam para o grupo (realizadas e com alguma corrida oficial do grupo).
+  const etapas = etapasConsideradas.filter((e) => corridasPorEtapa.has(k(e.id)))
+
+  // Última etapa do calendário (para "última etapa não descartável"): a mais tardia não cancelada do grupo.
+  const calendario = ordenarEtapas(entrada.etapas.filter((e) => e.status !== 'cancelada' && etapaDoGrupo(e, grupo)))
+  const ultimaDoCalendario = calendario.length ? k(calendario[calendario.length - 1].id) : null
+
+  // Pilotos da classificação (titulares do grupo; inscrição excluída não entra).
+  const pilotos = new Map<string, PilotoAcum>()
+  const pilotoDaInscricao = (id: Id | null | undefined): PilotoAcum | null => {
+    const ins = mapaIns.get(k(id))
+    if (!ins || !grupo.has(k(ins.categoria)) || ins.condicao === 'convidado' || ins.status === 'excluida') return null
+    const chave = k(ins.piloto) || `inscricao:${k(ins.id)}`
+    let p = pilotos.get(chave)
+    if (!p) {
+      p = { chave, principal: ins, inscricoes: [], etapas: new Map(), vitorias: 0, podios: 0, corridas: 0, poles: 0, voltasRapidas: 0, contagem: [], ajustesGerais: 0 }
+      pilotos.set(chave, p)
+    }
+    if (!p.inscricoes.some((x) => k(x.id) === k(ins.id))) p.inscricoes.push(ins)
+    // A inscrição principal é a da categoria da classificação (quando o piloto tem mais de uma no grupo).
+    if (k(ins.categoria) === k(entrada.categoria) && k(p.principal.categoria) !== k(entrada.categoria)) p.principal = ins
+    return p
+  }
+  for (const ins of entrada.inscricoes) {
+    if ((ins.status ?? 'ativa') === 'ativa') pilotoDaInscricao(ins.id)
+  }
+  const acumEtapa = (p: PilotoAcum, etapaId: string) => {
+    let e = p.etapas.get(etapaId)
+    if (!e) {
+      e = novaEtapaAcum()
+      p.etapas.set(etapaId, e)
+    }
+    return e
+  }
+
+  // Corridas que contam (para descarte por corrida): lista por etapa.
+  const contadasPorEtapa = new Map<string, Corrida[]>()
+
+  for (const etapa of etapas) {
+    const idEtapa = k(etapa.id)
+    const corridas = corridasPorEtapa.get(idEtapa) ?? []
+    const fatorEtapa = etapa.fatorPontuacao
+    const contadas: Corrida[] = []
+    // Pole: a tomada de tempo da etapa (prefere a que inclui a categoria principal; depois a primeira).
+    const tomadas = corridas.filter((c) => (c.tipo ?? 'bateria') === 'tomada-de-tempo')
+    const tomadaPole = tomadas.find((c) => (c.categorias ?? []).some((x) => k(x) === k(entrada.categoria))) ?? tomadas[0] ?? null
+
+    for (const corrida of corridas) {
+      const r = calcularResultadoCorrida(corrida, regra, { inscricoes: mapaIns, categorias: [...grupo], fatorEtapa })
+      if (comAvisos) avisos.push(...r.avisos)
+      const ehTomada = (corrida.tipo ?? 'bateria') === 'tomada-de-tempo'
+      const contaComoCorrida = r.conta && !ehTomada
+      if (contaComoCorrida) contadas.push(corrida)
+
+      for (const l of r.linhas) {
+        const p = pilotoDaInscricao(l.inscricao)
+        if (!p) continue
+        const e = acumEtapa(p, idEtapa)
+        e.participou = true
+        const pts = paraDecimos(l.pontos)
+        e.pontos += pts
+        e.penalidades += paraDecimos(l.penalidadePontos)
+        if (ehTomada) {
+          e.extras += pts
+          if (tomadaPole && corrida === tomadaPole && l.posicaoParaPontos === 1) {
+            e.pole = true
+            p.poles++
+            const pp = paraDecimos(numeroOu(regra.pontosPole, 0))
+            e.pontos += pp
+            e.extras += pp
+          }
+          continue
+        }
+        if (!contaComoCorrida) continue
+        e.corridas.set(k(corrida.id), pts)
+        if (l.desclassificado) {
+          e.dsq = true
+          e.dsqCorridas.add(k(corrida.id))
+        }
+        if (l.largou) p.corridas++
+        e.posicoes.set(k(corrida.id), l.posicaoParaPontos)
+        if (l.posicaoParaPontos !== null) {
+          e.temPosicao = true
+          p.contagem[l.posicaoParaPontos] = (p.contagem[l.posicaoParaPontos] ?? 0) + 1
+          if (l.posicaoParaPontos === 1) p.vitorias++
+          if (l.posicaoParaPontos <= 3) p.podios++
+        }
+        if (l.voltaMaisRapida) p.voltasRapidas++
+      }
+    }
+    contadasPorEtapa.set(idEtapa, contadas)
+  }
+
+  // Ajustes da classificação.
+  for (const a of entrada.ajustes ?? []) {
+    const p = pilotoDaInscricao(a.inscricao)
+    if (!p) {
+      if (comAvisos) avisos.push('Há um ajuste de pontos para uma inscrição que não está nesta classificação (convidado, excluída ou de outra categoria); ele foi ignorado.')
+      continue
+    }
+    const d = paraDecimos(sinalAjuste(a))
+    if (a.etapa === null || a.etapa === undefined || k(a.etapa) === '') {
+      p.ajustesGerais += d
+    } else if (idsConsiderados.has(k(a.etapa))) {
+      if (etapas.some((e) => k(e.id) === k(a.etapa))) acumEtapa(p, k(a.etapa)).ajustes += d
+      else p.ajustesGerais += d
+    }
+    // Ajuste de etapa ainda não realizada (ou depois de `ateEtapa`) só entra quando a etapa contar.
+  }
+
+  // Pilotos com inscrição não ativa (desistente/transferida) só aparecem se correram ou têm ajuste.
+  for (const [chave, p] of pilotos) {
+    const algumaAtiva = p.inscricoes.some((i) => (i.status ?? 'ativa') === 'ativa')
+    const temAlgo = [...p.etapas.values()].some((e) => e.participou || e.ajustes) || p.ajustesGerais !== 0
+    if (!algumaAtiva && !temAlgo) pilotos.delete(chave)
+  }
+
+  // Descartes.
+  const desc = regra.descartes ?? null
+  const qtd = Math.max(0, Math.trunc(numeroOu(desc?.quantidade, 0)))
+  const unidade = desc?.unidade ?? REGRA_PADRAO.unidadeDescarte
+  const aPartirDe = Math.max(0, Math.trunc(numeroOu(desc?.aPartirDeEtapas, 0)))
+  const ultimaDescartavel = desc?.ultimaEtapaDescartavel !== false
+  const unidadesRealizadas = unidade === 'etapa' ? etapas.length : [...contadasPorEtapa.values()].reduce((s, l) => s + l.length, 0)
+  const descartaAgora = qtd > 0 && etapas.length >= aPartirDe && unidadesRealizadas > qtd
+
+  const descartesEtapa = new Map<string, Set<string>>() // piloto → etapas descartadas
+  const descartesCorrida = new Map<string, Set<string>>() // piloto → corridas descartadas
+  if (descartaAgora) {
+    for (const p of pilotos.values()) {
+      if (unidade === 'etapa') {
+        const candidatos = etapas
+          .map((e, ordem) => ({ id: k(e.id), ordem, pontos: p.etapas.get(k(e.id))?.pontos ?? 0, dsq: p.etapas.get(k(e.id))?.dsq ?? false }))
+          .filter((c) => !c.dsq && (ultimaDescartavel || c.id !== ultimaDoCalendario))
+          .sort((a, b) => a.pontos - b.pontos || a.ordem - b.ordem)
+        descartesEtapa.set(p.chave, new Set(candidatos.slice(0, qtd).map((c) => c.id)))
+      } else {
+        const candidatos: { id: string; ordem: number; pontos: number }[] = []
+        let ordem = 0
+        for (const e of etapas) {
+          const ea = p.etapas.get(k(e.id))
+          for (const c of contadasPorEtapa.get(k(e.id)) ?? []) {
+            const id = k(c.id)
+            ordem++
+            if (ea?.dsqCorridas.has(id)) continue
+            if (!ultimaDescartavel && k(e.id) === ultimaDoCalendario) continue
+            candidatos.push({ id, ordem, pontos: ea?.corridas.get(id) ?? 0 })
+          }
+        }
+        candidatos.sort((a, b) => a.pontos - b.pontos || a.ordem - b.ordem)
+        descartesCorrida.set(p.chave, new Set(candidatos.slice(0, qtd).map((c) => c.id)))
+      }
+    }
+  }
+
+  // Posição de cada piloto em cada etapa (pontos da etapa; empate: melhor posição na última corrida, voltando).
+  const posicaoNaEtapa = new Map<string, Map<string, number>>() // etapa → piloto → posição
+  for (const e of etapas) {
+    const id = k(e.id)
+    const lista = [...pilotos.values()].filter((p) => p.etapas.get(id)?.temPosicao)
+    lista.sort((a, b) => {
+      const ea = a.etapas.get(id) as EtapaAcum
+      const eb = b.etapas.get(id) as EtapaAcum
+      if (eb.pontos !== ea.pontos) return eb.pontos - ea.pontos
+      const contadas = contadasPorEtapa.get(id) ?? []
+      for (let i = contadas.length - 1; i >= 0; i--) {
+        const pa = ea.posicoes.get(k(contadas[i].id)) ?? null
+        const pb = eb.posicoes.get(k(contadas[i].id)) ?? null
+        if (pa === pb) continue
+        if (pa === null) return 1
+        if (pb === null) return -1
+        return pa - pb
+      }
+      return comparaNome(a.principal.nome, b.principal.nome) || (a.chave < b.chave ? -1 : 1)
+    })
+    posicaoNaEtapa.set(id, new Map(lista.map((p, i) => [p.chave, i + 1] as const)))
+  }
+
+  // Linhas.
+  const etapasNumero = [...etapas].sort((a, b) => a.numero - b.numero)
+  const linhas: (LinhaClassificacao & { _contagem: number[]; _ordemEtapas: (number | null)[] })[] = []
+  for (const p of pilotos.values()) {
+    let brutos = 0
+    let descartados = 0
+    let ajustes = p.ajustesGerais
+    const etDesc = descartesEtapa.get(p.chave) ?? new Set<string>()
+    const coDesc = descartesCorrida.get(p.chave) ?? new Set<string>()
+    const porEtapa: ResultadoEtapaLinha[] = etapasNumero.map((e) => {
+      const id = k(e.id)
+      const ea = p.etapas.get(id) ?? novaEtapaAcum()
+      let descEtapa = 0
+      const corridasDescartadas: Id[] = []
+      if (etDesc.has(id)) descEtapa = ea.pontos
+      else {
+        for (const c of contadasPorEtapa.get(id) ?? []) {
+          if (coDesc.has(k(c.id))) {
+            corridasDescartadas.push(c.id)
+            descEtapa += ea.corridas.get(k(c.id)) ?? 0
+          }
+        }
+      }
+      const contadas = contadasPorEtapa.get(id) ?? []
+      const etapaInteira = etDesc.has(id) || (contadas.length > 0 && corridasDescartadas.length === contadas.length && ea.extras === 0)
+      brutos += ea.pontos
+      descartados += descEtapa
+      ajustes += ea.penalidades + ea.ajustes
+      return {
+        etapa: e.id,
+        numero: e.numero,
+        pontos: deDecimos(ea.pontos),
+        posicao: posicaoNaEtapa.get(id)?.get(p.chave) ?? null,
+        descartado: etapaInteira,
+        pontosDescartados: deDecimos(descEtapa),
+        corridasDescartadas,
+        ajustes: deDecimos(ea.penalidades + ea.ajustes),
+        participou: ea.participou,
+        desclassificado: ea.dsq,
+        pole: ea.pole,
+      }
+    })
+    const ordemCrono = etapas.map((e) => posicaoNaEtapa.get(k(e.id))?.get(p.chave) ?? null)
+    const ins = p.principal
+    linhas.push({
+      chave: p.chave,
+      posicao: 0,
+      posicaoAnterior: null,
+      inscricao: ins.id,
+      inscricoes: p.inscricoes.map((i) => i.id),
+      piloto: ins.piloto ?? null,
+      nome: ins.nome,
+      pilotoSlug: ins.pilotoSlug ?? null,
+      numero: ins.numero ?? null,
+      equipe: ins.equipe ?? null,
+      equipeNome: ins.equipeNome ?? null,
+      categoria: ins.categoria ?? null,
+      pontos: deDecimos(brutos - descartados + ajustes),
+      pontosBrutos: deDecimos(brutos),
+      pontosDescartados: deDecimos(descartados),
+      ajustes: deDecimos(ajustes),
+      vitorias: p.vitorias,
+      podios: p.podios,
+      corridas: p.corridas,
+      poles: p.poles,
+      voltasRapidas: p.voltasRapidas,
+      etapas: [...p.etapas.values()].filter((e) => e.participou).length,
+      porEtapa,
+      desempate: null,
+      _contagem: p.contagem,
+      _ordemEtapas: ordemCrono,
+    })
+  }
+
+  // Ordenação: pontos, critérios de desempate na ordem da regra, e por fim ordem alfabética estável.
+  const criterios = regra.criteriosDesempate ?? CRITERIOS_PADRAO
+  type L = (typeof linhas)[number]
+  const comparadores: Record<CriterioDesempate, (a: L, b: L) => number> = {
+    'mais-vitorias': (a, b) => b.vitorias - a.vitorias,
+    'mais-poles': (a, b) => b.poles - a.poles,
+    'contagem-de-posicoes': (a, b) => {
+      const n = Math.max(a._contagem.length, b._contagem.length)
+      for (let i = 1; i < n; i++) {
+        const d = (b._contagem[i] ?? 0) - (a._contagem[i] ?? 0)
+        if (d !== 0) return d
+      }
+      return 0
+    },
+    'melhor-resultado-ultima-etapa': (a, b) => {
+      for (let i = a._ordemEtapas.length - 1; i >= 0; i--) {
+        const pa = a._ordemEtapas[i]
+        const pb = b._ordemEtapas[i]
+        if (pa === pb) continue
+        if (pa === null) return 1
+        if (pb === null) return -1
+        return pa - pb
+      }
+      return 0
+    },
+  }
+  const alfabetica = (a: L, b: L) =>
+    comparaNome(a.nome, b.nome) || comparaNome(String(a.numero ?? ''), String(b.numero ?? '')) || (a.chave < b.chave ? -1 : a.chave > b.chave ? 1 : 0)
+  const quemDecide = (a: L, b: L): { criterio: CriterioAplicado; d: number } => {
+    for (const c of criterios) {
+      const d = comparadores[c]?.(a, b) ?? 0
+      if (d !== 0) return { criterio: c, d }
+    }
+    return { criterio: 'ordem-alfabetica', d: alfabetica(a, b) }
+  }
+  linhas.sort((a, b) => paraDecimos(b.pontos) - paraDecimos(a.pontos) || quemDecide(a, b).d)
+
+  const empates: EmpateResolvido[] = []
+  linhas.forEach((l, i) => {
+    l.posicao = i + 1
+    const anterior = linhas[i - 1]
+    if (anterior && paraDecimos(anterior.pontos) === paraDecimos(l.pontos)) {
+      const criterio = quemDecide(anterior, l).criterio
+      l.desempate = criterio
+      const ultimo = empates[empates.length - 1]
+      if (ultimo && ultimo.posicoes[ultimo.posicoes.length - 1] === i) {
+        ultimo.posicoes.push(i + 1)
+        ultimo.resolvidoPor.push(criterio)
+      } else {
+        empates.push({ pontos: l.pontos, posicoes: [i, i + 1], resolvidoPor: [criterio] })
+      }
+    }
+  })
+
+  return {
+    linhas: linhas.map(({ _contagem, _ordemEtapas, ...l }) => l),
+    criterios: {
+      desempate: [...criterios],
+      descartes: qtd > 0 ? { unidade, quantidade: qtd, aPartirDeEtapas: aPartirDe, ultimaEtapaDescartavel: ultimaDescartavel, aplicado: descartaAgora } : null,
+      convidados: regra.convidados ?? REGRA_PADRAO.convidados,
+      abandono: regra.abandono ?? REGRA_PADRAO.abandono,
+      requisitoParticipacao: regra.requisitoParticipacao ?? REGRA_PADRAO.requisitoParticipacao,
+      percentualMinimoVoltas: Math.max(0, numeroOu(regra.percentualMinimoVoltas, 0)),
+      empates,
+    },
+    etapasConsideradas: etapas,
+    avisos: [...new Set(avisos)],
+  }
+}
+
+/**
+ * Classificação de uma temporada × categoria (modo automático).
+ * Considera só etapas `realizada` (até `ateEtapa`, se informado) e corridas `oficial`.
+ */
+export function calcularClassificacao(entrada: EntradaClassificacao): ResultadoClassificacao {
+  let realizadas = ordenarEtapas(entrada.etapas.filter((e) => e.status === 'realizada'))
+  if (entrada.ateEtapa !== null && entrada.ateEtapa !== undefined && k(entrada.ateEtapa) !== '') {
+    const i = realizadas.findIndex((e) => k(e.id) === k(entrada.ateEtapa))
+    // Etapa pedida ainda não realizada: classificação até a última realizada antes dela no calendário.
+    if (i >= 0) realizadas = realizadas.slice(0, i + 1)
+    else {
+      const alvo = entrada.etapas.find((e) => k(e.id) === k(entrada.ateEtapa))
+      if (alvo) {
+        const ordem = ordenarEtapas([...realizadas, alvo])
+        realizadas = ordem.slice(0, ordem.indexOf(alvo))
+      }
+    }
+  }
+
+  const atual = calcularNucleo(entrada, realizadas, true)
+
+  if (entrada.comPosicaoAnterior !== false && atual.etapasConsideradas.length >= 2) {
+    const ultima = atual.etapasConsideradas[atual.etapasConsideradas.length - 1]
+    const anteriores = realizadas.slice(0, realizadas.findIndex((e) => k(e.id) === k(ultima.id)))
+    const anterior = calcularNucleo(entrada, anteriores, false)
+    const pos = new Map(anterior.linhas.map((l) => [l.chave, l.posicao] as const))
+    for (const l of atual.linhas) l.posicaoAnterior = pos.get(l.chave) ?? null
+  }
+
+  return {
+    linhas: atual.linhas,
+    criterios: atual.criterios,
+    etapasRealizadas: atual.etapasConsideradas.length,
+    etapas: atual.etapasConsideradas.map((e) => ({ id: e.id, numero: e.numero, nome: e.nome ?? null })),
+    avisos: atual.avisos,
+  }
+}
+
+// ───────────────────────────── líder e fotografia final ─────────────────────────────
+
+export interface DestaqueManual {
+  inscricao: Id | null
+  /** Rótulo exibido no site (padrão "Destaque"; nunca "Líder", que é só do 1º calculado). */
+  rotulo?: string | null
+  /** Até quando o destaque aparece (vazio = sem prazo). */
+  exibirAte?: string | Date | null
+}
+
+export interface Lider {
+  linha: LinhaClassificacao
+  tipo: 'lider' | 'destaque'
+  rotulo: string
+}
+
+/**
+ * Líder de uma categoria. O destaque manual (dentro do prazo) prevalece, com o rótulo próprio;
+ * senão o 1º colocado, desde que tenha pontos (antes da 1ª etapa não há líder).
+ */
+export function liderDe(
+  linhas: LinhaClassificacao[],
+  destaqueManual?: DestaqueManual | null,
+  agora: Date | string | number = new Date(),
+): Lider | null {
+  const instante = agora instanceof Date ? agora.getTime() : new Date(agora).getTime()
+  if (destaqueManual?.inscricao !== null && destaqueManual?.inscricao !== undefined && k(destaqueManual.inscricao) !== '') {
+    const ate = tempo(destaqueManual.exibirAte ?? null)
+    const valido = ate === null || ate >= instante
+    const alvo = k(destaqueManual.inscricao)
+    const linha = valido ? linhas.find((l) => k(l.inscricao) === alvo || l.inscricoes.some((i) => k(i) === alvo)) : undefined
+    if (linha) return { linha, tipo: 'destaque', rotulo: (destaqueManual.rotulo ?? '').trim() || 'Destaque' }
+  }
+  const primeiro = [...linhas].sort((a, b) => a.posicao - b.posicao)[0]
+  if (!primeiro || !(primeiro.pontos > 0)) return null
+  return { linha: primeiro, tipo: 'lider', rotulo: 'Líder' }
+}
+
+/** Formato do JSON `temporada-categorias.fotografiaFinal` (gravado ao encerrar a temporada). */
+export interface FotografiaFinal {
+  versao: 1
+  geradaEm: string
+  etapasRealizadas: number
+  criterios: CriteriosAplicados | null
+  linhas: LinhaClassificacao[]
+}
+
+/**
+ * Monta a fotografia final a partir da classificação calculada (ou manual) — usada no endpoint "encerrar"
+ * da temporada, que grava também campeão, vice e 3º a partir de `linhas[0..2].inscricao`.
+ */
+export function criarFotografiaFinal(
+  resultado: { linhas: LinhaClassificacao[]; criterios?: CriteriosAplicados | null; etapasRealizadas?: number },
+  agora: Date = new Date(),
+): FotografiaFinal {
+  return {
+    versao: 1,
+    geradaEm: agora.toISOString(),
+    etapasRealizadas: resultado.etapasRealizadas ?? 0,
+    criterios: resultado.criterios ?? null,
+    linhas: resultado.linhas,
+  }
+}
+
+/** Lê a fotografia final gravada (tolerante: aceita também uma lista de linhas). null = não há fotografia. */
+export function lerFotografiaFinal(json: unknown): FotografiaFinal | null {
+  if (!json) return null
+  if (Array.isArray(json)) {
+    return { versao: 1, geradaEm: '', etapasRealizadas: 0, criterios: null, linhas: json as LinhaClassificacao[] }
+  }
+  if (typeof json === 'object' && Array.isArray((json as { linhas?: unknown }).linhas)) {
+    const f = json as Partial<FotografiaFinal>
+    return {
+      versao: 1,
+      geradaEm: typeof f.geradaEm === 'string' ? f.geradaEm : '',
+      etapasRealizadas: typeof f.etapasRealizadas === 'number' ? f.etapasRealizadas : 0,
+      criterios: f.criterios ?? null,
+      linhas: f.linhas as LinhaClassificacao[],
+    }
+  }
+  return null
+}
