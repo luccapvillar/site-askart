@@ -43,12 +43,11 @@ const globalComEfeitos = (g: GlobalConfig): GlobalConfig => {
   return { ...g, hooks: { ...g.hooks, afterChange: [...depois, revalidarGlobal, registrarGlobal(onde)] } }
 }
 
-const origens = [env.SERVER_URL, ...env.URLS_EXTRAS]
+// Com domínio oficial: endereço fixo e lista de origens. Sem ele (prévia), endereços relativos.
+const origens = env.URL_OFICIAL ? [env.URL_OFICIAL, ...env.URLS_EXTRAS] : []
 
 export default buildConfig({
-  serverURL: env.SERVER_URL,
-  csrf: origens,
-  cors: origens,
+  ...(env.URL_OFICIAL ? { serverURL: env.URL_OFICIAL, csrf: origens, cors: origens } : {}),
   admin: {
     user: 'usuarios',
     importMap: { baseDir: path.resolve(dirname) },

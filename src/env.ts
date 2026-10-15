@@ -28,6 +28,12 @@ export const env = {
     producao && v.length < 32 ? 'use um segredo com pelo menos 32 caracteres (ex.: openssl rand -hex 32).' : null,
   ),
   SERVER_URL: urlDoServidor(),
+  /**
+   * Endereço oficial definido à mão (domínio próprio). Só com ele o painel restringe os cookies a uma
+   * lista de origens; sem ele (prévia na Vercel, que abre o mesmo site por vários endereços *.vercel.app)
+   * vale a proteção do cookie SameSite=Lax e o painel funciona em qualquer endereço do projeto.
+   */
+  URL_OFICIAL: process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '') || null,
   /** Endereços extras liberados para o painel (ex.: o link de prévia da Vercel). */
   URLS_EXTRAS: [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
     .filter((u): u is string => Boolean(u))
