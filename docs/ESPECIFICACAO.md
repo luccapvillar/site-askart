@@ -14,10 +14,10 @@ Imagem original: [`anotacoes-cliente-2026-10-15.jpg`](anotacoes-cliente-2026-10-
    - ■ Onde cada etapa vai ser, **com link para o mapa**.
    - História do campeonato.
    - ■ **Link da IZY Pass** para comprar treinos livres e corridas de cada etapa.
-   - Usar a **logo do BKS** em vários lugares e **várias fotos do campeonato**.
+   - Usar a **logo do BKS** em vários lugares e **várias fotos do campeonato**. Logo recebida em 15/10/2026 (`marca/recebidos/bks-logo-instagram.jpg`, baixa resolução, sobre fundo de bandeira vermelha e azul): emblema verde com arcos brancos e kart vermelho + "BKS" branco e "BRASÍLIA KART SERIES". Cores: vermelho ≈ #D02D21, azul ≈ #0201B8, verde ≈ #2D4D3C.
 3. **Kartódromo:**
    - Onde fica. História dele. Logo da ASKART em alguns lugares.
-   - Taxas e valores (de pista, ambulância etc. — palavra parcialmente ilegível na anotação; confirmar).
+   - Taxas e valores: **taxa de pista** e **taxa de ambulância** (obrigatórias para correr). Valores ainda não informados: exibir como **"R$ X"** até o cliente definir (confirmado em 15/10/2026).
    - ■ Tabela de dias e horários de treino de cada categoria.
    - Como treinar lá.
    - ■ Notícias (avisar se algo aconteceu ou vai acontecer lá).
