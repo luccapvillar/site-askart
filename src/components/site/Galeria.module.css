@@ -1,0 +1,144 @@
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: clamp(8px, 1.2vw, 14px);
+}
+
+.mosaico {
+  columns: 3 260px;
+  column-gap: clamp(8px, 1.2vw, 14px);
+}
+
+.mosaico .item {
+  break-inside: avoid;
+  margin-bottom: clamp(8px, 1.2vw, 14px);
+}
+
+.carrossel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(82%, 520px);
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+
+.carrossel .item {
+  scroll-snap-align: start;
+}
+
+.item {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--raio);
+  overflow: hidden;
+  background: var(--papel-2);
+  cursor: zoom-in;
+}
+
+.grade .item,
+.carrossel .item {
+  aspect-ratio: 3 / 2;
+}
+
+.item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s var(--curva);
+}
+
+.item:hover img {
+  transform: scale(1.04);
+}
+
+.legendaItem {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 24px 12px 10px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.65));
+  color: #fff;
+  font-size: 0.8125rem;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.item:hover .legendaItem,
+.item:focus-visible .legendaItem {
+  opacity: 1;
+}
+
+/* Tela cheia */
+.dialogo {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(6 8 6 / 0.97);
+  color: #fff;
+}
+
+.dialogo[open] {
+  display: grid;
+  place-items: center;
+}
+
+.dialogo::backdrop {
+  background: rgb(6 8 6 / 0.9);
+}
+
+.figura {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 1600px;
+  padding: 56px var(--margem) 24px;
+  touch-action: pan-y;
+}
+
+.figura img {
+  width: 100%;
+  max-height: calc(100dvh - 160px);
+  object-fit: contain;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.9375rem;
+  opacity: 0.85;
+}
+
+.controle {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(0 0 0 / 0.5);
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.fechar { top: 10px; right: 10px; }
+.anterior { left: 10px; top: 50%; translate: 0 -50%; }
+.proxima { right: 10px; top: 50%; translate: 0 -50%; }
+
+@media (max-width: 640px) {
+  .anterior,
+  .proxima {
+    top: auto;
+    bottom: 14px;
+    translate: none;
+  }
+}

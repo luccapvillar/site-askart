@@ -1,0 +1,26 @@
+.vazio {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px dashed var(--linha);
+  border-radius: var(--raio-g);
+  background: color-mix(in oklab, var(--papel-2) 60%, transparent);
+}
+
+:global(.escuro) .vazio {
+  border-color: var(--linha-clara);
+  background: rgb(255 255 255 / 0.03);
+}
+
+.icone {
+  color: var(--verde);
+}
+
+:global(.escuro) .icone {
+  color: var(--amarelo);
+}
+
+.texto {
+  max-width: 56ch;
+}

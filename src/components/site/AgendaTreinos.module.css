@@ -1,0 +1,98 @@
+/* Agenda de treinos: no celular, lista por dia (sem tabela larga); em telas largas, colunas por dia. */
+.dias {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 1000px) {
+  .semana {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+.dia {
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  overflow: hidden;
+}
+
+.hoje {
+  border-color: var(--verde);
+  box-shadow: 0 0 0 1px var(--verde);
+}
+
+.cabecaDia {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--papel-2);
+  border-bottom: 1px solid var(--linha);
+}
+
+.nomeDia {
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.dataDia {
+  font-family: var(--fonte-mono);
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.lista {
+  display: grid;
+}
+
+.horario {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--cor, var(--verde));
+}
+
+.horario + .horario {
+  border-top: 1px solid var(--linha);
+}
+
+.inativo {
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, rgb(0 0 0 / 0.035) 8px 16px);
+}
+
+.inativo .hora,
+.inativo .tipo {
+  text-decoration: line-through;
+  text-decoration-color: rgb(0 0 0 / 0.35);
+}
+
+.hora {
+  font-family: var(--fonte-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tipo {
+  font-weight: 650;
+}
+
+.meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.semHorario {
+  padding: 14px;
+  color: var(--texto-2);
+  font-size: 0.875rem;
+}

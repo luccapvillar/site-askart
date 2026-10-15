@@ -1,0 +1,27 @@
+/* Placa de número do kart: retângulo inclinado como o "ASKART" da logo, na cor da categoria */
+.placa {
+  --cor: var(--amarelo);
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.6em;
+  height: 1.9em;
+  padding-inline: 0.35em;
+  border-radius: 4px;
+  background: var(--cor);
+  color: var(--texto-placa, var(--marca-escuro));
+  font-family: var(--fonte);
+  font-variation-settings: 'wdth' 112;
+  font-weight: 850;
+  font-style: italic;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transform: skewX(var(--inclinacao));
+}
+
+.placa > span {
+  transform: skewX(calc(var(--inclinacao) * -1));
+}
+
+.p { font-size: 0.8125rem; }
+.m { font-size: 1rem; }
+.g { font-size: 1.5rem; }

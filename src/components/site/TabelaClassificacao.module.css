@@ -1,0 +1,147 @@
+/*
+ * Classificação estilo folha de cronometragem.
+ * Celular: colunas fixas (posição, piloto, pontos) + detalhes expansíveis por piloto.
+ * Telas maiores: tabela completa com colunas por etapa (rolagem horizontal se necessário).
+ */
+.tabela {
+  font-size: 0.9375rem;
+}
+
+.tabela th,
+.tabela td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.tabela thead th {
+  font-family: var(--fonte-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+  border-bottom: 2px solid var(--texto);
+}
+
+.num {
+  text-align: right !important;
+  font-family: var(--fonte-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.pos {
+  width: 1%;
+  font-family: var(--fonte);
+  font-variation-settings: 'wdth' 118;
+  font-style: italic;
+  font-weight: 850;
+  font-size: 1.125rem;
+}
+
+.pontos {
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+
+.piloto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  white-space: normal;
+}
+
+.piloto a {
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.piloto a:hover {
+  text-decoration: underline;
+}
+
+.equipe {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  font-weight: 400;
+}
+
+.lider td {
+  background: color-mix(in oklab, var(--amarelo) 16%, transparent);
+}
+
+.variacao {
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+}
+
+.sobe { color: var(--ok); }
+.desce { color: var(--perigo); }
+
+.descartado {
+  text-decoration: line-through;
+  color: var(--texto-2);
+}
+
+.convidado {
+  margin-left: 6px;
+}
+
+/* Celular: só posição, piloto e pontos; o resto vai para "detalhes" */
+.detalhe {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .larga {
+    display: none;
+  }
+
+  .tabela th,
+  .tabela td {
+    padding: 10px 6px;
+  }
+
+  .detalhe {
+    display: table-row;
+  }
+
+  .detalhe td {
+    padding: 0 6px 12px;
+    border-bottom: 1px solid var(--linha);
+  }
+
+  .comDetalhe td {
+    border-bottom: 0;
+  }
+
+  .detalhes summary {
+    font-family: var(--fonte-mono);
+    font-size: 0.75rem;
+    color: var(--texto-2);
+    cursor: pointer;
+  }
+
+  .detalhes dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .detalhes dt {
+    font-size: 0.6875rem;
+    font-family: var(--fonte-mono);
+    text-transform: uppercase;
+    color: var(--texto-2);
+  }
+
+  .detalhes dd {
+    font-family: var(--fonte-mono);
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,39 @@
+.contagem {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 1.2vw, 12px);
+}
+
+.bloco {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: clamp(10px, 1.6vw, 16px) 6px;
+  border-radius: var(--raio);
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid var(--linha-clara);
+}
+
+.valor {
+  font-family: var(--fonte);
+  font-variation-settings: 'wdth' 118;
+  font-style: italic;
+  font-weight: 850;
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--amarelo);
+}
+
+.rotulo {
+  font-family: var(--fonte-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.agora {
+  font-weight: 700;
+  color: var(--amarelo);
+}

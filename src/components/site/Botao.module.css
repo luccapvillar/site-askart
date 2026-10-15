@@ -1,0 +1,81 @@
+.botao {
+  --fundo: var(--verde);
+  --cor: var(--branco);
+  --borda: var(--fundo);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 22px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--fundo);
+  color: var(--cor);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s var(--curva),
+    border-color 0.2s var(--curva),
+    color 0.2s var(--curva),
+    transform 0.2s var(--curva);
+}
+
+.botao:hover {
+  --fundo: var(--verde-escuro);
+}
+
+.botao:active {
+  transform: translateY(1px);
+}
+
+.destaque {
+  --fundo: var(--amarelo);
+  --cor: var(--marca-escuro);
+}
+
+.destaque:hover {
+  --fundo: var(--amarelo-escuro);
+  --cor: var(--branco);
+}
+
+.contorno {
+  --fundo: transparent;
+  --cor: currentColor;
+  --borda: currentColor;
+}
+
+.contorno:hover {
+  --fundo: rgb(127 127 127 / 0.12);
+}
+
+.texto {
+  --fundo: transparent;
+  --borda: transparent;
+  --cor: currentColor;
+  padding-inline: 4px;
+  min-height: 40px;
+}
+
+.texto:hover {
+  --fundo: transparent;
+  text-decoration: underline;
+}
+
+.pequeno {
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+
+.seta {
+  transition: transform 0.2s var(--curva);
+}
+
+.botao:hover .seta {
+  transform: translateX(3px);
+}
