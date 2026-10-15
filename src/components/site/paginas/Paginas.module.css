@@ -1,0 +1,324 @@
+.topo {
+  position: relative;
+  overflow: hidden;
+  background: var(--marca-escuro);
+  color: var(--texto-claro);
+  isolation: isolate;
+}
+
+.topoFoto {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comFoto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgb(10 12 10 / 0.9), rgb(10 12 10 / 0.55) 60%, rgb(10 12 10 / 0.3));
+}
+
+.topoConteudo {
+  display: grid;
+  gap: 14px;
+  padding-block: clamp(40px, 7vw, 96px) clamp(32px, 5vw, 64px);
+}
+
+.comFoto .topoConteudo {
+  min-height: clamp(320px, 42vw, 480px);
+  align-content: end;
+}
+
+.topoConteudo .rotulo {
+  color: var(--amarelo);
+}
+
+.intro {
+  max-width: 60ch;
+  font-size: clamp(1.05rem, 1rem + 0.3vw, 1.2rem);
+  color: var(--texto-claro-2);
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.creditoTopo {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 0.6875rem;
+  color: rgb(255 255 255 / 0.75);
+}
+
+.sumario {
+  position: sticky;
+  top: var(--cabecalho);
+  z-index: 40;
+  background: var(--branco);
+  border-bottom: 1px solid var(--linha);
+}
+
+.sumario ul {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sumario ul::-webkit-scrollbar {
+  display: none;
+}
+
+.sumario a {
+  display: block;
+  padding: 13px 12px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--texto-2);
+}
+
+.sumario a:hover {
+  color: var(--texto);
+}
+
+.secao {
+  scroll-margin-top: calc(var(--cabecalho) + 48px);
+}
+
+.cabecaSecao {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px 24px;
+  margin-bottom: clamp(20px, 3vw, 32px);
+}
+
+.rotuloSecao {
+  margin-bottom: 8px;
+  color: var(--verde-escuro);
+}
+
+/* Grades e blocos reutilizados pelas páginas */
+.duas {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 900px) {
+  .duas {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+  .duasLargo {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+
+.cartao {
+  padding: clamp(18px, 3vw, 28px);
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+}
+
+.fotoArredondada img,
+img.fotoArredondada {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--raio-g);
+  object-fit: cover;
+}
+
+.passos {
+  display: grid;
+  gap: 12px;
+  counter-reset: passo;
+}
+
+.passo {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 4px 16px;
+  padding: 18px;
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  counter-increment: passo;
+}
+
+.passo::before {
+  content: counter(passo);
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--marca-primaria);
+  color: var(--sobre-primaria, #fff);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.passo h3 {
+  align-self: center;
+}
+
+.passo p {
+  color: var(--texto-2);
+}
+
+.dados {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  background: var(--linha);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  overflow: hidden;
+}
+
+.dados div {
+  display: grid;
+  gap: 2px;
+  padding: 16px;
+  background: var(--branco);
+}
+
+.dados dt {
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+.dados dd {
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.gradeTreinos th,
+.gradeTreinos td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: top;
+}
+
+.gradeTreinos {
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  font-size: 0.9375rem;
+}
+
+.gradeTreinos thead th {
+  background: var(--papel-2);
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+  white-space: nowrap;
+}
+
+.gradeTreinos tbody th {
+  min-width: 150px;
+  font-weight: 700;
+}
+
+.gradeTreinos td {
+  min-width: 110px;
+}
+
+.gradeTreinos td span {
+  display: block;
+  white-space: nowrap;
+}
+
+.vazioCel {
+  color: var(--texto-2);
+}
+
+.redes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rede {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--branco);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.rede:hover {
+  border-color: var(--marca-primaria);
+}
+
+.endereco {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.endereco address {
+  font-style: normal;
+  font-size: 1.125rem;
+  white-space: pre-line;
+}
+
+.lista {
+  display: grid;
+  gap: 8px;
+}
+
+.lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.estrutura {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.estrutura article {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.estrutura img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--raio-g);
+}

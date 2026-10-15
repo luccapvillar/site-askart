@@ -358,3 +358,43 @@ export const lerDocumentos = cache((filtro: Where | undefined, limite = 50) =>
     return docs
   }),
 )
+
+export const lerPiloto = cache((slug: string) =>
+  seguro('piloto', null as import('@/payload-types').Piloto | null, async () => {
+    const payload = await payloadSite()
+    const { docs } = await payload.find({ collection: 'pilotos', where: { slug: { equals: slug } }, depth: 1, limit: 1, ...PUBLICO })
+    return docs[0] ?? null
+  }),
+)
+
+/** Corridas e notícias/galerias ligadas a uma etapa (página da etapa). */
+export const lerConteudoDaEtapa = cache((etapa: number) =>
+  seguro('conteúdo da etapa', { noticias: [] as Noticia[], galerias: [] as Galeria[] }, async () => {
+    const payload = await payloadSite()
+    const [noticias, galerias] = await Promise.all([
+      payload.find({ collection: 'noticias', where: { and: [{ etapa: { equals: etapa } }, publicado()] }, sort: '-publicarEm', depth: 1, limit: 6, ...PUBLICO }),
+      payload.find({ collection: 'galerias', where: { etapa: { equals: etapa } }, depth: 1, limit: 3, ...PUBLICO }),
+    ])
+    return { noticias: noticias.docs, galerias: galerias.docs }
+  }),
+)
+
+export const lerDocumento = cache((slug: string) =>
+  seguro('documento', null as import('@/payload-types').Documento | null, async () => {
+    const payload = await payloadSite()
+    const { docs } = await payload.find({ collection: 'documentos', where: { slug: { equals: slug } }, depth: 0, limit: 1, ...PUBLICO })
+    return docs[0] ?? null
+  }),
+)
+
+export const lerTodosParaMapa = cache(() =>
+  seguro('mapa do site', { noticias: [] as { slug?: string | null; updatedAt: string }[], paginas: [] as { slug?: string | null; updatedAt: string }[], etapas: [] as { id: number; updatedAt: string }[] }, async () => {
+    const payload = await payloadSite()
+    const [noticias, paginas, etapas] = await Promise.all([
+      payload.find({ collection: 'noticias', where: publicado(), depth: 0, limit: 500, select: { slug: true, updatedAt: true }, ...PUBLICO }),
+      payload.find({ collection: 'paginas', where: publicado(), depth: 0, limit: 200, select: { slug: true, updatedAt: true }, ...PUBLICO }),
+      payload.find({ collection: 'etapas', depth: 0, limit: 500, select: { updatedAt: true }, ...PUBLICO }),
+    ])
+    return { noticias: noticias.docs, paginas: paginas.docs, etapas: etapas.docs }
+  }),
+)

@@ -1,12 +1,38 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical'
+import { PREFIXO_DEMO } from './TextoDemo'
+import d from './TextoDemo.module.css'
+
+/** Tira o prefixo de demonstração dos trechos de texto (cópia; o original não muda). */
+function semPrefixo(no: unknown, achou: { sim: boolean }): unknown {
+  if (Array.isArray(no)) return no.map((n) => semPrefixo(n, achou))
+  if (!no || typeof no !== 'object') return no
+  const copia: Record<string, unknown> = { ...(no as Record<string, unknown>) }
+  if (typeof copia.text === 'string' && copia.text.includes(PREFIXO_DEMO)) {
+    achou.sim = true
+    copia.text = copia.text.split(PREFIXO_DEMO).join('').replace(/^\s+/, '')
+  }
+  if (Array.isArray(copia.children)) copia.children = copia.children.map((n) => semPrefixo(n, achou))
+  if (copia.root && typeof copia.root === 'object') copia.root = semPrefixo(copia.root, achou)
+  return copia
+}
 
 /** Texto do editor do painel, com a tipografia de leitura do site. */
 export function TextoRico({ dados, className }: { dados: unknown; className?: string }) {
   if (!dados || typeof dados !== 'object' || !('root' in (dados as object))) return null
-  const estado = dados as SerializedEditorState
-  if (!estado.root?.children?.length) return null
-  return <RichText className={`prosa ${className ?? ''}`} data={estado} />
+  if (!(dados as SerializedEditorState).root?.children?.length) return null
+  const achou = { sim: false }
+  const estado = semPrefixo(dados, achou) as SerializedEditorState
+  return (
+    <div className={className}>
+      {achou.sim && (
+        <p className={d.selo} style={{ marginLeft: 0, marginBottom: 8 }}>
+          Texto de exemplo
+        </p>
+      )}
+      <RichText className="prosa" data={estado} />
+    </div>
+  )
 }
 
 /** Texto puro de um conteúdo do editor (resumos e descrições do Google). */
