@@ -257,7 +257,7 @@ export function campoLink({ name, label, required = false, descricao, rotuloText
         type: 'relationship',
         relationTo: DESTINOS_LINK_INTERNO.map((s) => s as CollectionSlug),
         maxDepth: 1,
-        validate: async (valor, opcoes) => {
+        validate: async (valor: unknown, opcoes: Parameters<Validate>[1]) => {
           const obrigatorio = await exigirDocumento(valor, opcoes)
           if (obrigatorio !== true) return obrigatorio
           return validations.relationship(valor as never, opcoes as never)
@@ -272,7 +272,7 @@ export function campoLink({ name, label, required = false, descricao, rotuloText
         label: 'Seção do site',
         type: 'select',
         options: Object.entries(ROTAS_FIXAS).map(([value, { rotulo }]) => ({ label: rotulo, value })),
-        validate: async (valor, opcoes) => {
+        validate: async (valor: unknown, opcoes: Parameters<Validate>[1]) => {
           const obrigatorio = await exigirRota(valor, opcoes)
           if (obrigatorio !== true) return obrigatorio
           return validations.select(valor as never, opcoes as never)
@@ -283,7 +283,7 @@ export function campoLink({ name, label, required = false, descricao, rotuloText
         name: 'url',
         label: 'Endereço',
         type: 'text',
-        validate: async (valor, opcoes) => {
+        validate: async (valor: unknown, opcoes: Parameters<Validate>[1]) => {
           const obrigatorio = await exigirUrl(valor, opcoes)
           if (obrigatorio !== true) return obrigatorio
           return validarUrlExterna(valor)

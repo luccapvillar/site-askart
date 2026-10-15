@@ -114,7 +114,7 @@ export const Midia: CollectionConfig = comAcessoRestrito({
       label: 'Descrição da imagem',
       type: 'text',
       maxLength: 200,
-      validate: (valor, { data }) => {
+      validate: (valor: unknown, { data }: { data: unknown }) => {
         const mimeType = (data as { mimeType?: string } | undefined)?.mimeType
         if (ehImagem(mimeType) && !(typeof valor === 'string' && valor.trim())) {
           return 'Descreva a imagem em poucas palavras (é lida por pessoas cegas e pelo Google).'
