@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { calcularClassificacao, type Corrida, type EntradaClassificacao, type Etapa, type Inscricao, type LinhaResultado } from '@/lib/classificacao'
 import {
+  campeoesPorTemporada,
   desempenhoPorEtapa,
   evolucaoClassificacao,
   maioresPontuacoes,
@@ -34,7 +35,7 @@ const corrida = (etapaId: string, resultados: LinhaResultado[]): Corrida => ({
 })
 
 const entrada = (extra: Partial<EntradaClassificacao> = {}): EntradaClassificacao => ({
-  regra: { tabelas: [{ nome: 'T', pontos: [10, 8, 6] }], descartes: { quantidade: 1 } },
+  regra: { tabelas: [{ nome: 'T', pontos: [10, 8, 6] }], descartes: { quantidade: 1 }, criteriosDesempate: ['melhor-resultado-ultima-etapa'] },
   categoria: 'cat',
   etapas: [etapa('e1', 1), etapa('e2', 2), etapa('e3', 3), etapa('e4', 4, { status: 'agendada' })],
   corridas: [corrida('e1', chegada('A', 'B', 'C')), corrida('e2', chegada('B', 'A', 'C')), corrida('e3', chegada('B', 'C'))],
@@ -108,6 +109,41 @@ describe('totais por piloto (carreira e temporada)', () => {
   })
 })
 
+describe('classificação que soma categorias (agregada)', () => {
+  it('conta cada piloto uma vez por temporada × categoria, preferindo a classificação própria', () => {
+    const lista: ClassificacaoDaTemporada[] = [
+      // Graduados soma Novatos; Novatos tem classificação própria.
+      {
+        temporada: 't',
+        ano: 2026,
+        categoria: 'grad',
+        agregada: true,
+        encerrada: true,
+        linhas: [linha('g', 1, 50, { vitorias: 2, categoria: 'grad' }), linha('n', 2, 40, { vitorias: 1, categoria: 'nov' })],
+      },
+      { temporada: 't', ano: 2026, categoria: 'nov', encerrada: true, linhas: [linha('n', 1, 45, { vitorias: 2, categoria: 'nov' })] },
+    ]
+    const g = totaisDoPiloto('g', lista)
+    expect(g).toEqual(expect.objectContaining({ pontos: 50, vitorias: 2, titulos: 1 }))
+    const n = totaisDoPiloto('n', lista)
+    // Só a classificação própria de Novatos conta para ele (não soma os 40 da agregada).
+    expect(n).toEqual(expect.objectContaining({ pontos: 45, vitorias: 2, titulos: 1, temporadasDisputadas: 1 }))
+    // Sem classificação própria de Novatos na lista, a linha da agregada passa a contar.
+    expect(totaisDoPiloto('n', [lista[0]])?.pontos).toBe(40)
+  })
+})
+
+describe('campeões', () => {
+  it('pódio final das temporadas encerradas, da mais recente para a mais antiga', () => {
+    const c = campeoesPorTemporada([
+      ...historico,
+      { temporada: 't2024', ano: 2024, categoria: 'cat', encerrada: true, linhas: [linha('c', 2, 10), linha('d', 1, 20), linha('e', 4, 1)] },
+    ])
+    expect(c.map((x) => x.ano)).toEqual([2025, 2024])
+    expect(c[1].podio.map((l) => l.nome)).toEqual(['D', 'C'])
+  })
+})
+
 describe('rankings', () => {
   const totais = totaisPorPiloto(historico)
 
@@ -162,11 +198,13 @@ describe('métricas por etapa (a partir dos resultados)', () => {
     expect(a?.etapas[2]).toEqual(expect.objectContaining({ participou: false, pontos: 0 }))
   })
 
-  it('resultado da etapa em ordem de posição', () => {
-    const r = calcularClassificacao(entrada())
-    expect(resultadoDaEtapa(r, 'e3').map((x) => [x.nome, x.posicao, x.pontos])).toEqual([
-      ['B', 1, 10],
-      ['C', 2, 8],
+  it('resultado da etapa em ordem de posição, com penalidades da etapa à parte', () => {
+    const corridas = entrada().corridas
+    ;(corridas[2].resultados as LinhaResultado[])[1].penalidade = { tipo: 'pontos', valor: 2, motivo: 'Conduta' }
+    const r = calcularClassificacao(entrada({ corridas }))
+    expect(resultadoDaEtapa(r, 'e3').map((x) => [x.nome, x.posicao, x.pontos, x.ajustes])).toEqual([
+      ['B', 1, 10, 0],
+      ['C', 2, 8, -2],
     ])
   })
 })

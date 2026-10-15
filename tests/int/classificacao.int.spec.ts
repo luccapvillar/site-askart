@@ -18,7 +18,14 @@ import {
   type LinhaResultado,
   type Regra,
 } from '@/lib/classificacao'
-import { classificacaoDe, classificacoesDaTemporada, paraRegra } from '@/lib/carregar-competicao'
+import {
+  classificacaoDe,
+  classificacoesDaTemporada,
+  classificacoesParaEstatisticas,
+  paraRegra,
+  resultadosDaEtapa,
+} from '@/lib/carregar-competicao'
+import { totaisDoPiloto } from '@/lib/estatisticas'
 
 // ───────── construtores de dados de teste ─────────
 
@@ -696,6 +703,196 @@ describe('calcularResultadoCorrida e validação', () => {
   })
 })
 
+// ───────── regras finas ─────────
+
+describe('regras finas do motor', () => {
+  it('duas penalidades de posição: cada um vai para a posição que teria + N', () => {
+    const linhas = chegada('A', 'B', 'C')
+    linhas[0].penalidade = { tipo: 'posicoes', valor: 1, motivo: 'Queima de largada' }
+    linhas[1].penalidade = { tipo: 'posicoes', valor: 1, motivo: 'Toque' }
+    const r = calcularResultadoCorrida(corrida('e1', linhas), regraBase(), { inscricoes: tres })
+    expect(r.linhas.map((l) => [l.inscricao, l.posicaoOficial, l.pontos])).toEqual([
+      ['C', 1, 10],
+      ['A', 2, 8],
+      ['B', 3, 6],
+    ])
+  })
+
+  it('penalidade de posições maior que o grid vai para o fim; correção manual prevalece sobre penalidade', () => {
+    const linhas = chegada('A', 'B', 'C')
+    linhas[0].penalidade = { tipo: 'posicoes', valor: 10, motivo: 'x' }
+    linhas[2] = { ...linhas[2], posicaoOficial: 1, motivoPosicaoOficial: 'Recurso aceito', penalidade: { tipo: 'posicoes', valor: 2, motivo: 'z' } }
+    const r = calcularResultadoCorrida(corrida('e1', linhas), regraBase(), { inscricoes: tres })
+    expect(r.linhas.map((l) => [l.inscricao, l.posicaoOficial])).toEqual([
+      ['C', 1],
+      ['B', 2],
+      ['A', 3],
+    ])
+  })
+
+  it('advertência não muda posição nem pontos', () => {
+    const linhas = chegada('A', 'B')
+    linhas[0].penalidade = { tipo: 'advertencia', motivo: 'Conduta' }
+    const r = calc({ etapas: [etapa('e1', 1)], corridas: [corrida('e1', linhas)], inscricoes: tres })
+    expect(porNome(r).A.pontos).toBe(10)
+    expect(porNome(r).A.ajustes).toBe(0)
+  })
+
+  it('descarte por corrida: a corrida com desclassificação nunca é descartada', () => {
+    const corridas = [
+      corrida('e1', chegada('A', 'B')), // A 10
+      corrida('e1', [{ inscricao: 'B', posicaoChegada: 1 }, { inscricao: 'A', posicaoChegada: 2, status: 'desclassificado' }]), // A 0 (DSQ)
+      corrida('e2', chegada('B', 'A')), // A 8
+    ]
+    const r = calc({
+      regra: regraBase({ descartes: { quantidade: 1, unidade: 'corrida' } }),
+      etapas: [etapa('e1', 1), etapa('e2', 2)],
+      corridas,
+      inscricoes: tres,
+    })
+    const a = porNome(r).A
+    expect(a.porEtapa[0].corridasDescartadas).toEqual([])
+    expect(a.porEtapa[1].corridasDescartadas).toEqual([corridas[2].id])
+    expect(a.porEtapa[1].descartado).toBe(true)
+    expect(a.pontos).toBe(10)
+  })
+
+  it('descarte só com resultado sobrando: 1 etapa realizada e 1 descarte não descarta nada', () => {
+    const r = calc({ regra: regraBase({ descartes: { quantidade: 1 } }), etapas: [etapa('e1', 1)], corridas: [corrida('e1', chegada('A'))], inscricoes: tres })
+    expect(porNome(r).A.pontos).toBe(10)
+    expect(r.criterios.descartes?.aplicado).toBe(false)
+  })
+
+  it('sem critérios de desempate na regra: ordem alfabética e aviso ao administrador', () => {
+    const r = calc({
+      etapas: [etapa('e1', 1), etapa('e2', 2)],
+      corridas: [corrida('e1', chegada('B', 'A')), corrida('e2', chegada('A', 'B'))],
+      inscricoes: tres,
+    })
+    expect(ordem(r).slice(0, 2)).toEqual(['A', 'B'])
+    expect(porNome(r).B.desempate).toBe('ordem-alfabetica')
+    expect(r.avisos.some((a) => a.includes('não tem critérios de desempate'))).toBe(true)
+    expect(r.criterios.desempate).toEqual([])
+  })
+
+  it('critérios na ordem da regra: o primeiro que separa decide', () => {
+    // A: 1 vitória, 0 pole · B: 0 vitória, 1 pole · empatados em pontos
+    const corridas = [
+      corrida('e1', chegada('B', 'A'), { tipo: 'tomada-de-tempo', contaParaClassificacao: false }),
+      corrida('e1', chegada('A', 'C', 'B')), // A 10, B 6
+      corrida('e1', chegada('C', 'B', 'D', 'A'), { tabela: 'Extra' }), // B 4, A 0
+    ]
+    const regra = (criteriosDesempate: Regra['criteriosDesempate']) =>
+      regraBase({ criteriosDesempate, tabelas: [{ nome: 'Padrão', pontos: TABELA }, { nome: 'Extra', pontos: [5, 4] }] })
+    const base = { etapas: [etapa('e1', 1)], corridas, inscricoes: [...tres, ins('D')] }
+    const polesPrimeiro = calc({ ...base, regra: regra(['mais-poles', 'mais-vitorias']) })
+    expect(porNome(polesPrimeiro).A.pontos).toBe(10)
+    expect(porNome(polesPrimeiro).B.pontos).toBe(10)
+    expect(porNome(polesPrimeiro).B.posicao).toBeLessThan(porNome(polesPrimeiro).A.posicao)
+    const vitoriasPrimeiro = calc({ ...base, regra: regra(['mais-vitorias', 'mais-poles']) })
+    expect(porNome(vitoriasPrimeiro).A.posicao).toBeLessThan(porNome(vitoriasPrimeiro).B.posicao)
+  })
+
+  it('etapa adiada e realizada depois entra na ordem real (pela data) no desempate e na posição anterior', () => {
+    const etapas = [
+      etapa('e1', 1),
+      etapa('e2', 2, { inicio: '2026-09-10T13:00:00.000Z' }), // adiada para setembro
+      etapa('e3', 3, { inicio: '2026-05-10T13:00:00.000Z' }),
+    ]
+    const r = calc({
+      regra: regraBase({ criteriosDesempate: ['melhor-resultado-ultima-etapa'] }),
+      etapas,
+      corridas: [corrida('e2', chegada('A', 'B')), corrida('e3', chegada('B', 'A'))],
+      inscricoes: tres,
+    })
+    // 18 × 18: a última realizada é a etapa 2 (setembro), vencida por A.
+    expect(ordem(r).slice(0, 2)).toEqual(['A', 'B'])
+    expect(porNome(r).A.posicaoAnterior).toBe(2) // após a etapa 3 (maio), B liderava
+    expect(porNome(r).A.porEtapa.map((e) => e.numero)).toEqual([2, 3])
+  })
+
+  it('pole: tomadas separadas dão uma pole por categoria somada; tomada comum dá uma pole só', () => {
+    const inscricoes = [ins('G1', { categoria: 'g' }), ins('G2', { categoria: 'g' }), ins('N1', { categoria: 'n' }), ins('N2', { categoria: 'n' })]
+    const regra = regraBase({ pontosPole: 1 })
+    const tomada = (ordemTomada: string[], categorias: string[]) =>
+      corrida('e1', chegada(...ordemTomada), { tipo: 'tomada-de-tempo', categorias, contaParaClassificacao: false })
+    const final = () => corrida('e1', chegada('G1', 'N1', 'G2', 'N2'), { categorias: ['g', 'n'] })
+    const poles = (r: ReturnType<typeof calcularClassificacao>) => r.linhas.filter((l) => l.poles > 0).map((l) => l.nome).sort()
+
+    const separadas = calc({
+      regra,
+      categoria: 'g',
+      incluiResultadosDe: ['n'],
+      etapas: [etapa('e1', 1)],
+      corridas: [tomada(['G2', 'G1'], ['g']), tomada(['N1', 'N2'], ['n']), final()],
+      inscricoes,
+    })
+    expect(poles(separadas)).toEqual(['G2', 'N1'])
+
+    const comum = tomada(['N2', 'G1', 'G2', 'N1'], ['g', 'n'])
+    const juntas = calc({ regra, categoria: 'g', incluiResultadosDe: ['n'], etapas: [etapa('e1', 1)], corridas: [comum, final()], inscricoes })
+    expect(poles(juntas)).toEqual(['N2'])
+    // Na classificação só da categoria g, a pole da tomada comum é do 1º de g.
+    const soG = calc({ regra, categoria: 'g', etapas: [etapa('e1', 1)], corridas: [comum, final()], inscricoes })
+    expect(poles(soG)).toEqual(['G1'])
+    expect(porNome(soG).G1.pontos).toBe(11)
+  })
+
+  it('pole de convidado: reclassifica para o melhor titular ou não vai para ninguém', () => {
+    const inscricoes = [ins('X', { condicao: 'convidado' }), ins('A'), ins('B')]
+    const corridas = () => [
+      corrida('e1', chegada('X', 'B', 'A'), { tipo: 'tomada-de-tempo', contaParaClassificacao: false }),
+      corrida('e1', chegada('A', 'B')),
+    ]
+    const reclass = calc({ regra: regraBase({ pontosPole: 1 }), etapas: [etapa('e1', 1)], corridas: corridas(), inscricoes })
+    expect(porNome(reclass).B.poles).toBe(1)
+    const manter = calc({ regra: regraBase({ pontosPole: 1, convidados: 'manter-posicoes' }), etapas: [etapa('e1', 1)], corridas: corridas(), inscricoes })
+    expect(manter.linhas.every((l) => l.poles === 0)).toBe(true)
+  })
+
+  it('piloto inscrito nas duas categorias somadas vira uma linha só', () => {
+    const inscricoes = [
+      ins('X1', { categoria: 'g', piloto: 'px', nome: 'X' }),
+      ins('X2', { categoria: 'n', piloto: 'px', nome: 'X' }),
+      ins('Y', { categoria: 'g' }),
+    ]
+    const r = calc({
+      categoria: 'g',
+      incluiResultadosDe: ['n'],
+      etapas: [etapa('e1', 1), etapa('e2', 2)],
+      corridas: [corrida('e1', chegada('X2', 'Y'), { categorias: ['n', 'g'] }), corrida('e2', chegada('X1', 'Y'), { categorias: ['g'] })],
+      inscricoes,
+    })
+    expect(ordem(r)).toEqual(['X', 'Y'])
+    expect(porNome(r).X.pontos).toBe(20)
+    expect(porNome(r).X.inscricao).toBe('X1')
+    expect(porNome(r).X.inscricoes).toEqual(['X1', 'X2'])
+  })
+
+  it('tomada de tempo que conta para a classificação dá pontos de tabela, mas não conta como corrida', () => {
+    const r = calc({
+      etapas: [etapa('e1', 1)],
+      corridas: [corrida('e1', chegada('B', 'A'), { tipo: 'tomada-de-tempo', contaParaClassificacao: true }), corrida('e1', chegada('A', 'B'))],
+      inscricoes: tres,
+    })
+    expect(porNome(r).B.pontos).toBe(18)
+    expect(porNome(r).B.corridas).toBe(1)
+    expect(porNome(r).B.vitorias).toBe(0)
+  })
+
+  it('liderDe: prazo só com a data vale até o fim do dia em Brasília; rótulo "Líder" vira "Destaque"', () => {
+    const r = calc({ etapas: [etapa('e1', 1)], corridas: [corrida('e1', chegada('A', 'B'))], inscricoes: tres })
+    const destaque = { inscricao: 'B', rotulo: 'Líder', exibirAte: '2026-10-20' }
+    // 20/10 às 23h em Brasília = 21/10 02:00 UTC: ainda vale.
+    expect(liderDe(r.linhas, destaque, new Date('2026-10-21T02:00:00Z'))).toEqual(
+      expect.objectContaining({ tipo: 'destaque', rotulo: 'Destaque', linha: expect.objectContaining({ nome: 'B' }) }),
+    )
+    expect(liderDe(r.linhas, destaque, new Date('2026-10-21T03:00:01Z'))?.linha.nome).toBe('A')
+    // Destaque de quem não está na classificação (ex.: convidado) é ignorado.
+    expect(liderDe(r.linhas, { inscricao: 'Z' }, new Date())?.tipo).toBe('lider')
+  })
+})
+
 // ───────── adaptador banco → motor (Payload simulado, sem banco) ─────────
 
 describe('carregar-competicao (adaptador)', () => {
@@ -766,6 +963,7 @@ describe('carregar-competicao (adaptador)', () => {
       { id: 203, nome: 'Piloto Três', slug: 'piloto-tres', visibilidade: 'visivel' },
     ],
     equipes: [{ id: 301, nome: 'Equipe Teste', sigla: 'ET' }],
+    categorias: [{ id: 3, nome: 'Categoria Teste', sigla: 'CT', slug: 'categoria-teste' }],
   })
 
   it('modo automático: usa os nomes de campo do Payload (fator, melhorVoltaMs, ajustarPosicao) e calcula', async () => {
@@ -788,7 +986,8 @@ describe('carregar-competicao (adaptador)', () => {
     const { payload, chamadas } = banco(dadosBase({ pilotoOculto: true }))
     const c = await classificacaoDe({ payload, temporada: 1, categoria: 3, publico: true })
     expect(chamadas.find((x) => x.collection === 'temporadas')?.overrideAccess).toBe(false)
-    expect(chamadas.find((x) => x.collection === 'temporada-categorias')?.overrideAccess).toBe(false)
+    // Porta da classificação com acesso; depois o conteúdo completo (campos restritos não somem dos pontos).
+    expect(chamadas.filter((x) => x.collection === 'temporada-categorias').map((x) => x.overrideAccess)).toEqual([false, true])
     const selPilotos = Object.keys(chamadas.find((x) => x.collection === 'pilotos')?.select ?? {})
     expect(selPilotos).not.toContain('dataNascimento')
     expect(selPilotos).not.toContain('autorizacaoImagem')
@@ -845,6 +1044,69 @@ describe('carregar-competicao (adaptador)', () => {
     const todas = await classificacoesDaTemporada({ payload, temporada: 1, publico: true })
     expect(todas).toHaveLength(1)
     expect(todas[0].categoria).toBe(3)
+  })
+
+  it('fotografia final: números congelados, nome/equipe atuais, sem link para piloto oculto e sem ler resultados', async () => {
+    const foto = {
+      versao: 1,
+      geradaEm: '2026-12-01T00:00:00.000Z',
+      etapasRealizadas: 8,
+      criterios: null,
+      linhas: [
+        { chave: '201', piloto: 201, nome: 'Grafia Antiga', pilotoSlug: 'piloto-um', equipe: 301, equipeNome: 'Equipe Antiga', posicao: 1, pontos: 99, inscricao: 101, inscricoes: [101], porEtapa: [] },
+        { chave: '202', piloto: 202, nome: 'Piloto Dois', pilotoSlug: 'piloto-dois', posicao: 2, pontos: 80.5, inscricao: 102, inscricoes: [102], porEtapa: [] },
+      ],
+    }
+    const { payload, chamadas } = banco(
+      dadosBase({ pilotoOculto: true, temporada: { status: 'encerrada' }, classificacao: { fotografiaFinal: foto } }),
+    )
+    const c = await classificacaoDe({ payload, temporada: 1, categoria: 3, publico: true })
+    expect(c?.linhas.map((l) => [l.posicao, l.nome, l.pontos, l.equipeNome, l.pilotoSlug])).toEqual([
+      [1, 'Piloto Um', 99, 'Equipe Teste', 'piloto-um'],
+      [2, 'Piloto Dois', 80.5, null, null],
+    ])
+    expect(c?.lider?.linha.nome).toBe('Piloto Um')
+    expect(chamadas.map((x) => x.collection)).not.toContain('corridas')
+
+    // "Classificação após a etapa 1" de temporada encerrada recalcula a partir dos resultados.
+    const corte = banco(dadosBase({ temporada: { status: 'encerrada' }, classificacao: { fotografiaFinal: foto } }))
+    const apos = await classificacaoDe({ payload: corte.payload, temporada: 1, categoria: 3, publico: true, ateEtapa: 11 })
+    expect(apos?.fonte).toBe('automatica')
+    expect(corte.chamadas.map((x) => x.collection)).toContain('corridas')
+  })
+
+  it('resultadosDaEtapa: corridas oficiais com pontos e o resultado somado da etapa, por categoria', async () => {
+    const { payload } = banco(dadosBase())
+    const r = await resultadosDaEtapa({ payload, etapa: 11, publico: true })
+    expect(r?.parcial).toBe(false)
+    expect(r?.categorias).toHaveLength(1)
+    const cat = r!.categorias[0]
+    expect(cat.categoriaNome).toBe('Categoria Teste')
+    expect(cat.corridas[0].linhas.map((l) => [l.nome, l.posicaoOficial, l.pontos, l.equipeNome])).toEqual([
+      ['Piloto Três', 1, 10, null],
+      ['Piloto Um', 2, 8, 'Equipe Teste'],
+      ['Piloto Dois', 3, 7, null],
+    ])
+    expect(cat.corridas[0].voltaMaisRapida).toBe(102)
+    expect(cat.etapa.map((l) => [l.nome, l.posicao, l.pontos])).toEqual([
+      ['Piloto Três', 1, 10],
+      ['Piloto Um', 2, 8],
+      ['Piloto Dois', 3, 7],
+    ])
+    // Etapa agendada sem corrida oficial: sem resultado, marcada como parcial.
+    const agendada = await resultadosDaEtapa({ payload, etapa: 12, publico: true })
+    expect(agendada?.parcial).toBe(true)
+    expect(agendada?.categorias).toEqual([])
+    expect(await resultadosDaEtapa({ payload, etapa: 999, publico: true })).toBeNull()
+  })
+
+  it('classificacoesParaEstatisticas alimenta os totais de carreira com o nome da categoria', async () => {
+    const { payload } = banco(dadosBase())
+    const lista = await classificacoesParaEstatisticas({ payload, publico: true })
+    expect(lista).toHaveLength(1)
+    expect(lista[0]).toEqual(expect.objectContaining({ ano: 2026, categoriaNome: 'Categoria Teste', agregada: false, fonte: 'automatica' }))
+    const tres = totaisDoPiloto(203, lista)
+    expect(tres).toEqual(expect.objectContaining({ pontos: 10, vitorias: 1, podios: 1, corridas: 1, titulos: 0 }))
   })
 
   it('paraRegra lê o documento de regras-pontuacao (critérios em linhas, descartes em grupo)', () => {

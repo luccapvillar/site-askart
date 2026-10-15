@@ -8,8 +8,9 @@
  * - regra própria da categoria (temporada-categorias.regra) ou a da temporada.
  *
  * Acesso (`publico`):
- * - As "portas" respeitam as regras de acesso: a temporada e a classificação (temporada-categorias) são
- *   lidas com overrideAccess = !publico, e no modo público a classificação precisa estar `publicada`.
+ * - As "portas" respeitam as regras de acesso: a temporada, a etapa e a classificação (temporada-categorias)
+ *   são conferidas com overrideAccess = !publico, e no modo público a classificação precisa estar `publicada`.
+ *   O conteúdo da classificação liberada é lido depois sem filtro de campos (ver carregarDadosTemporada).
  * - Os DADOS DO CÁLCULO (regra, etapas, corridas, inscrições, nomes de pilotos/equipes) são lidos sempre
  *   com overrideAccess, mas só com os campos públicos (`select`): ocultar a página de uma etapa ou o perfil
  *   de um piloto não pode mudar os pontos oficiais. Piloto oculto aparece pelo nome, sem link (slug nulo).
@@ -416,7 +417,18 @@ export async function carregarDadosTemporada(opcoes: OpcoesCarga): Promise<Dados
   const filtroClassif: Where[] = [{ temporada: { equals: temporada.id } }]
   if (opcoes.categorias?.length) filtroClassif.push({ categoria: { in: opcoes.categorias } })
   if (publico) filtroClassif.push({ publicada: { equals: true } })
-  const classificacoes = await buscar(ctx, SLUGS.temporadaCategorias, { and: filtroClassif }, SELECT_CLASSIFICACAO, !publico)
+  let classificacoes: Doc[]
+  if (publico) {
+    // Porta com as regras de acesso (quais classificações o público pode ver)…
+    const visiveis = await buscar(ctx, SLUGS.temporadaCategorias, { and: filtroClassif }, { categoria: true }, false)
+    // …e o conteúdo completo delas sem o filtro de campos: um campo restrito ao painel (ex.: motivo de um
+    // ajuste) não pode sumir da leitura e mudar os pontos mostrados no site.
+    classificacoes = visiveis.length
+      ? await buscar(ctx, SLUGS.temporadaCategorias, { id: { in: visiveis.map((c) => c.id) } }, SELECT_CLASSIFICACAO)
+      : []
+  } else {
+    classificacoes = await buscar(ctx, SLUGS.temporadaCategorias, { and: filtroClassif }, SELECT_CLASSIFICACAO)
+  }
 
   const vazio: DadosTemporada = {
     temporada,

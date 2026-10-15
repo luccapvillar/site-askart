@@ -1,4 +1,4 @@
-import type { Access, CollectionConfig, FieldAccess, FilterOptions } from 'payload'
+import type { Access, CollectionConfig, FieldAccess, FilterOptions, Where } from 'payload'
 import { campoSomenteAdmin, campoSomenteMembros, comAcessoRestrito, editores, ehMembro, somenteAdmin } from '../../access'
 import { COLECOES } from '../../hooks/competicao/api'
 import {
@@ -12,10 +12,11 @@ import { validarInteiro, validarPontos } from '../../hooks/competicao/validacoes
 import { campoTitulo, FORMATO_DATA, FORMATO_DATA_HORA, REL } from './campos'
 
 /** Público vê só as classificações publicadas de temporadas visíveis (ou arquivadas, no histórico). */
-const lerClassificacao: Access = ({ req }) =>
-  ehMembro(req.user)
-    ? true
-    : { and: [{ publicada: { equals: true } }, { 'temporada.visibilidade': { in: ['visivel', 'arquivado'] } }] }
+const lerClassificacao: Access = ({ req }) => {
+  if (ehMembro(req.user)) return true
+  const publicas: Where[] = [{ publicada: { equals: true } }, { 'temporada.visibilidade': { in: ['visivel', 'arquivado'] } }]
+  return { and: publicas }
+}
 
 /** Campos gravados só pelo sistema (encerramento da temporada), nunca digitados. */
 const soSistema: FieldAccess = () => false
@@ -25,7 +26,8 @@ const inscricoesDoGrupo: FilterOptions = ({ data }) => {
   const temporada = idDe(data?.temporada)
   const categorias = categoriasDoGrupo({ categoria: data?.categoria, incluiResultadosDe: data?.incluiResultadosDe })
   if (temporada === null || !categorias.length) return false
-  return { and: [{ temporada: { equals: temporada } }, { categoria: { in: categorias } }] }
+  const filtro: Where[] = [{ temporada: { equals: temporada } }, { categoria: { in: categorias } }]
+  return { and: filtro }
 }
 
 const etapasDaTemporada: FilterOptions = ({ data }) => {
