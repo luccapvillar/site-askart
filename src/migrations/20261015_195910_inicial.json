@@ -30836,7 +30836,7 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": true,
-          "default": "'Associação de Kart de Brasília'"
+          "default": "'Associação de Pilotos de Kart de Brasília'"
         },
         "sigla": {
           "name": "sigla",
@@ -31109,7 +31109,7 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": true,
-          "default": "'Associação de Kart de Brasília'"
+          "default": "'Associação de Pilotos de Kart de Brasília'"
         },
         "version_sigla": {
           "name": "version_sigla",
@@ -34218,6 +34218,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "6f5ffe81-f9ed-46d2-b9e5-986309b5ec2d",
+  "id": "7345f9fe-dd87-48f8-a641-8c37816d8872",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

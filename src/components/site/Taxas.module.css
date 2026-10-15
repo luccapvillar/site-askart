@@ -73,3 +73,7 @@
   font-size: 0.8125rem;
   color: var(--texto-2);
 }
+
+:global(.escuro) .nota {
+  color: var(--texto-claro-2);
+}

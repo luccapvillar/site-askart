@@ -16,7 +16,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-  color: var(--verde);
+  color: var(--verde-escuro);
 }
 
 :global(.escuro) .rotulo {

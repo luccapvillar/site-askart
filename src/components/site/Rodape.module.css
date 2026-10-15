@@ -115,3 +115,15 @@
 .rodape :global(.texto-2) {
   color: var(--texto-claro-2);
 }
+
+.provisorio {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: #fff4c2;
+  color: #4a3b00;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: 0.1em;
+}

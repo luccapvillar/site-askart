@@ -12,8 +12,10 @@ import { canaisDoContato, itemDoLink, menuDoSite, NOMES_REDES, variaveisDeCor } 
 import type { ValorLink } from '@/fields/link'
 import './globals.css'
 
-const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], style: ['normal', 'italic'], variable: '--fonte-archivo', display: 'swap' })
-const mono = Geist_Mono({ subsets: ['latin'], variable: '--fonte-geist-mono', display: 'swap' })
+// Um só arquivo de fonte (larguras e pesos variáveis). O itálico dos títulos é inclinado pelo navegador:
+// economiza ~100 KB no celular. A fonte de números/rótulos não bloqueia a primeira pintura.
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], style: ['normal'], variable: '--fonte-archivo', display: 'swap' })
+const mono = Geist_Mono({ subsets: ['latin'], variable: '--fonte-geist-mono', display: 'swap', preload: false })
 
 export const revalidate = 60
 

@@ -1,0 +1,155 @@
+.painel {
+  display: grid;
+  gap: 28px;
+  margin-bottom: 40px;
+}
+
+.cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.titulo {
+  margin: 4px 0 6px;
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+.sub {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--theme-elevation-600);
+}
+
+.rotulo {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-elevation-600);
+}
+
+.verSite {
+  padding: 10px 16px;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.grade {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1000px) {
+  .grade {
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  }
+}
+
+.cartao {
+  padding: 20px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+}
+
+.cartao p {
+  margin: 0 0 6px;
+}
+
+.destaque {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.dias {
+  display: inline-block;
+  margin: 8px 0 12px !important;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--theme-success-100);
+  color: var(--theme-success-800);
+  font-weight: 600;
+}
+
+.pendencias {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pendencias li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--theme-warning-500);
+  border-radius: 4px;
+  background: var(--theme-elevation-50);
+}
+
+.pendencias li.grave {
+  border-left-color: var(--theme-error-500);
+}
+
+.pendencias a {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.atalhos {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atalhos a {
+  display: grid;
+  gap: 4px;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  text-decoration: none;
+}
+
+.atalhos a:hover {
+  border-color: var(--theme-success-500);
+}
+
+.atalhos span {
+  font-size: 0.85rem;
+  color: var(--theme-elevation-600);
+}
+
+.atividades {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.atividades li {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+}
+
+.quando {
+  color: var(--theme-elevation-600);
+  font-variant-numeric: tabular-nums;
+}

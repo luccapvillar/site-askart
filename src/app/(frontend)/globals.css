@@ -6,7 +6,7 @@
    ========================================================================== */
 
 :root {
-  --marca-primaria: #3f8a47;
+  --marca-primaria: #3a7f41; /* verde da logo, ajustado para contraste AA */
   --marca-secundaria: #edd357;
   --marca-destaque: #edd357;
   --marca-escuro: #111111;

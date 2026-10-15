@@ -17,7 +17,7 @@ export const Kartodromo: GlobalConfig = comAcessoRestrito(
     admin: {
       group: GRUPO_SITE,
       description:
-        'Textos da aba Kartódromo. Endereço e contatos ficam em "Contato e redes sociais"; horários de treino, em "Agenda de treinos".',
+        'Textos da aba Kartódromo. Endereço e contatos ficam em "Contato e redes sociais"; horários de treino, em "Grade semanal de treinos" e "Treinos e exceções".',
     },
     access: { read: todos, update: editores, readVersions: membros },
     fields: [

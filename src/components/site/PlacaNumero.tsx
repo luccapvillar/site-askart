@@ -1,3 +1,4 @@
+import { fundoLegivel } from '@/lib/site'
 import s from './PlacaNumero.module.css'
 
 /** Escolhe texto preto ou branco conforme a luminância da cor de fundo (contraste AA). */
@@ -11,7 +12,8 @@ export function corDeTexto(hex?: string | null) {
 /** Placa com o número do kart. A cor é a da categoria (definida no painel). */
 export function PlacaNumero({ numero, cor, tamanho = 'm' }: { numero?: string | number | null; cor?: string | null; tamanho?: 'p' | 'm' | 'g' }) {
   if (numero === undefined || numero === null || numero === '') return null
-  const estilo = cor ? ({ '--cor': cor, '--texto-placa': corDeTexto(cor) } as React.CSSProperties) : undefined
+  const legivel = cor && /^#[0-9a-f]{6}$/i.test(cor) ? fundoLegivel(cor) : null
+  const estilo = legivel ? ({ '--cor': legivel.fundo, '--texto-placa': legivel.texto } as React.CSSProperties) : undefined
   return (
     <span className={`${s.placa} ${s[tamanho]}`} style={estilo} aria-label={`Número ${numero}`}>
       <span>{numero}</span>

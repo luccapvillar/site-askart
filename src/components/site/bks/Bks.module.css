@@ -139,12 +139,10 @@
   color: inherit;
   border: 1px dashed currentColor;
   font-weight: 650;
-  opacity: 0.85;
 }
 
 .izyInativo small {
   font-weight: 500;
-  opacity: 0.8;
 }
 
 .mapa {

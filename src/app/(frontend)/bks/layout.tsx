@@ -17,6 +17,7 @@ export default async function LayoutBks({ children }: { children: ReactNode }) {
   const logo = bks?.logo
   const fundo = campeonato?.banner as Midia | null | undefined
   const fotoFundo = fundo?.url ? fontesDaFoto(fundo, 'destaque') : null
+  const logoTopo = logo?.url ? fontesDaFoto(logo, 'card') : null
   const temporada = bks?.temporada
   const nome = campeonato?.nome || 'Brasília Kart Series'
   return (
@@ -27,9 +28,17 @@ export default async function LayoutBks({ children }: { children: ReactNode }) {
         )}
         <div className={`conteiner ${s.topoConteudo}`}>
           <div>
-            {logo?.url ? (
+            {logoTopo ? (
               <h1 id="titulo-bks" className={s.logoTitulo}>
-                <img src={logo.url} alt={`${campeonato?.sigla ?? 'BKS'} — ${nome}`} width={logo.width ?? undefined} height={logo.height ?? undefined} />
+                <img
+                  src={logoTopo.src}
+                  srcSet={logoTopo.srcSet}
+                  sizes="(min-width: 640px) 520px, 82vw"
+                  alt={`${campeonato?.sigla ?? 'BKS'} — ${nome}`}
+                  width={logoTopo.largura ?? undefined}
+                  height={logoTopo.altura ?? undefined}
+                  fetchPriority="high"
+                />
               </h1>
             ) : (
               <h1 id="titulo-bks" className="titulo-marca h1">

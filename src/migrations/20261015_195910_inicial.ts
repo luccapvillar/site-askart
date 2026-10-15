@@ -2438,7 +2438,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   
   CREATE TABLE "configuracoes" (
   	"id" serial PRIMARY KEY NOT NULL,
-  	"nome" varchar DEFAULT 'Associação de Kart de Brasília' NOT NULL,
+  	"nome" varchar DEFAULT 'Associação de Pilotos de Kart de Brasília' NOT NULL,
   	"sigla" varchar DEFAULT 'ASKART' NOT NULL,
   	"descricao" varchar,
   	"logo_id" integer,
@@ -2460,7 +2460,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   
   CREATE TABLE "_configuracoes_v" (
   	"id" serial PRIMARY KEY NOT NULL,
-  	"version_nome" varchar DEFAULT 'Associação de Kart de Brasília' NOT NULL,
+  	"version_nome" varchar DEFAULT 'Associação de Pilotos de Kart de Brasília' NOT NULL,
   	"version_sigla" varchar DEFAULT 'ASKART' NOT NULL,
   	"version_descricao" varchar,
   	"version_logo_id" integer,

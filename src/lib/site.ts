@@ -108,18 +108,41 @@ export function contraste(a: string, b: string): number {
 /** Texto legível sobre a cor: preto ou branco, o que tiver mais contraste. */
 export const textoSobre = (fundo: string) => (contraste(fundo, '#111111') >= contraste(fundo, '#FFFFFF') ? '#111111' : '#FFFFFF')
 
+const misturar = (hex: string, alvo: number, t: number) =>
+  `#${[1, 3, 5]
+    .map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - t) + alvo * t))
+    .map((v) => v.toString(16).padStart(2, '0'))
+    .join('')}`.toUpperCase()
+
+/**
+ * Cor de fundo que garante leitura (contraste AA 4,5:1) com texto preto ou branco. Cores do painel que
+ * ficam no meio do caminho (como o verde da logo) são escurecidas só o necessário; as demais não mudam.
+ */
+export function fundoLegivel(hex: string): { fundo: string; texto: string } {
+  if (!hexValido(hex)) return { fundo: hex, texto: '#FFFFFF' }
+  for (let t = 0; t <= 0.6; t += 0.04) {
+    const escura = t === 0 ? hex.toUpperCase() : misturar(hex, 0, t)
+    if (contraste(escura, '#FFFFFF') >= 4.5) return { fundo: escura, texto: '#FFFFFF' }
+    const clara = t === 0 ? hex.toUpperCase() : misturar(hex, 255, t)
+    if (contraste(clara, '#111111') >= 4.5) return { fundo: clara, texto: '#111111' }
+  }
+  return { fundo: misturar(hex, 0, 0.6), texto: '#FFFFFF' }
+}
+
 /** Variáveis CSS das cores da marca (Configurações), com padrão da logo. */
 export function variaveisDeCor(config: Configuracoe | null | undefined): Record<string, string> {
   const primaria = hexValido(config?.corPrimaria) ? config.corPrimaria : CORES_PADRAO.primaria
   const secundaria = hexValido(config?.corSecundaria) ? config.corSecundaria : CORES_PADRAO.secundaria
   const escura = hexValido(config?.corEscura) ? config.corEscura : CORES_PADRAO.escura
+  const p = fundoLegivel(primaria)
+  const sec = fundoLegivel(secundaria)
   return {
-    '--marca-primaria': primaria,
-    '--marca-secundaria': secundaria,
-    '--marca-destaque': secundaria,
+    '--marca-primaria': p.fundo,
+    '--marca-secundaria': sec.fundo,
+    '--marca-destaque': sec.fundo,
     '--marca-escuro': escura,
-    '--sobre-primaria': textoSobre(primaria),
-    '--sobre-secundaria': textoSobre(secundaria),
+    '--sobre-primaria': p.texto,
+    '--sobre-secundaria': sec.texto,
   }
 }
 
@@ -127,12 +150,14 @@ export function variaveisDeCor(config: Configuracoe | null | undefined): Record<
 export function variaveisDoCampeonato(cores: { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined) {
   const v: Record<string, string> = {}
   if (hexValido(cores?.primaria)) {
-    v['--camp-primaria'] = cores.primaria
-    v['--sobre-camp-primaria'] = textoSobre(cores.primaria)
+    const c = fundoLegivel(cores.primaria)
+    v['--camp-primaria'] = c.fundo
+    v['--sobre-camp-primaria'] = c.texto
   }
   if (hexValido(cores?.secundaria)) {
-    v['--camp-secundaria'] = cores.secundaria
-    v['--sobre-camp-secundaria'] = textoSobre(cores.secundaria)
+    const c = fundoLegivel(cores.secundaria)
+    v['--camp-secundaria'] = c.fundo
+    v['--sobre-camp-secundaria'] = c.texto
   }
   if (hexValido(cores?.destaque)) v['--camp-destaque'] = cores.destaque
   return v

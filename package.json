@@ -20,7 +20,8 @@
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-demo.ts",
     "seed:limpar": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-limpar.ts",
-    "criar-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/criar-admin.ts"
+    "criar-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/criar-admin.ts",
+    "vercel-build": "bash scripts/vercel-build.sh"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",
@@ -55,8 +56,7 @@
     "vitest": "4.0.18"
   },
   "engines": {
-    "node": ">=20.18.1",
-    "pnpm": "^9 || ^10 || ^11"
+    "node": ">=20.9"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

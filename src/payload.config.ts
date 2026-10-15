@@ -58,6 +58,10 @@ export default buildConfig({
       supportedTimezones: [{ label: 'Brasília', value: 'America/Sao_Paulo' }],
     },
     meta: { titleSuffix: ' — Painel ASKART' },
+    components: {
+      beforeDashboard: ['/components/admin/PainelInicial#PainelInicial'],
+      graphics: { Logo: '/components/admin/Marca#Logo', Icon: '/components/admin/Marca#Icone' },
+    },
   },
   i18n: { supportedLanguages: { pt }, fallbackLanguage: 'pt' },
   collections: [...colecoesCompeticao, ...colecoesKartodromo, ...colecoesConteudo, ...colecoesAdmin].map(comEfeitos),

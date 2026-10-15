@@ -1,67 +1,75 @@
-# Payload Blank Template
+# ASKART — site oficial e painel
 
-This template comes configured with the bare minimum to get started on anything you need.
+Site da **ASKART — Associação de Pilotos de Kart de Brasília**, do **Kartódromo Ayrton Senna do Guará** e do **BKS — Brasília Kart Series**, com painel para o moderador atualizar tudo (calendário, horários, classificação, resultados, treinos, taxas, notícias, contatos).
 
-## Quick start
+- Escopo do cliente: [`docs/ESPECIFICACAO.md`](docs/ESPECIFICACAO.md) (o "Norte" escrito à mão vem primeiro).
+- Decisões técnicas: [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md).
+- Fotos e autorizações: [`docs/FOTOS.md`](docs/FOTOS.md) e [`marca/fotos-livres/CREDITOS.md`](marca/fotos-livres/CREDITOS.md).
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+## O que tem
 
-## Quick Start - local setup
+**Site (4 abas):**
+- **BKS** — calendário (tocar na etapa mostra os horários de cada categoria, o local com mapa e o botão da IZY Pass), classificação por categoria, resultados por etapa, história e campeões, fotos, regulamento.
+- **Kartódromo** — onde fica, taxas (taxa de pista e taxa de ambulância mostram **"R$ X"** até o valor ser informado), tabela de treinos por categoria e agenda dos próximos 7 dias, como treinar, história, notícias, dúvidas recorrentes, contatos e Instagram.
+- **Notícias** — notícias, anúncios e comunicados oficiais.
+- **Contato** — telefones, WhatsApp, e-mail, endereço, mapa, redes sociais e dúvidas.
 
-To spin up this template locally, follow these steps:
+**Painel (`/admin`):** tela inicial com o que precisa de atenção e atalhos; competição (campeonatos, temporadas, categorias, pilotos, inscrições, etapas, corridas e resultados, regras de pontuação, classificações calculadas sozinhas); kartódromo (grade semanal de treinos e exceções); conteúdo (notícias, comunicados, galerias, documentos, páginas, perguntas frequentes); configurações, contato, menu e textos. Papéis: **administrador**, **moderador** e **colaborador** (só rascunhos). Todo registro fica no histórico de atividades.
 
-### Clone
+**Regras de conteúdo:** nada oficial é inventado. Dados de demonstração só entram com `npm run seed:demo`, levam o prefixo `[DEMONSTRAÇÃO]` (o site mostra o selo "Exemplo") e saem com `npm run seed:limpar`. O telefone **+55 61 00000-0000** é o único contato fictício: o sistema o marca como provisório sozinho e o site nunca cria link de ligação para ele.
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+## Prévia na Vercel (passo a passo)
 
-### Development
+1. Na Vercel: **Add New → Project** → importe o repositório `site-askart`.
+2. Antes de clicar em Deploy, abra **Environment Variables** e crie:
+   - `PAYLOAD_SECRET` — um texto aleatório com 32 caracteres ou mais (ex.: o resultado de `openssl rand -hex 32`).
+   - `ADMIN_EMAIL` e `ADMIN_SENHA` — o primeiro acesso ao painel (senha com 10+ caracteres, letras e números). `ADMIN_NOME` é opcional.
+   - `DADOS_DEMONSTRACAO` = `1` — só na prévia, para o site aparecer preenchido com exemplos.
+3. Clique em **Deploy**. A primeira tentativa vai falhar por falta de banco — é esperado.
+4. No projeto, aba **Storage**:
+   - **Create Database → Neon (Postgres)** → conecte ao projeto (cria `DATABASE_URL` sozinho).
+   - **Create → Blob** → conecte ao projeto (cria `BLOB_READ_WRITE_TOKEN` sozinho).
+5. Aba **Deployments** → no último deploy, **⋯ → Redeploy**. A implantação aplica o banco, cria o administrador, carrega os exemplos e publica o site.
+6. Painel: `https://<endereço-da-prévia>/admin`, com o e-mail e a senha do passo 2.
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+Antes de divulgar o site oficial: no painel, troque o contato provisório, informe os valores das taxas e o link da IZY Pass, rode `npm run seed:limpar` (ou apague os exemplos) e desligue a faixa "Versão de demonstração" em **Configurações gerais → Prévia**. Remova `DADOS_DEMONSTRACAO` da Vercel.
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+## Desenvolvimento local
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+Requisitos: Node 20.9+ e PostgreSQL 16.
 
-#### Docker (Optional)
+```bash
+cp .env.example .env          # ajuste DATABASE_URL e PAYLOAD_SECRET
+npm install
+npm run migrate               # cria as tabelas
+ADMIN_EMAIL=voce@exemplo.com ADMIN_SENHA=SenhaForte2026 npm run criar-admin
+npm run seed:demo             # opcional: dados de demonstração
+npm run dev                   # http://localhost:3000 e http://localhost:3000/admin
+```
 
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` / `build` / `start` | Servidor de desenvolvimento, versão de produção e servidor de produção |
+| `npm run migrate` | Aplica as migrações do banco |
+| `npm run migrate:create <nome>` | Gera uma migração depois de mudar coleções ou globais |
+| `npm run generate:types` / `generate:importmap` | Atualiza os tipos e o mapa de componentes do painel |
+| `npm run criar-admin` | Cria o primeiro administrador (só quando ainda não há usuários) |
+| `npm run seed:demo` / `seed:limpar` | Carrega / remove os dados de demonstração |
+| `npm run test:int` | Testes do motor de classificação, agenda e estatísticas |
 
-To do so, follow these steps:
+## Estrutura
 
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
-
-## How it works
-
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
-
-### Collections
-
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
-
-- #### Users (Authentication)
-
-  Users are auth-enabled collections that have access to the admin panel.
-
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/3.x/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
-
-- #### Media
-
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
-
-### Docker
-
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
-
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
-
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
-
-## Questions
-
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+```
+src/
+  access/           regras de acesso por papel
+  collections/      competição, kartódromo, conteúdo e administração
+  globals/          configurações, contato, kartódromo, página inicial, sobre, textos, menu
+  hooks/competicao/ regras de integridade (inscrições, corridas, temporadas encerradas…)
+  lib/              classificação, agenda, estatísticas, datas, leitura do site, revalidação
+  components/site/  peças do site público
+  components/admin/ tela inicial do painel e marca
+  app/(frontend)/   páginas do site
+  app/(payload)/    painel e API
+scripts/            seed, limpeza, administrador e implantação
+marca/              logos e fotos originais (com créditos)
+```

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Selo } from './Selo'
 import s from './Rodape.module.css'
 
 export type CanalContato = { tipo: 'telefone' | 'whatsapp' | 'email' | 'outro'; rotulo: string; valor: string; href?: string | null; provisorio?: boolean }
@@ -72,7 +71,7 @@ export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, a
                     <small>{c.rotulo}</small>
                     {c.provisorio ? (
                       <span>
-                        {c.valor} <Selo tom="atencao">Contato provisório</Selo>
+                        {c.valor} <span className={s.provisorio}>Contato provisório</span>
                       </span>
                     ) : c.href ? (
                       <a href={c.href}>{c.valor}</a>
