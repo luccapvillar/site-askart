@@ -101,9 +101,10 @@ export function validarCor(valor: unknown): string | true {
     : 'Use o formato #RRGGBB, por exemplo #1A7F37 (copie o código da cor).'
 }
 
-export const campoCor = (descricao: string): Field => ({
-  name: 'cor',
-  label: 'Cor',
+export const campoCor = (descricao: string, nome = 'cor', rotulo = 'Cor', obrigatorio = false): Field => ({
+  name: nome,
+  label: rotulo,
+  required: obrigatorio,
   type: 'text',
   validate: validarCor,
   hooks: {
@@ -118,7 +119,7 @@ export const campoCor = (descricao: string): Field => ({
       },
     ],
   },
-  admin: { description: descricao, placeholder: '#1A7F37' },
+  admin: { description: descricao, placeholder: '#1A7F37', width: '33%' },
 })
 
 /** Relacionamento com o campeonato (Competição). */

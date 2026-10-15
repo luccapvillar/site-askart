@@ -12,94 +12,136 @@
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "supportedTimezones".
  */
-export type SupportedTimezones =
-  | 'Pacific/Midway'
-  | 'Pacific/Niue'
-  | 'Pacific/Honolulu'
-  | 'Pacific/Rarotonga'
-  | 'America/Anchorage'
-  | 'Pacific/Gambier'
-  | 'America/Los_Angeles'
-  | 'America/Tijuana'
-  | 'America/Denver'
-  | 'America/Phoenix'
-  | 'America/Chicago'
-  | 'America/Guatemala'
-  | 'America/New_York'
-  | 'America/Bogota'
-  | 'America/Caracas'
-  | 'America/Santiago'
-  | 'America/Buenos_Aires'
-  | 'America/Sao_Paulo'
-  | 'Atlantic/South_Georgia'
-  | 'Atlantic/Azores'
-  | 'Atlantic/Cape_Verde'
-  | 'Europe/London'
-  | 'Europe/Berlin'
-  | 'Africa/Lagos'
-  | 'Europe/Athens'
-  | 'Africa/Cairo'
-  | 'Europe/Moscow'
-  | 'Asia/Riyadh'
-  | 'Asia/Dubai'
-  | 'Asia/Baku'
-  | 'Asia/Karachi'
-  | 'Asia/Tashkent'
-  | 'Asia/Calcutta'
-  | 'Asia/Dhaka'
-  | 'Asia/Almaty'
-  | 'Asia/Jakarta'
-  | 'Asia/Bangkok'
-  | 'Asia/Shanghai'
-  | 'Asia/Singapore'
-  | 'Asia/Tokyo'
-  | 'Asia/Seoul'
-  | 'Australia/Brisbane'
-  | 'Australia/Sydney'
-  | 'Pacific/Guam'
-  | 'Pacific/Noumea'
-  | 'Pacific/Auckland'
-  | 'Pacific/Fiji';
+export type SupportedTimezones = 'America/Sao_Paulo';
 
 export interface Config {
   auth: {
-    users: UserAuthOperations;
+    usuarios: UsuarioAuthOperations;
   };
   blocks: {};
   collections: {
-    users: User;
-    media: Media;
+    etapas: Etapa;
+    corridas: Corrida;
+    'temporada-categorias': TemporadaCategoria;
+    pilotos: Piloto;
+    inscricoes: Inscricoe;
+    equipes: Equipe;
+    categorias: Categoria;
+    temporadas: Temporada;
+    campeonatos: Campeonato;
+    'regras-pontuacao': RegrasPontuacao;
+    treinos: Treino;
+    'horarios-treino': HorariosTreino;
+    'tipos-treino': TiposTreino;
+    noticias: Noticia;
+    avisos: Aviso;
+    banners: Banner;
+    galerias: Galeria;
+    midia: Midia;
+    documentos: Documento;
+    eventos: Evento;
+    paginas: Pagina;
+    perguntas: Pergunta;
+    'categorias-noticia': CategoriasNoticia;
+    tags: Tag;
+    'tipos-documento': TiposDocumento;
+    usuarios: Usuario;
     'payload-kv': PayloadKv;
+    'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    etapas: {
+      corridas: 'corridas';
+      noticias: 'noticias';
+      galerias: 'galerias';
+    };
+    pilotos: {
+      inscricoes: 'inscricoes';
+    };
+    temporadas: {
+      etapas: 'etapas';
+      classificacoes: 'temporada-categorias';
+    };
+    campeonatos: {
+      temporadas: 'temporadas';
+    };
+    'regras-pontuacao': {
+      temporadas: 'temporadas';
+      classificacoes: 'temporada-categorias';
+    };
+    'payload-folders': {
+      documentsAndFolders: 'payload-folders' | 'midia';
+    };
+  };
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    media: MediaSelect<false> | MediaSelect<true>;
+    etapas: EtapasSelect<false> | EtapasSelect<true>;
+    corridas: CorridasSelect<false> | CorridasSelect<true>;
+    'temporada-categorias': TemporadaCategoriasSelect<false> | TemporadaCategoriasSelect<true>;
+    pilotos: PilotosSelect<false> | PilotosSelect<true>;
+    inscricoes: InscricoesSelect<false> | InscricoesSelect<true>;
+    equipes: EquipesSelect<false> | EquipesSelect<true>;
+    categorias: CategoriasSelect<false> | CategoriasSelect<true>;
+    temporadas: TemporadasSelect<false> | TemporadasSelect<true>;
+    campeonatos: CampeonatosSelect<false> | CampeonatosSelect<true>;
+    'regras-pontuacao': RegrasPontuacaoSelect<false> | RegrasPontuacaoSelect<true>;
+    treinos: TreinosSelect<false> | TreinosSelect<true>;
+    'horarios-treino': HorariosTreinoSelect<false> | HorariosTreinoSelect<true>;
+    'tipos-treino': TiposTreinoSelect<false> | TiposTreinoSelect<true>;
+    noticias: NoticiasSelect<false> | NoticiasSelect<true>;
+    avisos: AvisosSelect<false> | AvisosSelect<true>;
+    banners: BannersSelect<false> | BannersSelect<true>;
+    galerias: GaleriasSelect<false> | GaleriasSelect<true>;
+    midia: MidiaSelect<false> | MidiaSelect<true>;
+    documentos: DocumentosSelect<false> | DocumentosSelect<true>;
+    eventos: EventosSelect<false> | EventosSelect<true>;
+    paginas: PaginasSelect<false> | PaginasSelect<true>;
+    perguntas: PerguntasSelect<false> | PerguntasSelect<true>;
+    'categorias-noticia': CategoriasNoticiaSelect<false> | CategoriasNoticiaSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    'tipos-documento': TiposDocumentoSelect<false> | TiposDocumentoSelect<true>;
+    usuarios: UsuariosSelect<false> | UsuariosSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'pagina-inicial': PaginaInicial;
+    kartodromo: Kartodromo;
+    contato: Contato;
+    institucional: Institucional;
+    'textos-paginas': TextosPagina;
+    navegacao: Navegacao;
+    configuracoes: Configuracoe;
+  };
+  globalsSelect: {
+    'pagina-inicial': PaginaInicialSelect<false> | PaginaInicialSelect<true>;
+    kartodromo: KartodromoSelect<false> | KartodromoSelect<true>;
+    contato: ContatoSelect<false> | ContatoSelect<true>;
+    institucional: InstitucionalSelect<false> | InstitucionalSelect<true>;
+    'textos-paginas': TextosPaginasSelect<false> | TextosPaginasSelect<true>;
+    navegacao: NavegacaoSelect<false> | NavegacaoSelect<true>;
+    configuracoes: ConfiguracoesSelect<false> | ConfiguracoesSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: Usuario;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
-export interface UserAuthOperations {
+export interface UsuarioAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -118,37 +160,339 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Calendário das temporadas. Mudou a data ou o local? Edite aqui e o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "etapas".
  */
-export interface User {
-  id: string;
+export interface Etapa {
+  id: number;
+  /**
+   * Calculado: ano · nome · dia da semana e data.
+   */
+  titulo?: string | null;
+  /**
+   * Vem preenchida com a temporada atual.
+   */
+  temporada: number | Temporada;
+  /**
+   * Padrão: a última + 1.
+   */
+  numero: number;
+  /**
+   * Padrão: "3ª Etapa" (acompanha o número).
+   */
+  nome?: string | null;
+  /**
+   * Data e hora de Brasília. O dia da semana e a contagem regressiva saem daqui.
+   */
+  inicio?: string | null;
+  inicio_tz?: SupportedTimezones;
+  /**
+   * Opcional. Para etapas de mais de um dia (ex.: sábado e domingo).
+   */
+  fim?: string | null;
+  fim_tz?: SupportedTimezones;
+  /**
+   * "Realizada" é marcada sozinha quando todas as corridas que contam ficam oficiais. Etapa cancelada não pontua e mantém o número.
+   */
+  status: 'agendada' | 'confirmada' | 'adiada' | 'cancelada' | 'realizada';
+  /**
+   * 1 = normal; 2 = pontos em dobro (ex.: etapa final, se o regulamento prever).
+   */
+  fatorPontuacao?: number | null;
+  /**
+   * Padrão: todas as categorias da temporada. Tire as que não correm esta etapa.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Padrão: o kartódromo (cadastrado em Kartódromo). Troque se a etapa for em outro lugar.
+   */
+  local?: string | null;
+  /**
+   * Opcional. Link do Google Maps. Vazio = mapa do kartódromo (cadastrado em Contato).
+   */
+  localMapa?: string | null;
+  /**
+   * Opcional. Link da IZY Pass para comprar treinos livres e corridas desta etapa.
+   */
+  linkIngressos?: string | null;
+  /**
+   * Opcional. Informações da etapa para o site (programação, avisos…).
+   */
+  descricao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Opcional. Imagem do cartão e do topo da página da etapa.
+   */
+  imagem?: (number | null) | Midia;
+  corridas?: {
+    docs?: (number | Corrida)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  noticias?: {
+    docs?: (number | Noticia)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  galerias?: {
+    docs?: (number | Galeria)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
   updatedAt: string;
   createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
 }
 /**
+ * Cada ano (ou edição) de um campeonato: categorias, regra de pontuação e formato das etapas. Ao fim do ano, encerre a temporada para gravar os campeões e preservar o histórico.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
+ * via the `definition` "temporadas".
  */
-export interface Media {
-  id: string;
-  alt: string;
+export interface Temporada {
+  id: number;
+  campeonato: number | Campeonato;
+  /**
+   * Usado na ordem das listas e no endereço.
+   */
+  ano: number;
+  /**
+   * Vazio = gerado sozinho ("Nome do campeonato — 2026"). Pode ser editado.
+   */
+  nome?: string | null;
+  /**
+   * Encerrada: grava a classificação final e os campeões de cada categoria e congela etapas, corridas, resultados e regra. Só um administrador reabre.
+   */
+  status: 'planejada' | 'em-andamento' | 'encerrada';
+  /**
+   * Cada categoria escolhida ganha sua classificação (menu Classificações) sozinha. As novas etapas vêm com estas categorias.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Opcional. Apresentação da temporada no site.
+   */
+  descricao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Opcional. Vazio = logo do campeonato.
+   */
+  logo?: (number | null) | Midia;
+  /**
+   * Opcional. Vazio = banner do campeonato.
+   */
+  banner?: (number | null) | Midia;
+  /**
+   * Sem regra não há classificação automática. Uma categoria pode ter regra própria (menu Classificações).
+   */
+  regra?: (number | null) | RegrasPontuacao;
+  /**
+   * Para temporadas antigas em que só existe a tabela final: as classificações passam a ser digitadas linha a linha.
+   */
+  fonteDados: 'resultados' | 'so-classificacao-final';
+  /**
+   * Corridas de cada categoria em cada etapa (ex.: Tomada de tempo, Bateria 1, Final). O botão "Gerar corridas" da etapa usa esta lista.
+   */
+  formatoEtapa?:
+    | {
+        nome: string;
+        tipo: 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
+        /**
+         * Nome de uma tabela da regra (ex.: Final). Vazio = primeira tabela.
+         */
+        tabela?: string | null;
+        /**
+         * Desmarque em corridas que não dão pontos (a tomada de tempo ainda vale para a pole).
+         */
+        contaParaClassificacao?: boolean | null;
+        /**
+         * 1 = normal; 2 = pontos em dobro; 0,5 = metade.
+         */
+        fator?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  etapas?: {
+    docs?: (number | Etapa)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  classificacoes?: {
+    docs?: (number | TemporadaCategoria)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Gerado a partir do ano (ex.: 2026). Use outro (ex.: 2026-2) se houver duas temporadas no mesmo ano.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Campeonatos e a temporada atual de cada um. A "temporada atual" é a que aparece em destaque no site e no painel.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campeonatos".
+ */
+export interface Campeonato {
+  id: number;
+  _order?: string | null;
+  nome: string;
+  /**
+   * Opcional.
+   */
+  sigla?: string | null;
+  /**
+   * Fonte única de "temporada atual" do site e do painel. Ao virar o ano, troque aqui (ou use "Criar próxima temporada").
+   */
+  temporadaAtual?: (number | null) | Temporada;
+  /**
+   * Opcional. Apresentação do campeonato.
+   */
+  descricao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  logo?: (number | null) | Midia;
+  /**
+   * Imagem larga do topo da página do campeonato.
+   */
+  banner?: (number | null) | Midia;
+  /**
+   * Opcional. Usadas na aba do campeonato (ex.: BKS em vermelho, azul e branco). Sem cores, o site usa as da ASKART.
+   */
+  cores?: {
+    /**
+     * Cor principal (faixas e títulos).
+     */
+    primaria?: string | null;
+    /**
+     * Cor de apoio (botões e detalhes).
+     */
+    secundaria?: string | null;
+    /**
+     * Cor de destaque (pequenos detalhes).
+     */
+    destaque?: string | null;
+  };
+  /**
+   * Opcional. Aparece na sub-aba "História", acima da lista de campeões de cada temporada.
+   */
+  historia?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Opcional. Documento do regulamento em vigor (cadastre antes em Documentos).
+   */
+  regulamento?: (number | null) | Documento;
+  temporadas?: {
+    docs?: (number | Temporada)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Envie várias fotos de uma vez arrastando-as para cá. Para trocar uma foto em todo o site, abra-a e envie o novo arquivo: os lugares que a usam se atualizam sozinhos. Use pastas para organizar por temporada ou etapa.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "midia".
+ */
+export interface Midia {
+  id: number;
+  /**
+   * Obrigatório para fotos. Diga o que aparece na imagem, em poucas palavras. Ex.: "Karts no grid de largada". Se ficar vazio, usamos a legenda.
+   */
+  alt?: string | null;
+  /**
+   * Opcional. Texto mostrado junto da foto no site.
+   */
+  legenda?: string | null;
+  /**
+   * Opcional. Vem preenchido com o último crédito que você usou: confira antes de salvar.
+   */
+  credito?: string | null;
+  /**
+   * Opcional. As fotos marcadas aparecem na página do piloto.
+   */
+  pilotosMarcados?: (number | Piloto)[] | null;
+  /**
+   * Recomendado. Mostrada antes do vídeo carregar, no celular com internet lenta e para quem prefere menos movimento na tela.
+   */
+  capaDoVideo?: (number | null) | Midia;
+  titulo?: string | null;
+  enviadoPor?: (number | null) | Usuario;
+  folder?: (number | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -160,13 +504,1991 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    miniatura?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    destaque?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    compartilhamento?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * Cadastro dos pilotos. Número, categoria e equipe de cada temporada ficam em Inscrições. Na busca, dá para procurar pelo número do kart.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pilotos".
+ */
+export interface Piloto {
+  id: number;
+  nome: string;
+  /**
+   * Como aparece nas tabelas (ex.: "J. Silva"). Vazio = nome completo.
+   */
+  nomeExibicao?: string | null;
+  /**
+   * Marque só se o sistema avisar que já existe piloto com este nome e for outra pessoa.
+   */
+  confirmarNaoDuplicado?: boolean | null;
+  /**
+   * Opcional. Confira a autorização de imagem (aba "Dados privados").
+   */
+  foto?: (number | null) | Midia;
+  cidade?: string | null;
+  uf?:
+    | (
+        | 'AC'
+        | 'AL'
+        | 'AP'
+        | 'AM'
+        | 'BA'
+        | 'CE'
+        | 'DF'
+        | 'ES'
+        | 'GO'
+        | 'MA'
+        | 'MT'
+        | 'MS'
+        | 'MG'
+        | 'PA'
+        | 'PB'
+        | 'PR'
+        | 'PE'
+        | 'PI'
+        | 'RJ'
+        | 'RN'
+        | 'RS'
+        | 'RO'
+        | 'RR'
+        | 'SC'
+        | 'SP'
+        | 'SE'
+        | 'TO'
+      )
+    | null;
+  /**
+   * Opcional. Apenas informações fornecidas pelo piloto ou responsável.
+   */
+  biografia?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  inscricoes?: {
+    docs?: (number | Inscricoe)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Opcional. Ajuda a evitar cadastro duplicado.
+   */
+  dataNascimento?: string | null;
+  autorizacaoImagem?: {
+    /**
+     * Vazio = ainda não informado.
+     */
+    autorizada?: ('sim' | 'nao') | null;
+    /**
+     * Para menores: nome do pai, mãe ou responsável legal.
+     */
+    responsavel?: string | null;
+    data?: string | null;
+    /**
+     * Opcional. Envie em Documentos e deixe-o como rascunho ou oculto (não publique).
+     */
+    documento?: (number | null) | Documento;
+  };
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Piloto × temporada × categoria: número do kart, equipe e condição. Um piloto que corre duas categorias tem duas inscrições. Para tirar alguém do campeonato sem apagar o histórico, mude o status.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inscricoes".
+ */
+export interface Inscricoe {
+  id: number;
+  /**
+   * Calculado: número, piloto, categoria e temporada.
+   */
+  titulo?: string | null;
+  /**
+   * Vem preenchida com a temporada atual.
+   */
+  temporada: number | Temporada;
+  /**
+   * Só aparecem as categorias da temporada escolhida.
+   */
+  categoria: number | Categoria;
+  /**
+   * Piloto novo? Cadastre pelo botão "+" sem sair daqui.
+   */
+  piloto: number | Piloto;
+  /**
+   * Não pode repetir entre as inscrições ativas da categoria.
+   */
+  numero?: number | null;
+  /**
+   * Opcional.
+   */
+  equipe?: (number | null) | Equipe;
+  /**
+   * Convidado aparece nos resultados, mas fica fora da classificação; a regra diz se os titulares sobem.
+   */
+  condicao: 'titular' | 'convidado';
+  /**
+   * Só "Ativa" reserva o número. Os resultados já lançados continuam no histórico.
+   */
+  status: 'ativa' | 'desistente' | 'transferida' | 'excluida';
+  /**
+   * Opcional. Só aparece aqui no painel (nunca no site).
+   */
+  observacao?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Categorias de kart. Arraste para definir a ordem em que aparecem no site. Para tirar uma categoria do site, use "No site: Oculto" — excluir só é possível quando ela não tem histórico.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias".
+ */
+export interface Categoria {
+  id: number;
+  _order?: string | null;
+  /**
+   * Nome como aparece no site e nas classificações.
+   */
+  nome: string;
+  /**
+   * Opcional. Usada em tabelas no celular.
+   */
+  sigla?: string | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Opcional. Ex.: faixa de idade, motor, peso mínimo — conforme o regulamento.
+   */
+  descricao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Opcional. Foto ou logo da categoria.
+   */
+  imagem?: (number | null) | Midia;
+  /**
+   * Opcional. Cor de destaque da categoria no site, no formato #RRGGBB (ex.: #1A7F37).
+   */
+  cor?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Equipes dos pilotos. A equipe de cada piloto em cada temporada é escolhida na inscrição.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipes".
+ */
+export interface Equipe {
+  id: number;
+  nome: string;
+  /**
+   * Opcional.
+   */
+  sigla?: string | null;
+  /**
+   * Opcional.
+   */
+  logo?: (number | null) | Midia;
+  cidade?: string | null;
+  uf?:
+    | (
+        | 'AC'
+        | 'AL'
+        | 'AP'
+        | 'AM'
+        | 'BA'
+        | 'CE'
+        | 'DF'
+        | 'ES'
+        | 'GO'
+        | 'MA'
+        | 'MT'
+        | 'MS'
+        | 'MG'
+        | 'PA'
+        | 'PB'
+        | 'PR'
+        | 'PE'
+        | 'PI'
+        | 'RJ'
+        | 'RN'
+        | 'RS'
+        | 'RO'
+        | 'RR'
+        | 'SC'
+        | 'SP'
+        | 'SE'
+        | 'TO'
+      )
+    | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Regulamentos e documentos oficiais (PDF, Word, Excel, CSV ou imagem; até 25 MB). Arraste para mudar a ordem na página de documentos.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documentos".
+ */
+export interface Documento {
+  id: number;
+  _order?: string | null;
+  /**
+   * Como aparece na lista de documentos. Ex.: "Regulamento Técnico".
+   */
+  titulo: string;
+  /**
+   * Usado no filtro da página de documentos.
+   */
+  tipo?: (number | null) | TiposDocumento;
+  /**
+   * Opcional. Ex.: "Rev. 2".
+   */
+  revisao?: string | null;
+  /**
+   * Opcional.
+   */
+  vigenteDesde?: string | null;
+  /**
+   * Opcional. Resumo do que o documento trata.
+   */
+  descricao?: string | null;
+  /**
+   * Opcional. Se este documento é a nova versão de outro, escolha o anterior: ao publicar este, o anterior vai para "Arquivado" (continua acessível no histórico).
+   */
+  substitui?: (number | null) | Documento;
+  /**
+   * Opcional. Preenchido sozinho quando você escolhe a temporada.
+   */
+  campeonato?: (number | null) | Campeonato;
+  /**
+   * Opcional.
+   */
+  temporada?: (number | null) | Temporada;
+  /**
+   * Opcional. Para documentos de uma categoria só.
+   */
+  categoria?: (number | null) | Categoria;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Tipos usados para organizar os documentos (Regulamento, Comunicado…). Arraste para mudar a ordem no site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tipos-documento".
+ */
+export interface TiposDocumento {
+  id: number;
+  _order?: string | null;
+  /**
+   * Como aparece no filtro de documentos do site.
+   */
+  nome: string;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Pessoas com acesso ao painel. Só administradores criam usuários e mudam papéis.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "usuarios".
+ */
+export interface Usuario {
+  id: number;
+  nome: string;
+  papel: 'administrador' | 'editor' | 'colaborador';
+  /**
+   * Desmarque para bloquear o acesso sem apagar o usuário.
+   */
+  ativo?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'usuarios';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: number;
+  name: string;
+  folder?: (number | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
+      | {
+          relationTo?: 'payload-folders';
+          value: number | FolderInterface;
+        }
+      | {
+          relationTo?: 'midia';
+          value: number | Midia;
+        }
+    )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  folderType?: 'midia'[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Como os pontos são contados, conforme o regulamento. Regra usada por temporada encerrada fica travada: para mudar a pontuação de uma nova temporada, duplique a regra.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "regras-pontuacao".
+ */
+export interface RegrasPontuacao {
+  id: number;
+  /**
+   * Ex.: "Regulamento 2026". Aparece só no painel e na página da temporada.
+   */
+  nome: string;
+  /**
+   * Uma tabela para cada tipo de corrida que pontua diferente (ex.: "Bateria" e "Final"). A primeira é a usada quando a corrida não indica outra.
+   */
+  tabelas?:
+    | {
+        /**
+         * Ex.: Bateria, Final. As corridas escolhem a tabela por este nome.
+         */
+        nome: string;
+        /**
+         * Digite os pontos em ordem: 1º lugar, 2º, 3º… Posições além da lista não ganham pontos de tabela. Até uma casa decimal.
+         */
+        pontos: number[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Para o 1º da tomada de tempo. Vazio = 0.
+   */
+  pontosPole?: number | null;
+  /**
+   * Por corrida que conta. Vazio = 0.
+   */
+  pontosVoltaRapida?: number | null;
+  /**
+   * Por corrida que conta. Vazio = 0.
+   */
+  pontosParticipacao?: number | null;
+  requisitoParticipacao?: ('presente' | 'largou' | 'classificado') | null;
+  abandono: 'pela-posicao' | 'so-participacao' | 'zero';
+  /**
+   * Percentual das voltas do vencedor. Ex.: 75 = precisa completar 75% das voltas. Vazio = sem mínimo.
+   */
+  percentualMinimoVoltas?: number | null;
+  convidados: 'reclassificar-elegiveis' | 'manter-posicoes';
+  /**
+   * Piores resultados que não entram na soma. Desclassificação nunca é descartada, e penalidades/ajustes de pontos são aplicados depois dos descartes.
+   */
+  descartes?: {
+    /**
+     * Vazio ou 0 = sem descarte.
+     */
+    quantidade?: number | null;
+    unidade?: ('etapa' | 'corrida') | null;
+    /**
+     * Vazio = vale sempre.
+     */
+    aPartirDeEtapas?: number | null;
+    ultimaEtapaDescartavel?: boolean | null;
+  };
+  /**
+   * Na ordem do regulamento: o primeiro critério é usado primeiro. Arraste para reordenar. Se ainda houver empate, vale a ordem alfabética.
+   */
+  criteriosDesempate?:
+    | {
+        criterio: 'mais-vitorias' | 'contagem-de-posicoes' | 'melhor-resultado-ultima-etapa' | 'mais-poles';
+        id?: string | null;
+      }[]
+    | null;
+  temporadas?: {
+    docs?: (number | Temporada)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  classificacoes?: {
+    docs?: (number | TemporadaCategoria)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Uma por categoria de cada temporada, criada sozinha. A pontuação é calculada a partir dos resultados oficiais; para corrigir pontos de um piloto, use "Ajustes de pontos" (sempre com motivo).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "temporada-categorias".
+ */
+export interface TemporadaCategoria {
+  id: number;
+  /**
+   * Calculado: categoria · temporada.
+   */
+  titulo?: string | null;
+  temporada: number | Temporada;
+  categoria: number | Categoria;
+  /**
+   * Desmarque para tirar esta classificação do site sem apagar nada.
+   */
+  publicada?: boolean | null;
+  /**
+   * Ordem desta categoria nas páginas da temporada (1 = primeira).
+   */
+  ordem?: number | null;
+  /**
+   * Manual congela a tabela: resultados novos deixam de ser somados. Use só em temporadas antigas ou por decisão oficial. Ao passar para manual, a tabela calculada é copiada como ponto de partida.
+   */
+  modo: 'automatico' | 'manual';
+  ajustes?:
+    | {
+        inscricao: number | Inscricoe;
+        /**
+         * Opcional. O ajuste aparece na coluna desta etapa.
+         */
+        etapa?: (number | null) | Etapa;
+        tipo: 'penalidade' | 'bonificacao' | 'correcao';
+        /**
+         * Em penalidade e bonificação, digite só o número (o sinal é automático).
+         */
+        pontos: number;
+        /**
+         * Obrigatório. Ex.: decisão dos comissários na 2ª etapa.
+         */
+        motivo: string;
+        /**
+         * Opcional. Comunicado ou decisão publicada em Documentos.
+         */
+        documento?: (number | null) | Documento;
+        registradoPor?: (number | null) | Usuario;
+        registradoEm?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Opcional. Mostra este piloto no lugar do líder calculado, com o rótulo escolhido (nunca "Líder"), até a data indicada.
+   */
+  destaqueManual?: {
+    inscricao?: (number | null) | Inscricoe;
+    rotulo?: string | null;
+    /**
+     * Vazio = até ser removido.
+     */
+    exibirAte?: string | null;
+  };
+  /**
+   * Opcional. Vazio = regra da temporada.
+   */
+  regra?: (number | null) | RegrasPontuacao;
+  /**
+   * Opcional. Para uma classificação que reúne pilotos de outras categorias da temporada (ex.: uma geral).
+   */
+  incluiResultadosDe?: (number | Categoria)[] | null;
+  linhasManuais?:
+    | {
+        posicao: number;
+        piloto: number | Piloto;
+        numero?: number | null;
+        equipe?: (number | null) | Equipe;
+        pontos?: number | null;
+        vitorias?: number | null;
+        podios?: number | null;
+        corridas?: number | null;
+        observacao?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  campeao?: (number | null) | Inscricoe;
+  vice?: (number | null) | Inscricoe;
+  terceiro?: (number | null) | Inscricoe;
+  /**
+   * Cópia congelada da tabela final (usada no histórico).
+   */
+  fotografiaFinal?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Resultados de cada corrida. Lance as linhas e salve como "Rascunho"; quando conferido, mude para "Oficial" — só então os pontos entram na classificação.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "corridas".
+ */
+export interface Corrida {
+  id: number;
+  /**
+   * Calculado: ano · etapa · categoria · corrida.
+   */
+  titulo?: string | null;
+  chaveUnica?: string | null;
+  etapa: number | Etapa;
+  /**
+   * Normalmente uma. Mais de uma quando categorias largam juntas (cada uma pontua na sua).
+   */
+  categorias: (number | Categoria)[];
+  nome: string;
+  /**
+   * A pole vem do 1º da tomada de tempo.
+   */
+  tipo: 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
+  status: 'rascunho' | 'oficial' | 'cancelada';
+  /**
+   * Opcional. Aparece na programação da etapa, por categoria.
+   */
+  inicio?: string | null;
+  inicio_tz?: SupportedTimezones;
+  /**
+   * Opcional.
+   */
+  voltasPrevistas?: number | null;
+  /**
+   * Nome de uma tabela da regra (ex.: Final). Vazio = primeira tabela da regra.
+   */
+  tabela?: string | null;
+  contaParaClassificacao?: boolean | null;
+  /**
+   * Ex.: 0,5 em corrida interrompida, se o regulamento prever.
+   */
+  fator?: number | null;
+  /**
+   * Uma linha por piloto. A posição oficial é calculada ao salvar (chegada, penalidades, abandonos). Desclassificado e "não largou" ficam sem posição.
+   */
+  resultados?:
+    | {
+        inscricao: number | Inscricoe;
+        /**
+         * Ordem na pista.
+         */
+        posicaoChegada?: number | null;
+        status: 'classificado' | 'nao-classificado' | 'abandono' | 'desclassificado' | 'nao-largou';
+        /**
+         * Calculada ao salvar. Para corrigir, use "Ajustar posição oficial à mão".
+         */
+        posicaoOficial?: number | null;
+        voltas?: number | null;
+        /**
+         * Ex.: 1min02s345 = 62345.
+         */
+        melhorVoltaMs?: number | null;
+        /**
+         * Opcional. Necessário para aplicar penalidade de tempo sozinho.
+         */
+        tempoTotalMs?: number | null;
+        penalidade?: {
+          /**
+           * Vazio = sem penalidade.
+           */
+          tipo?: ('tempo' | 'posicoes' | 'pontos' | 'advertencia') | null;
+          valor?: number | null;
+          motivo?: string | null;
+        };
+        /**
+         * Ex.: decisão dos comissários. Exige motivo.
+         */
+        ajustarPosicao?: boolean | null;
+        /**
+         * Opcional. Substitui os pontos calculados desta corrida para este piloto. Exige motivo.
+         */
+        pontosManuais?: number | null;
+        motivoAjuste?: string | null;
+        /**
+         * Opcional. Aparece no resultado.
+         */
+        observacao?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Opcional. Normalmente é calculada (menor "melhor volta"). Use só se a cronometragem oficial indicar outro piloto.
+   */
+  voltaMaisRapidaManual?: {
+    inscricao?: (number | null) | Inscricoe;
+    motivo?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Escreva, salve como rascunho e publique quando estiver pronta. Para programar, escolha uma data futura em "Publicar em" e publique: a notícia entra no ar sozinha.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "noticias".
+ */
+export interface Noticia {
+  id: number;
+  titulo: string;
+  /**
+   * Recomendada. Aparece no topo da notícia, nos cartões e ao compartilhar no WhatsApp. Foto deitada (horizontal) fica melhor.
+   */
+  capa?: (number | null) | Midia;
+  /**
+   * Use os botões da barra para títulos, listas e links. Para pôr fotos no meio do texto, use "Upload"; para uma galeria inteira, use o bloco "Galeria de fotos".
+   */
+  conteudo: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Uma ou duas frases que resumem a notícia (até 300 caracteres). Aparece abaixo do título e no Google.
+   */
+  subtitulo?: string | null;
+  /**
+   * Assunto da notícia (filtro do site).
+   */
+  categoria?: (number | null) | CategoriasNoticia;
+  /**
+   * Vem preenchido com o seu nome. Pode trocar.
+   */
+  autor?: string | null;
+  /**
+   * Palavras-chave. Escolha da lista ou crie uma nova pelo botão +.
+   */
+  tags?: (number | Tag)[] | null;
+  /**
+   * Marcada, a notícia aparece em destaque no topo das notícias da página inicial.
+   */
+  destaque?: boolean | null;
+  /**
+   * Opcional. Galeria mostrada no fim da notícia.
+   */
+  galeria?: (number | null) | Galeria;
+  /**
+   * Opcional. A notícia aparece na página da etapa.
+   */
+  etapa?: (number | null) | Etapa;
+  /**
+   * Preenchida pela etapa (ou escolha, se não houver etapa).
+   */
+  temporada?: (number | null) | Temporada;
+  /**
+   * Opcional.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Opcional.
+   */
+  pilotos?: (number | Piloto)[] | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Assuntos das notícias. Cada notícia tem uma categoria; o site permite filtrar por ela.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias-noticia".
+ */
+export interface CategoriasNoticia {
+  id: number;
+  nome: string;
+  /**
+   * Opcional. Cor da etiqueta da categoria no site, no formato #RRGGBB.
+   */
+  cor?: string | null;
+  /**
+   * Opcional. Texto curto mostrado no topo da lista de notícias desta categoria.
+   */
+  descricao?: string | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Palavras-chave das notícias. Podem ser criadas na própria notícia.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  /**
+   * Curto e sem "#". Ex.: Treino livre.
+   */
+  nome: string;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Crie a galeria, clique em "Enviar novos" no campo Fotos e arraste várias fotos de uma vez. Arraste as fotos para mudar a ordem e as galerias para mudar a ordem no site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "galerias".
+ */
+export interface Galeria {
+  id: number;
+  _order?: string | null;
+  titulo: string;
+  /**
+   * Escolha fotos já enviadas ou envie novas (dá para enviar várias de uma vez). Arraste para mudar a ordem.
+   */
+  fotos: (number | Midia)[];
+  /**
+   * Opcional. Vazio = primeira foto da galeria.
+   */
+  capa?: (number | null) | Midia;
+  /**
+   * Grade: fotos lado a lado. Carrossel: uma por vez. Mosaico: tamanhos variados.
+   */
+  exibicao: 'grade' | 'carrossel' | 'mosaico';
+  /**
+   * Opcional. Usado para organizar e filtrar as galerias.
+   */
+  tipo?: ('etapa' | 'treino' | 'evento' | 'kartodromo' | 'institucional' | 'outro') | null;
+  /**
+   * Opcional.
+   */
+  data?: string | null;
+  /**
+   * Opcional.
+   */
+  descricao?: string | null;
+  /**
+   * Opcional. A galeria aparece na página da etapa.
+   */
+  etapa?: (number | null) | Etapa;
+  /**
+   * Preenchida sozinha pela etapa (ou escolha, se não houver etapa).
+   */
+  temporada?: (number | null) | Temporada;
+  /**
+   * Preenchido sozinho pela temporada.
+   */
+  campeonato?: (number | null) | Campeonato;
+  /**
+   * Opcional. A galeria aparece no fim da notícia.
+   */
+  noticia?: (number | null) | Noticia;
+  /**
+   * Opcional. A galeria aparece na página dos pilotos escolhidos.
+   */
+  pilotos?: (number | Piloto)[] | null;
+  /**
+   * Opcional.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Tudo o que foge da grade semanal. Para cancelar, bloquear, lotar ou mudar o horário de UM dia, escolha o horário em "Substitui". Sem "Substitui": treino extra ou bloqueio de período (ex.: dia de etapa, manutenção da pista), que bloqueia os horários que caírem nele.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "treinos".
+ */
+export interface Treino {
+  id: number;
+  /**
+   * Calculado: dia · horário · tipo · situação.
+   */
+  titulo?: string | null;
+  /**
+   * Dia do treino ou da exceção.
+   */
+  data: string;
+  /**
+   * Calculado pela data (atualiza ao salvar).
+   */
+  diaDaSemana?: string | null;
+  /**
+   * Liberado: acontece normalmente. Horário extra: treino a mais, fora da grade. Lotado: acontece, mas sem vagas. Cancelado: não acontece. Bloqueado: pista fechada — com "Substitui", só aquele horário; sem "Substitui", bloqueia todos os horários desse período (e das categorias escolhidas).
+   */
+  status: 'liberado' | 'extra' | 'lotado' | 'cancelado' | 'bloqueado';
+  dia?: string | null;
+  /**
+   * Para mudar UM dia da grade (cancelar, bloquear, lotar ou trocar o horário), escolha aqui o horário fixo — aparecem os do mesmo dia da semana da data. Os campos vazios abaixo herdam desse horário. Deixe vazio para treino extra ou bloqueio de período.
+   */
+  substitui?: (number | null) | HorariosTreino;
+  /**
+   * Vazio = o mesmo do horário substituído.
+   */
+  horaInicio?:
+    | (
+        | '00:00'
+        | '00:15'
+        | '00:30'
+        | '00:45'
+        | '01:00'
+        | '01:15'
+        | '01:30'
+        | '01:45'
+        | '02:00'
+        | '02:15'
+        | '02:30'
+        | '02:45'
+        | '03:00'
+        | '03:15'
+        | '03:30'
+        | '03:45'
+        | '04:00'
+        | '04:15'
+        | '04:30'
+        | '04:45'
+        | '05:00'
+        | '05:15'
+        | '05:30'
+        | '05:45'
+        | '06:00'
+        | '06:15'
+        | '06:30'
+        | '06:45'
+        | '07:00'
+        | '07:15'
+        | '07:30'
+        | '07:45'
+        | '08:00'
+        | '08:15'
+        | '08:30'
+        | '08:45'
+        | '09:00'
+        | '09:15'
+        | '09:30'
+        | '09:45'
+        | '10:00'
+        | '10:15'
+        | '10:30'
+        | '10:45'
+        | '11:00'
+        | '11:15'
+        | '11:30'
+        | '11:45'
+        | '12:00'
+        | '12:15'
+        | '12:30'
+        | '12:45'
+        | '13:00'
+        | '13:15'
+        | '13:30'
+        | '13:45'
+        | '14:00'
+        | '14:15'
+        | '14:30'
+        | '14:45'
+        | '15:00'
+        | '15:15'
+        | '15:30'
+        | '15:45'
+        | '16:00'
+        | '16:15'
+        | '16:30'
+        | '16:45'
+        | '17:00'
+        | '17:15'
+        | '17:30'
+        | '17:45'
+        | '18:00'
+        | '18:15'
+        | '18:30'
+        | '18:45'
+        | '19:00'
+        | '19:15'
+        | '19:30'
+        | '19:45'
+        | '20:00'
+        | '20:15'
+        | '20:30'
+        | '20:45'
+        | '21:00'
+        | '21:15'
+        | '21:30'
+        | '21:45'
+        | '22:00'
+        | '22:15'
+        | '22:30'
+        | '22:45'
+        | '23:00'
+        | '23:15'
+        | '23:30'
+        | '23:45'
+      )
+    | null;
+  /**
+   * Vazio = o mesmo do horário substituído.
+   */
+  horaFim?:
+    | (
+        | '00:15'
+        | '00:30'
+        | '00:45'
+        | '01:00'
+        | '01:15'
+        | '01:30'
+        | '01:45'
+        | '02:00'
+        | '02:15'
+        | '02:30'
+        | '02:45'
+        | '03:00'
+        | '03:15'
+        | '03:30'
+        | '03:45'
+        | '04:00'
+        | '04:15'
+        | '04:30'
+        | '04:45'
+        | '05:00'
+        | '05:15'
+        | '05:30'
+        | '05:45'
+        | '06:00'
+        | '06:15'
+        | '06:30'
+        | '06:45'
+        | '07:00'
+        | '07:15'
+        | '07:30'
+        | '07:45'
+        | '08:00'
+        | '08:15'
+        | '08:30'
+        | '08:45'
+        | '09:00'
+        | '09:15'
+        | '09:30'
+        | '09:45'
+        | '10:00'
+        | '10:15'
+        | '10:30'
+        | '10:45'
+        | '11:00'
+        | '11:15'
+        | '11:30'
+        | '11:45'
+        | '12:00'
+        | '12:15'
+        | '12:30'
+        | '12:45'
+        | '13:00'
+        | '13:15'
+        | '13:30'
+        | '13:45'
+        | '14:00'
+        | '14:15'
+        | '14:30'
+        | '14:45'
+        | '15:00'
+        | '15:15'
+        | '15:30'
+        | '15:45'
+        | '16:00'
+        | '16:15'
+        | '16:30'
+        | '16:45'
+        | '17:00'
+        | '17:15'
+        | '17:30'
+        | '17:45'
+        | '18:00'
+        | '18:15'
+        | '18:30'
+        | '18:45'
+        | '19:00'
+        | '19:15'
+        | '19:30'
+        | '19:45'
+        | '20:00'
+        | '20:15'
+        | '20:30'
+        | '20:45'
+        | '21:00'
+        | '21:15'
+        | '21:30'
+        | '21:45'
+        | '22:00'
+        | '22:15'
+        | '22:30'
+        | '22:45'
+        | '23:00'
+        | '23:15'
+        | '23:30'
+        | '23:45'
+        | '24:00'
+      )
+    | null;
+  /**
+   * Calculada pelo início e fim (atualiza ao salvar).
+   */
+  duracao?: string | null;
+  /**
+   * Vazio = todas as categorias (ou, com "Substitui", as mesmas do horário fixo).
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Opcional. Vazio = o mesmo do horário substituído.
+   */
+  tipo?: (number | null) | TiposTreino;
+  /**
+   * Aparece no site junto do horário (ex.: "Cancelado por causa da chuva", "Pista reservada para a etapa").
+   */
+  observacao?: string | null;
+  /**
+   * O sistema avisa (e não deixa salvar) quando este horário coincide com outro no mesmo dia e nas mesmas categorias. Marque só se for intencional.
+   */
+  permitirSobreposicao?: boolean | null;
+  /**
+   * Visível: vale na agenda do site. Oculto: deixa de valer, sem ser apagado (o horário fixo volta ao normal). Arquivado: guardado só como registro.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Horários que se repetem toda semana. Para mudar só um dia (cancelar, bloquear, lotar ou trocar o horário), use "Treinos e exceções". Para mudar de vez a partir de uma data, preencha "Válido até" neste horário e crie outro com "Válido a partir de": assim o histórico fica certo.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "horarios-treino".
+ */
+export interface HorariosTreino {
+  id: number;
+  /**
+   * Calculado: dia da semana · horário · tipo · categorias · validade.
+   */
+  titulo?: string | null;
+  /**
+   * O horário se repete toda semana neste dia.
+   */
+  diaSemana: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo';
+  /**
+   * Hora de Brasília (digite para buscar, ex.: 08:00).
+   */
+  horaInicio:
+    | '00:00'
+    | '00:15'
+    | '00:30'
+    | '00:45'
+    | '01:00'
+    | '01:15'
+    | '01:30'
+    | '01:45'
+    | '02:00'
+    | '02:15'
+    | '02:30'
+    | '02:45'
+    | '03:00'
+    | '03:15'
+    | '03:30'
+    | '03:45'
+    | '04:00'
+    | '04:15'
+    | '04:30'
+    | '04:45'
+    | '05:00'
+    | '05:15'
+    | '05:30'
+    | '05:45'
+    | '06:00'
+    | '06:15'
+    | '06:30'
+    | '06:45'
+    | '07:00'
+    | '07:15'
+    | '07:30'
+    | '07:45'
+    | '08:00'
+    | '08:15'
+    | '08:30'
+    | '08:45'
+    | '09:00'
+    | '09:15'
+    | '09:30'
+    | '09:45'
+    | '10:00'
+    | '10:15'
+    | '10:30'
+    | '10:45'
+    | '11:00'
+    | '11:15'
+    | '11:30'
+    | '11:45'
+    | '12:00'
+    | '12:15'
+    | '12:30'
+    | '12:45'
+    | '13:00'
+    | '13:15'
+    | '13:30'
+    | '13:45'
+    | '14:00'
+    | '14:15'
+    | '14:30'
+    | '14:45'
+    | '15:00'
+    | '15:15'
+    | '15:30'
+    | '15:45'
+    | '16:00'
+    | '16:15'
+    | '16:30'
+    | '16:45'
+    | '17:00'
+    | '17:15'
+    | '17:30'
+    | '17:45'
+    | '18:00'
+    | '18:15'
+    | '18:30'
+    | '18:45'
+    | '19:00'
+    | '19:15'
+    | '19:30'
+    | '19:45'
+    | '20:00'
+    | '20:15'
+    | '20:30'
+    | '20:45'
+    | '21:00'
+    | '21:15'
+    | '21:30'
+    | '21:45'
+    | '22:00'
+    | '22:15'
+    | '22:30'
+    | '22:45'
+    | '23:00'
+    | '23:15'
+    | '23:30'
+    | '23:45';
+  /**
+   * 24:00 = até a meia-noite.
+   */
+  horaFim:
+    | '00:15'
+    | '00:30'
+    | '00:45'
+    | '01:00'
+    | '01:15'
+    | '01:30'
+    | '01:45'
+    | '02:00'
+    | '02:15'
+    | '02:30'
+    | '02:45'
+    | '03:00'
+    | '03:15'
+    | '03:30'
+    | '03:45'
+    | '04:00'
+    | '04:15'
+    | '04:30'
+    | '04:45'
+    | '05:00'
+    | '05:15'
+    | '05:30'
+    | '05:45'
+    | '06:00'
+    | '06:15'
+    | '06:30'
+    | '06:45'
+    | '07:00'
+    | '07:15'
+    | '07:30'
+    | '07:45'
+    | '08:00'
+    | '08:15'
+    | '08:30'
+    | '08:45'
+    | '09:00'
+    | '09:15'
+    | '09:30'
+    | '09:45'
+    | '10:00'
+    | '10:15'
+    | '10:30'
+    | '10:45'
+    | '11:00'
+    | '11:15'
+    | '11:30'
+    | '11:45'
+    | '12:00'
+    | '12:15'
+    | '12:30'
+    | '12:45'
+    | '13:00'
+    | '13:15'
+    | '13:30'
+    | '13:45'
+    | '14:00'
+    | '14:15'
+    | '14:30'
+    | '14:45'
+    | '15:00'
+    | '15:15'
+    | '15:30'
+    | '15:45'
+    | '16:00'
+    | '16:15'
+    | '16:30'
+    | '16:45'
+    | '17:00'
+    | '17:15'
+    | '17:30'
+    | '17:45'
+    | '18:00'
+    | '18:15'
+    | '18:30'
+    | '18:45'
+    | '19:00'
+    | '19:15'
+    | '19:30'
+    | '19:45'
+    | '20:00'
+    | '20:15'
+    | '20:30'
+    | '20:45'
+    | '21:00'
+    | '21:15'
+    | '21:30'
+    | '21:45'
+    | '22:00'
+    | '22:15'
+    | '22:30'
+    | '22:45'
+    | '23:00'
+    | '23:15'
+    | '23:30'
+    | '23:45'
+    | '24:00';
+  /**
+   * Calculada pelo início e fim (atualiza ao salvar).
+   */
+  duracao?: string | null;
+  /**
+   * Deixe vazio para valer para todas as categorias.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Define a cor e a legenda na agenda. Os tipos são cadastrados em "Tipos de treino".
+   */
+  tipo: number | TiposTreino;
+  /**
+   * Opcional. Aparece no site junto do horário (ex.: "Traga o transponder").
+   */
+  observacao?: string | null;
+  /**
+   * Opcional. Vazio = já vale.
+   */
+  validoDe?: string | null;
+  /**
+   * Opcional. Vazio = vale sem data para acabar. O último dia conta.
+   */
+  validoAte?: string | null;
+  ordemNaSemana?: string | null;
+  /**
+   * O sistema avisa (e não deixa salvar) quando este horário coincide com outro no mesmo dia e nas mesmas categorias. Marque só se for intencional.
+   */
+  permitirSobreposicao?: boolean | null;
+  /**
+   * Visível: faz parte da grade no site. Oculto: sai da grade sem ser apagado. Arquivado: horário antigo, guardado só como registro.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Tipos usados na grade e na agenda de treinos (cor da etiqueta e filtro do site). Arraste para mudar a ordem da legenda; o primeiro é o tipo padrão de um horário novo.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tipos-treino".
+ */
+export interface TiposTreino {
+  id: number;
+  _order?: string | null;
+  /**
+   * Como aparece na agenda e na legenda (ex.: Treino livre).
+   */
+  nome: string;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Opcional. Cor da etiqueta na agenda, no formato #RRGGBB (ex.: #1A7F37).
+   */
+  cor?: string | null;
+  /**
+   * Opcional. Explica o tipo para o público (aparece na legenda da agenda).
+   */
+  descricao?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Comunicados oficiais e avisos rápidos (mudança de treino, de etapa, cancelamento…). Use "Exibir até" para o aviso sair do site sozinho.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "avisos".
+ */
+export interface Aviso {
+  id: number;
+  titulo: string;
+  tipo:
+    | 'alteracao-treino'
+    | 'alteracao-etapa'
+    | 'mudanca-horario'
+    | 'cancelamento'
+    | 'comunicado-oficial'
+    | 'informacao-importante';
+  /**
+   * Define a cor do aviso. Use "Urgente" só para o que muda a vida do piloto hoje.
+   */
+  nivel: 'informativo' | 'atencao' | 'urgente';
+  texto: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Marque para avisos que todos precisam ver. Sai da barra sozinho depois de "Exibir até".
+   */
+  destaque?: boolean | null;
+  /**
+   * Opcional. Ex.: o PDF do comunicado oficial (cadastrado em Documentos).
+   */
+  anexo?: (number | null) | Documento;
+  etapa?: (number | null) | Etapa;
+  treino?: (number | null) | Treino;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  /**
+   * Opcional.
+   */
+  exibirDe?: string | null;
+  /**
+   * Opcional. Depois desta data sai do site sozinho.
+   */
+  exibirAte?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * O topo da página inicial. Arraste para mudar a ordem. Use "Exibir a partir de" e "Exibir até" para o banner entrar e sair do ar sozinho.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners".
+ */
+export interface Banner {
+  id: number;
+  _order?: string | null;
+  /**
+   * Frase principal do banner. Curta: até umas 8 palavras ficam melhor.
+   */
+  titulo: string;
+  /**
+   * Opcional. Uma frase de apoio abaixo do título.
+   */
+  texto?: string | null;
+  /**
+   * Foto deitada (horizontal), de boa qualidade, ou vídeo curto em MP4. Defina o ponto focal da foto para o recorte no celular ficar bom.
+   */
+  midia: number | Midia;
+  /**
+   * Opcional. Foto em pé (vertical) para telas pequenas. Vazio = a imagem principal, recortada pelo ponto focal.
+   */
+  imagemCelular?: (number | null) | Midia;
+  /**
+   * Opcional. Endereço de um vídeo do YouTube ou Vimeo para tocar no lugar da mídia acima; nesse caso use uma foto em "Imagem ou vídeo" como capa (mostrada no celular e para quem prefere menos movimento).
+   */
+  videoExterno?: string | null;
+  /**
+   * Opcional. Botão do banner. Prefira "Página ou conteúdo do site": o link acompanha se o endereço mudar.
+   */
+  botao?: {
+    tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+    /**
+     * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+     */
+    documento?:
+      | ({
+          relationTo: 'paginas';
+          value: number | Pagina;
+        } | null)
+      | ({
+          relationTo: 'noticias';
+          value: number | Noticia;
+        } | null)
+      | ({
+          relationTo: 'etapas';
+          value: number | Etapa;
+        } | null)
+      | ({
+          relationTo: 'temporadas';
+          value: number | Temporada;
+        } | null)
+      | ({
+          relationTo: 'categorias';
+          value: number | Categoria;
+        } | null)
+      | ({
+          relationTo: 'pilotos';
+          value: number | Piloto;
+        } | null)
+      | ({
+          relationTo: 'galerias';
+          value: number | Galeria;
+        } | null)
+      | ({
+          relationTo: 'documentos';
+          value: number | Documento;
+        } | null)
+      | ({
+          relationTo: 'eventos';
+          value: number | Evento;
+        } | null);
+    rota?:
+      | (
+          | 'inicio'
+          | 'bks'
+          | 'campeonatos'
+          | 'classificacao'
+          | 'calendario'
+          | 'resultados'
+          | 'treinos'
+          | 'pilotos'
+          | 'categorias'
+          | 'noticias'
+          | 'comunicados'
+          | 'eventos'
+          | 'galeria'
+          | 'documentos'
+          | 'historico'
+          | 'estatisticas'
+          | 'kartodromo'
+          | 'sobre'
+          | 'contato'
+          | 'busca'
+        )
+      | null;
+    /**
+     * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+     */
+    url?: string | null;
+    /**
+     * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+     */
+    rotulo?: string | null;
+    /**
+     * Indicado para endereços externos.
+     */
+    novaAba?: boolean | null;
+  };
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  /**
+   * Opcional.
+   */
+  exibirDe?: string | null;
+  /**
+   * Opcional. Depois desta data sai do site sozinho.
+   */
+  exibirAte?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Páginas com conteúdo livre, montadas em blocos (texto, imagem, galeria, botão, vídeo, documento).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "paginas".
+ */
+export interface Pagina {
+  id: number;
+  _order?: string | null;
+  titulo: string;
+  /**
+   * Opcional. Aparece abaixo do título e no Google.
+   */
+  resumo?: string | null;
+  imagemTopo?: (number | null) | Midia;
+  /**
+   * Adicione os blocos na ordem em que devem aparecer. Arraste para reordenar.
+   */
+  blocos?:
+    | (
+        | {
+            texto: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'texto';
+          }
+        | {
+            imagem: number | Midia;
+            legenda?: string | null;
+            largura?: ('texto' | 'larga' | 'tela') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'imagem';
+          }
+        | {
+            /**
+             * Escolha uma galeria já cadastrada (ou crie uma nova pelo botão +).
+             */
+            galeria: number | Galeria;
+            exibicao?: ('padrao' | 'grade' | 'carrossel' | 'mosaico') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'galeria';
+          }
+        | {
+            /**
+             * Prefira "Página ou conteúdo do site": se o endereço do conteúdo mudar, o link continua funcionando.
+             */
+            link: {
+              tipo: 'interno' | 'rota' | 'externo';
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'botao';
+          }
+        | {
+            /**
+             * Link do YouTube ou Vimeo.
+             */
+            url?: string | null;
+            legenda?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'video';
+          }
+        | {
+            documento: number | Documento;
+            /**
+             * Opcional. Padrão: o título do documento.
+             */
+            texto?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'documento';
+          }
+      )[]
+    | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Eventos fora do calendário dos campeonatos. Aparecem em Eventos e no calendário do site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "eventos".
+ */
+export interface Evento {
+  id: number;
+  titulo: string;
+  /**
+   * Data e hora de Brasília.
+   */
+  inicio: string;
+  inicio_tz: SupportedTimezones;
+  /**
+   * Opcional.
+   */
+  fim?: string | null;
+  fim_tz?: SupportedTimezones;
+  /**
+   * Opcional. Se for no kartódromo, pode deixar vazio: o site mostra o endereço do kartódromo.
+   */
+  local?: string | null;
+  /**
+   * Opcional. Foto ou cartaz do evento.
+   */
+  imagem?: (number | null) | Midia;
+  /**
+   * Programação, regras de participação e o que mais for útil.
+   */
+  descricao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Opcional. Categorias de kart que participam.
+   */
+  categorias?: (number | Categoria)[] | null;
+  /**
+   * Opcional. Página onde o piloto se inscreve ou compra o ingresso.
+   */
+  linkInscricao?: string | null;
+  /**
+   * Gerado automaticamente. Só altere se precisar de um endereço diferente.
+   */
+  slug?: string | null;
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  /**
+   * Vazio = no ar assim que for publicado. Data futura = entra no ar sozinho nesse horário (programado).
+   */
+  publicarEm?: string | null;
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Dúvidas recorrentes, mostradas na aba do kartódromo, na do BKS e na página de contato.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "perguntas".
+ */
+export interface Pergunta {
+  id: number;
+  _order?: string | null;
+  pergunta: string;
+  resposta: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  secao: 'kartodromo' | 'bks' | 'geral';
+  /**
+   * Visível: aparece no site. Oculto: sai do site sem ser apagado. Arquivado: sai das listas atuais, mas continua na própria página e no histórico.
+   */
+  visibilidade: 'visivel' | 'oculto' | 'arquivado';
+  textoBusca?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -183,20 +2505,120 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'etapas';
+        value: number | Etapa;
       } | null)
     | ({
-        relationTo: 'media';
-        value: string | Media;
+        relationTo: 'corridas';
+        value: number | Corrida;
+      } | null)
+    | ({
+        relationTo: 'temporada-categorias';
+        value: number | TemporadaCategoria;
+      } | null)
+    | ({
+        relationTo: 'pilotos';
+        value: number | Piloto;
+      } | null)
+    | ({
+        relationTo: 'inscricoes';
+        value: number | Inscricoe;
+      } | null)
+    | ({
+        relationTo: 'equipes';
+        value: number | Equipe;
+      } | null)
+    | ({
+        relationTo: 'categorias';
+        value: number | Categoria;
+      } | null)
+    | ({
+        relationTo: 'temporadas';
+        value: number | Temporada;
+      } | null)
+    | ({
+        relationTo: 'campeonatos';
+        value: number | Campeonato;
+      } | null)
+    | ({
+        relationTo: 'regras-pontuacao';
+        value: number | RegrasPontuacao;
+      } | null)
+    | ({
+        relationTo: 'treinos';
+        value: number | Treino;
+      } | null)
+    | ({
+        relationTo: 'horarios-treino';
+        value: number | HorariosTreino;
+      } | null)
+    | ({
+        relationTo: 'tipos-treino';
+        value: number | TiposTreino;
+      } | null)
+    | ({
+        relationTo: 'noticias';
+        value: number | Noticia;
+      } | null)
+    | ({
+        relationTo: 'avisos';
+        value: number | Aviso;
+      } | null)
+    | ({
+        relationTo: 'banners';
+        value: number | Banner;
+      } | null)
+    | ({
+        relationTo: 'galerias';
+        value: number | Galeria;
+      } | null)
+    | ({
+        relationTo: 'midia';
+        value: number | Midia;
+      } | null)
+    | ({
+        relationTo: 'documentos';
+        value: number | Documento;
+      } | null)
+    | ({
+        relationTo: 'eventos';
+        value: number | Evento;
+      } | null)
+    | ({
+        relationTo: 'paginas';
+        value: number | Pagina;
+      } | null)
+    | ({
+        relationTo: 'perguntas';
+        value: number | Pergunta;
+      } | null)
+    | ({
+        relationTo: 'categorias-noticia';
+        value: number | CategoriasNoticia;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'tipos-documento';
+        value: number | TiposDocumento;
+      } | null)
+    | ({
+        relationTo: 'usuarios';
+        value: number | Usuario;
+      } | null)
+    | ({
+        relationTo: 'payload-folders';
+        value: number | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'usuarios';
+    value: number | Usuario;
   };
   updatedAt: string;
   createdAt: string;
@@ -206,10 +2628,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
-    relationTo: 'users';
-    value: string | User;
+    relationTo: 'usuarios';
+    value: number | Usuario;
   };
   key?: string | null;
   value?:
@@ -229,7 +2651,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -237,34 +2659,570 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "etapas_select".
  */
-export interface UsersSelect<T extends boolean = true> {
+export interface EtapasSelect<T extends boolean = true> {
+  titulo?: T;
+  temporada?: T;
+  numero?: T;
+  nome?: T;
+  inicio?: T;
+  inicio_tz?: T;
+  fim?: T;
+  fim_tz?: T;
+  status?: T;
+  fatorPontuacao?: T;
+  categorias?: T;
+  local?: T;
+  localMapa?: T;
+  linkIngressos?: T;
+  descricao?: T;
+  imagem?: T;
+  corridas?: T;
+  noticias?: T;
+  galerias?: T;
+  visibilidade?: T;
+  textoBusca?: T;
   updatedAt?: T;
   createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "corridas_select".
+ */
+export interface CorridasSelect<T extends boolean = true> {
+  titulo?: T;
+  chaveUnica?: T;
+  etapa?: T;
+  categorias?: T;
+  nome?: T;
+  tipo?: T;
+  status?: T;
+  inicio?: T;
+  inicio_tz?: T;
+  voltasPrevistas?: T;
+  tabela?: T;
+  contaParaClassificacao?: T;
+  fator?: T;
+  resultados?:
     | T
     | {
+        inscricao?: T;
+        posicaoChegada?: T;
+        status?: T;
+        posicaoOficial?: T;
+        voltas?: T;
+        melhorVoltaMs?: T;
+        tempoTotalMs?: T;
+        penalidade?:
+          | T
+          | {
+              tipo?: T;
+              valor?: T;
+              motivo?: T;
+            };
+        ajustarPosicao?: T;
+        pontosManuais?: T;
+        motivoAjuste?: T;
+        observacao?: T;
         id?: T;
-        createdAt?: T;
-        expiresAt?: T;
+      };
+  voltaMaisRapidaManual?:
+    | T
+    | {
+        inscricao?: T;
+        motivo?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "temporada-categorias_select".
+ */
+export interface TemporadaCategoriasSelect<T extends boolean = true> {
+  titulo?: T;
+  temporada?: T;
+  categoria?: T;
+  publicada?: T;
+  ordem?: T;
+  modo?: T;
+  ajustes?:
+    | T
+    | {
+        inscricao?: T;
+        etapa?: T;
+        tipo?: T;
+        pontos?: T;
+        motivo?: T;
+        documento?: T;
+        registradoPor?: T;
+        registradoEm?: T;
+        id?: T;
+      };
+  destaqueManual?:
+    | T
+    | {
+        inscricao?: T;
+        rotulo?: T;
+        exibirAte?: T;
+      };
+  regra?: T;
+  incluiResultadosDe?: T;
+  linhasManuais?:
+    | T
+    | {
+        posicao?: T;
+        piloto?: T;
+        numero?: T;
+        equipe?: T;
+        pontos?: T;
+        vitorias?: T;
+        podios?: T;
+        corridas?: T;
+        observacao?: T;
+        id?: T;
+      };
+  campeao?: T;
+  vice?: T;
+  terceiro?: T;
+  fotografiaFinal?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pilotos_select".
+ */
+export interface PilotosSelect<T extends boolean = true> {
+  nome?: T;
+  nomeExibicao?: T;
+  confirmarNaoDuplicado?: T;
+  foto?: T;
+  cidade?: T;
+  uf?: T;
+  biografia?: T;
+  inscricoes?: T;
+  dataNascimento?: T;
+  autorizacaoImagem?:
+    | T
+    | {
+        autorizada?: T;
+        responsavel?: T;
+        data?: T;
+        documento?: T;
+      };
+  slug?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inscricoes_select".
+ */
+export interface InscricoesSelect<T extends boolean = true> {
+  titulo?: T;
+  temporada?: T;
+  categoria?: T;
+  piloto?: T;
+  numero?: T;
+  equipe?: T;
+  condicao?: T;
+  status?: T;
+  observacao?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipes_select".
+ */
+export interface EquipesSelect<T extends boolean = true> {
+  nome?: T;
+  sigla?: T;
+  logo?: T;
+  cidade?: T;
+  uf?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias_select".
+ */
+export interface CategoriasSelect<T extends boolean = true> {
+  _order?: T;
+  nome?: T;
+  sigla?: T;
+  slug?: T;
+  descricao?: T;
+  imagem?: T;
+  cor?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "temporadas_select".
+ */
+export interface TemporadasSelect<T extends boolean = true> {
+  campeonato?: T;
+  ano?: T;
+  nome?: T;
+  status?: T;
+  categorias?: T;
+  descricao?: T;
+  logo?: T;
+  banner?: T;
+  regra?: T;
+  fonteDados?: T;
+  formatoEtapa?:
+    | T
+    | {
+        nome?: T;
+        tipo?: T;
+        tabela?: T;
+        contaParaClassificacao?: T;
+        fator?: T;
+        id?: T;
+      };
+  etapas?: T;
+  classificacoes?: T;
+  slug?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campeonatos_select".
+ */
+export interface CampeonatosSelect<T extends boolean = true> {
+  _order?: T;
+  nome?: T;
+  sigla?: T;
+  temporadaAtual?: T;
+  descricao?: T;
+  logo?: T;
+  banner?: T;
+  cores?:
+    | T
+    | {
+        primaria?: T;
+        secundaria?: T;
+        destaque?: T;
+      };
+  historia?: T;
+  regulamento?: T;
+  temporadas?: T;
+  slug?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "regras-pontuacao_select".
+ */
+export interface RegrasPontuacaoSelect<T extends boolean = true> {
+  nome?: T;
+  tabelas?:
+    | T
+    | {
+        nome?: T;
+        pontos?: T;
+        id?: T;
+      };
+  pontosPole?: T;
+  pontosVoltaRapida?: T;
+  pontosParticipacao?: T;
+  requisitoParticipacao?: T;
+  abandono?: T;
+  percentualMinimoVoltas?: T;
+  convidados?: T;
+  descartes?:
+    | T
+    | {
+        quantidade?: T;
+        unidade?: T;
+        aPartirDeEtapas?: T;
+        ultimaEtapaDescartavel?: T;
+      };
+  criteriosDesempate?:
+    | T
+    | {
+        criterio?: T;
+        id?: T;
+      };
+  temporadas?: T;
+  classificacoes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "treinos_select".
+ */
+export interface TreinosSelect<T extends boolean = true> {
+  titulo?: T;
+  data?: T;
+  diaDaSemana?: T;
+  status?: T;
+  dia?: T;
+  substitui?: T;
+  horaInicio?: T;
+  horaFim?: T;
+  duracao?: T;
+  categorias?: T;
+  tipo?: T;
+  observacao?: T;
+  permitirSobreposicao?: T;
+  visibilidade?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "horarios-treino_select".
+ */
+export interface HorariosTreinoSelect<T extends boolean = true> {
+  titulo?: T;
+  diaSemana?: T;
+  horaInicio?: T;
+  horaFim?: T;
+  duracao?: T;
+  categorias?: T;
+  tipo?: T;
+  observacao?: T;
+  validoDe?: T;
+  validoAte?: T;
+  ordemNaSemana?: T;
+  permitirSobreposicao?: T;
+  visibilidade?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tipos-treino_select".
+ */
+export interface TiposTreinoSelect<T extends boolean = true> {
+  _order?: T;
+  nome?: T;
+  slug?: T;
+  cor?: T;
+  descricao?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "noticias_select".
+ */
+export interface NoticiasSelect<T extends boolean = true> {
+  titulo?: T;
+  capa?: T;
+  conteudo?: T;
+  subtitulo?: T;
+  categoria?: T;
+  autor?: T;
+  tags?: T;
+  destaque?: T;
+  galeria?: T;
+  etapa?: T;
+  temporada?: T;
+  categorias?: T;
+  pilotos?: T;
+  slug?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "avisos_select".
+ */
+export interface AvisosSelect<T extends boolean = true> {
+  titulo?: T;
+  tipo?: T;
+  nivel?: T;
+  texto?: T;
+  destaque?: T;
+  anexo?: T;
+  etapa?: T;
+  treino?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  exibirDe?: T;
+  exibirAte?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "banners_select".
+ */
+export interface BannersSelect<T extends boolean = true> {
+  _order?: T;
+  titulo?: T;
+  texto?: T;
+  midia?: T;
+  imagemCelular?: T;
+  videoExterno?: T;
+  botao?:
+    | T
+    | {
+        tipo?: T;
+        documento?: T;
+        rota?: T;
+        url?: T;
+        rotulo?: T;
+        novaAba?: T;
+      };
+  visibilidade?: T;
+  publicarEm?: T;
+  exibirDe?: T;
+  exibirAte?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "galerias_select".
+ */
+export interface GaleriasSelect<T extends boolean = true> {
+  _order?: T;
+  titulo?: T;
+  fotos?: T;
+  capa?: T;
+  exibicao?: T;
+  tipo?: T;
+  data?: T;
+  descricao?: T;
+  etapa?: T;
+  temporada?: T;
+  campeonato?: T;
+  noticia?: T;
+  pilotos?: T;
+  categorias?: T;
+  slug?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "midia_select".
+ */
+export interface MidiaSelect<T extends boolean = true> {
+  alt?: T;
+  legenda?: T;
+  credito?: T;
+  pilotosMarcados?: T;
+  capaDoVideo?: T;
+  titulo?: T;
+  enviadoPor?: T;
+  folder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        miniatura?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        destaque?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        compartilhamento?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
       };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "documentos_select".
  */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
+export interface DocumentosSelect<T extends boolean = true> {
+  _order?: T;
+  titulo?: T;
+  tipo?: T;
+  revisao?: T;
+  vigenteDesde?: T;
+  descricao?: T;
+  substitui?: T;
+  campeonato?: T;
+  temporada?: T;
+  categoria?: T;
+  slug?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  textoBusca?: T;
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
   url?: T;
   thumbnailURL?: T;
   filename?: T;
@@ -277,11 +3235,199 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "eventos_select".
+ */
+export interface EventosSelect<T extends boolean = true> {
+  titulo?: T;
+  inicio?: T;
+  inicio_tz?: T;
+  fim?: T;
+  fim_tz?: T;
+  local?: T;
+  imagem?: T;
+  descricao?: T;
+  categorias?: T;
+  linkInscricao?: T;
+  slug?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "paginas_select".
+ */
+export interface PaginasSelect<T extends boolean = true> {
+  _order?: T;
+  titulo?: T;
+  resumo?: T;
+  imagemTopo?: T;
+  blocos?:
+    | T
+    | {
+        texto?:
+          | T
+          | {
+              texto?: T;
+              id?: T;
+              blockName?: T;
+            };
+        imagem?:
+          | T
+          | {
+              imagem?: T;
+              legenda?: T;
+              largura?: T;
+              id?: T;
+              blockName?: T;
+            };
+        galeria?:
+          | T
+          | {
+              galeria?: T;
+              exibicao?: T;
+              id?: T;
+              blockName?: T;
+            };
+        botao?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        video?:
+          | T
+          | {
+              url?: T;
+              legenda?: T;
+              id?: T;
+              blockName?: T;
+            };
+        documento?:
+          | T
+          | {
+              documento?: T;
+              texto?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  slug?: T;
+  visibilidade?: T;
+  publicarEm?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "perguntas_select".
+ */
+export interface PerguntasSelect<T extends boolean = true> {
+  _order?: T;
+  pergunta?: T;
+  resposta?: T;
+  secao?: T;
+  visibilidade?: T;
+  textoBusca?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categorias-noticia_select".
+ */
+export interface CategoriasNoticiaSelect<T extends boolean = true> {
+  nome?: T;
+  cor?: T;
+  descricao?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  nome?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tipos-documento_select".
+ */
+export interface TiposDocumentoSelect<T extends boolean = true> {
+  _order?: T;
+  nome?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "usuarios_select".
+ */
+export interface UsuariosSelect<T extends boolean = true> {
+  nome?: T;
+  papel?: T;
+  ativo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders_select".
+ */
+export interface PayloadFoldersSelect<T extends boolean = true> {
+  name?: T;
+  folder?: T;
+  documentsAndFolders?: T;
+  folderType?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -314,6 +3460,2638 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Topo da página inicial e as seções abaixo dele. Arraste as seções para mudar a ordem; desmarque para esconder.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagina-inicial".
+ */
+export interface PaginaInicial {
+  id: number;
+  topo?: {
+    /**
+     * Vazio = nome do campeonato principal e da temporada atual.
+     */
+    titulo?: string | null;
+    subtitulo?: string | null;
+    /**
+     * Foto larga (mínimo 1920 px). Vazio = foto do campeonato principal.
+     */
+    imagem?: (number | null) | Midia;
+    /**
+     * Até dois. Vazio = "Calendário" e "Classificação".
+     */
+    botoes?:
+      | {
+          /**
+           * Prefira "Página ou conteúdo do site": se o endereço do conteúdo mudar, o link continua funcionando.
+           */
+          link: {
+            tipo: 'interno' | 'rota' | 'externo';
+            /**
+             * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+             */
+            documento?:
+              | ({
+                  relationTo: 'paginas';
+                  value: number | Pagina;
+                } | null)
+              | ({
+                  relationTo: 'noticias';
+                  value: number | Noticia;
+                } | null)
+              | ({
+                  relationTo: 'etapas';
+                  value: number | Etapa;
+                } | null)
+              | ({
+                  relationTo: 'temporadas';
+                  value: number | Temporada;
+                } | null)
+              | ({
+                  relationTo: 'categorias';
+                  value: number | Categoria;
+                } | null)
+              | ({
+                  relationTo: 'pilotos';
+                  value: number | Piloto;
+                } | null)
+              | ({
+                  relationTo: 'galerias';
+                  value: number | Galeria;
+                } | null)
+              | ({
+                  relationTo: 'documentos';
+                  value: number | Documento;
+                } | null)
+              | ({
+                  relationTo: 'eventos';
+                  value: number | Evento;
+                } | null);
+            rota?:
+              | (
+                  | 'inicio'
+                  | 'bks'
+                  | 'campeonatos'
+                  | 'classificacao'
+                  | 'calendario'
+                  | 'resultados'
+                  | 'treinos'
+                  | 'pilotos'
+                  | 'categorias'
+                  | 'noticias'
+                  | 'comunicados'
+                  | 'eventos'
+                  | 'galeria'
+                  | 'documentos'
+                  | 'historico'
+                  | 'estatisticas'
+                  | 'kartodromo'
+                  | 'sobre'
+                  | 'contato'
+                  | 'busca'
+                )
+              | null;
+            /**
+             * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+             */
+            url?: string | null;
+            /**
+             * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+             */
+            rotulo?: string | null;
+            /**
+             * Indicado para endereços externos.
+             */
+            novaAba?: boolean | null;
+          };
+          id?: string | null;
+        }[]
+      | null;
+  };
+  secoes?:
+    | (
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Próxima etapa".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            contagem?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'proxima-etapa';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Líderes por categoria".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            quantidade?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'lideres';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Calendário do BKS".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'calendario';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Treinos de hoje e amanhã".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'treinos';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Notícias".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            quantidade?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'noticias';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Comunicados".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            quantidade?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'comunicados';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Pilotos em destaque".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            pilotos?: (number | Piloto)[] | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'pilotos';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Galeria em destaque".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            /**
+             * Vazio = a galeria mais recente.
+             */
+            galeria?: (number | null) | Galeria;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'galeria-destaque';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Kartódromo".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'kartodromo';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "IZY Pass (treinos e corridas)".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'ingressos';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Perguntas frequentes".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            quantidade?: number | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'perguntas';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Contato".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'contato';
+          }
+        | {
+            ativo?: boolean | null;
+            /**
+             * Vazio = "Apoiadores".
+             */
+            titulo?: string | null;
+            subtitulo?: string | null;
+            /**
+             * Opcional. Vazio = botão padrão da seção.
+             */
+            botao?: {
+              tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+              /**
+               * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+               */
+              documento?:
+                | ({
+                    relationTo: 'paginas';
+                    value: number | Pagina;
+                  } | null)
+                | ({
+                    relationTo: 'noticias';
+                    value: number | Noticia;
+                  } | null)
+                | ({
+                    relationTo: 'etapas';
+                    value: number | Etapa;
+                  } | null)
+                | ({
+                    relationTo: 'temporadas';
+                    value: number | Temporada;
+                  } | null)
+                | ({
+                    relationTo: 'categorias';
+                    value: number | Categoria;
+                  } | null)
+                | ({
+                    relationTo: 'pilotos';
+                    value: number | Piloto;
+                  } | null)
+                | ({
+                    relationTo: 'galerias';
+                    value: number | Galeria;
+                  } | null)
+                | ({
+                    relationTo: 'documentos';
+                    value: number | Documento;
+                  } | null)
+                | ({
+                    relationTo: 'eventos';
+                    value: number | Evento;
+                  } | null);
+              rota?:
+                | (
+                    | 'inicio'
+                    | 'bks'
+                    | 'campeonatos'
+                    | 'classificacao'
+                    | 'calendario'
+                    | 'resultados'
+                    | 'treinos'
+                    | 'pilotos'
+                    | 'categorias'
+                    | 'noticias'
+                    | 'comunicados'
+                    | 'eventos'
+                    | 'galeria'
+                    | 'documentos'
+                    | 'historico'
+                    | 'estatisticas'
+                    | 'kartodromo'
+                    | 'sobre'
+                    | 'contato'
+                    | 'busca'
+                  )
+                | null;
+              /**
+               * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+               */
+              url?: string | null;
+              /**
+               * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+               */
+              rotulo?: string | null;
+              /**
+               * Indicado para endereços externos.
+               */
+              novaAba?: boolean | null;
+            };
+            /**
+             * Só apoiadores confirmados pela ASKART.
+             */
+            apoiadores?:
+              | {
+                  nome: string;
+                  logo: number | Midia;
+                  url?: string | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'apoiadores';
+          }
+      )[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Textos da aba Kartódromo. Endereço e contatos ficam em "Contato e redes sociais"; horários de treino, em "Agenda de treinos".
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kartodromo".
+ */
+export interface Kartodromo {
+  id: number;
+  nome: string;
+  /**
+   * Uma ou duas frases no topo da aba.
+   */
+  resumo?: string | null;
+  /**
+   * Foto larga do kartódromo (ideal: vista aérea, 1920 px de largura).
+   */
+  imagemTopo?: (number | null) | Midia;
+  historia?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Galerias mostradas na aba (cadastre as fotos em Galerias).
+   */
+  galerias?: (number | Galeria)[] | null;
+  taxasIntroducao?: string | null;
+  /**
+   * Enquanto o valor não estiver definido, deixe "Valor a confirmar" marcado: o site mostra "R$ X".
+   */
+  taxas?:
+    | {
+        item: string;
+        valor?: number | null;
+        aConfirmar?: boolean | null;
+        obrigatoria?: boolean | null;
+        observacao?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  comoTreinarIntroducao?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Na ordem em que o piloto deve seguir. Arraste para reordenar.
+   */
+  comoTreinar?:
+    | {
+        titulo: string;
+        texto?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Ex.: boxes, arquibancada, lanchonete, estacionamento (só o que existe).
+   */
+  estrutura?:
+    | {
+        titulo: string;
+        texto?: string | null;
+        imagem?: (number | null) | Midia;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Só dados confirmados. Ex.: Extensão → 1.000 m; Curvas → 12.
+   */
+  dadosPista?:
+    | {
+        rotulo: string;
+        valor: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Opcional. Imagem do traçado da pista.
+   */
+  tracado?: (number | null) | Midia;
+  infoPilotos?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  infoVisitantes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Telefones, WhatsApp, e-mails, endereço, horário de atendimento, mapa e redes sociais.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contato".
+ */
+export interface Contato {
+  id: number;
+  /**
+   * Arraste para mudar a ordem. O primeiro de cada tipo é o principal.
+   */
+  canais?:
+    | {
+        tipo: 'whatsapp' | 'telefone' | 'email' | 'outro';
+        rotulo?: string | null;
+        valor: string;
+        observacao?: string | null;
+        exibirEm?: ('rodape' | 'contato' | 'kartodromo' | 'bks')[] | null;
+        /**
+         * Marcado sozinho para +55 61 00000-0000, o número fictício desta versão de demonstração. O site mostra o aviso "provisório" e não cria link para ele. Troque pelo contato oficial antes de divulgar o site.
+         */
+        provisorio?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  endereco?: {
+    /**
+     * Como deve aparecer no site (rua, número, bairro, cidade/UF, CEP).
+     */
+    texto?: string | null;
+    /**
+     * Cole o link "Compartilhar" do Google Maps. O site mostra o botão "Ver no mapa".
+     */
+    linkMapa?: string | null;
+    /**
+     * Opcional. Foto aérea ou mapa estático mostrado ao lado do endereço.
+     */
+    imagemMapa?: (number | null) | Midia;
+  };
+  horarios?:
+    | {
+        dias: string;
+        horario: string;
+        id?: string | null;
+      }[]
+    | null;
+  redes?:
+    | {
+        rede: 'instagram' | 'youtube' | 'facebook' | 'tiktok' | 'x' | 'outra';
+        usuario?: string | null;
+        url: string;
+        referente?: ('askart' | 'bks') | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Textos institucionais da página "Sobre".
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "institucional".
+ */
+export interface Institucional {
+  id: number;
+  resumo?: string | null;
+  imagemTopo?: (number | null) | Midia;
+  sobre?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  pilares?:
+    | {
+        titulo: string;
+        texto: string;
+        id?: string | null;
+      }[]
+    | null;
+  historia?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Só fatos confirmados, do mais antigo para o mais recente.
+   */
+  marcos?:
+    | {
+        ano: number;
+        titulo: string;
+        texto?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  diretoria?:
+    | {
+        nome: string;
+        cargo: string;
+        foto?: (number | null) | Midia;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Ex.: estatuto, atas, prestação de contas.
+   */
+  documentos?: (number | Documento)[] | null;
+  galeria?: (number | null) | Galeria;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Personalize o topo de cada seção fixa do site (BKS, Kartódromo, Notícias, Contato…). Seção sem linha aqui usa os textos padrão.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "textos-paginas".
+ */
+export interface TextosPagina {
+  id: number;
+  paginas?:
+    | {
+        rota:
+          | 'bks'
+          | 'campeonatos'
+          | 'classificacao'
+          | 'calendario'
+          | 'resultados'
+          | 'treinos'
+          | 'pilotos'
+          | 'categorias'
+          | 'noticias'
+          | 'comunicados'
+          | 'eventos'
+          | 'galeria'
+          | 'documentos'
+          | 'historico'
+          | 'estatisticas'
+          | 'kartodromo'
+          | 'sobre'
+          | 'contato'
+          | 'busca';
+        titulo?: string | null;
+        subtitulo?: string | null;
+        introducao?: string | null;
+        imagem?: (number | null) | Midia;
+        textoVazio?: string | null;
+        seoTitulo?: string | null;
+        seoDescricao?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Abas do menu do topo e links do rodapé. Arraste para reordenar.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navegacao".
+ */
+export interface Navegacao {
+  id: number;
+  /**
+   * Padrão: BKS · Kartódromo · Notícias · Contato. Até 6 abas.
+   */
+  menu?:
+    | {
+        /**
+         * Prefira "Página ou conteúdo do site": se o endereço do conteúdo mudar, o link continua funcionando.
+         */
+        link: {
+          tipo: 'interno' | 'rota' | 'externo';
+          /**
+           * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+           */
+          documento?:
+            | ({
+                relationTo: 'paginas';
+                value: number | Pagina;
+              } | null)
+            | ({
+                relationTo: 'noticias';
+                value: number | Noticia;
+              } | null)
+            | ({
+                relationTo: 'etapas';
+                value: number | Etapa;
+              } | null)
+            | ({
+                relationTo: 'temporadas';
+                value: number | Temporada;
+              } | null)
+            | ({
+                relationTo: 'categorias';
+                value: number | Categoria;
+              } | null)
+            | ({
+                relationTo: 'pilotos';
+                value: number | Piloto;
+              } | null)
+            | ({
+                relationTo: 'galerias';
+                value: number | Galeria;
+              } | null)
+            | ({
+                relationTo: 'documentos';
+                value: number | Documento;
+              } | null)
+            | ({
+                relationTo: 'eventos';
+                value: number | Evento;
+              } | null);
+          rota?:
+            | (
+                | 'inicio'
+                | 'bks'
+                | 'campeonatos'
+                | 'classificacao'
+                | 'calendario'
+                | 'resultados'
+                | 'treinos'
+                | 'pilotos'
+                | 'categorias'
+                | 'noticias'
+                | 'comunicados'
+                | 'eventos'
+                | 'galeria'
+                | 'documentos'
+                | 'historico'
+                | 'estatisticas'
+                | 'kartodromo'
+                | 'sobre'
+                | 'contato'
+                | 'busca'
+              )
+            | null;
+          /**
+           * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+           */
+          url?: string | null;
+          /**
+           * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+           */
+          rotulo?: string | null;
+          /**
+           * Indicado para endereços externos.
+           */
+          novaAba?: boolean | null;
+        };
+        /**
+         * Opcional. Aparecem ao abrir a aba no celular e no menu suspenso.
+         */
+        subitens?:
+          | {
+              /**
+               * Prefira "Página ou conteúdo do site": se o endereço do conteúdo mudar, o link continua funcionando.
+               */
+              link: {
+                tipo: 'interno' | 'rota' | 'externo';
+                /**
+                 * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+                 */
+                documento?:
+                  | ({
+                      relationTo: 'paginas';
+                      value: number | Pagina;
+                    } | null)
+                  | ({
+                      relationTo: 'noticias';
+                      value: number | Noticia;
+                    } | null)
+                  | ({
+                      relationTo: 'etapas';
+                      value: number | Etapa;
+                    } | null)
+                  | ({
+                      relationTo: 'temporadas';
+                      value: number | Temporada;
+                    } | null)
+                  | ({
+                      relationTo: 'categorias';
+                      value: number | Categoria;
+                    } | null)
+                  | ({
+                      relationTo: 'pilotos';
+                      value: number | Piloto;
+                    } | null)
+                  | ({
+                      relationTo: 'galerias';
+                      value: number | Galeria;
+                    } | null)
+                  | ({
+                      relationTo: 'documentos';
+                      value: number | Documento;
+                    } | null)
+                  | ({
+                      relationTo: 'eventos';
+                      value: number | Evento;
+                    } | null);
+                rota?:
+                  | (
+                      | 'inicio'
+                      | 'bks'
+                      | 'campeonatos'
+                      | 'classificacao'
+                      | 'calendario'
+                      | 'resultados'
+                      | 'treinos'
+                      | 'pilotos'
+                      | 'categorias'
+                      | 'noticias'
+                      | 'comunicados'
+                      | 'eventos'
+                      | 'galeria'
+                      | 'documentos'
+                      | 'historico'
+                      | 'estatisticas'
+                      | 'kartodromo'
+                      | 'sobre'
+                      | 'contato'
+                      | 'busca'
+                    )
+                  | null;
+                /**
+                 * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+                 */
+                url?: string | null;
+                /**
+                 * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+                 */
+                rotulo?: string | null;
+                /**
+                 * Indicado para endereços externos.
+                 */
+                novaAba?: boolean | null;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Opcional. Ex.: "Comprar na IZY Pass". Aparece à direita do menu.
+   */
+  botaoDestaque?: {
+    tipo?: ('nenhum' | 'interno' | 'rota' | 'externo') | null;
+    /**
+     * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+     */
+    documento?:
+      | ({
+          relationTo: 'paginas';
+          value: number | Pagina;
+        } | null)
+      | ({
+          relationTo: 'noticias';
+          value: number | Noticia;
+        } | null)
+      | ({
+          relationTo: 'etapas';
+          value: number | Etapa;
+        } | null)
+      | ({
+          relationTo: 'temporadas';
+          value: number | Temporada;
+        } | null)
+      | ({
+          relationTo: 'categorias';
+          value: number | Categoria;
+        } | null)
+      | ({
+          relationTo: 'pilotos';
+          value: number | Piloto;
+        } | null)
+      | ({
+          relationTo: 'galerias';
+          value: number | Galeria;
+        } | null)
+      | ({
+          relationTo: 'documentos';
+          value: number | Documento;
+        } | null)
+      | ({
+          relationTo: 'eventos';
+          value: number | Evento;
+        } | null);
+    rota?:
+      | (
+          | 'inicio'
+          | 'bks'
+          | 'campeonatos'
+          | 'classificacao'
+          | 'calendario'
+          | 'resultados'
+          | 'treinos'
+          | 'pilotos'
+          | 'categorias'
+          | 'noticias'
+          | 'comunicados'
+          | 'eventos'
+          | 'galeria'
+          | 'documentos'
+          | 'historico'
+          | 'estatisticas'
+          | 'kartodromo'
+          | 'sobre'
+          | 'contato'
+          | 'busca'
+        )
+      | null;
+    /**
+     * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+     */
+    url?: string | null;
+    /**
+     * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+     */
+    rotulo?: string | null;
+    /**
+     * Indicado para endereços externos.
+     */
+    novaAba?: boolean | null;
+  };
+  rodape?:
+    | {
+        titulo: string;
+        links?:
+          | {
+              /**
+               * Prefira "Página ou conteúdo do site": se o endereço do conteúdo mudar, o link continua funcionando.
+               */
+              link: {
+                tipo: 'interno' | 'rota' | 'externo';
+                /**
+                 * Escolha o tipo (Páginas, Notícias, Etapas…) e depois o item.
+                 */
+                documento?:
+                  | ({
+                      relationTo: 'paginas';
+                      value: number | Pagina;
+                    } | null)
+                  | ({
+                      relationTo: 'noticias';
+                      value: number | Noticia;
+                    } | null)
+                  | ({
+                      relationTo: 'etapas';
+                      value: number | Etapa;
+                    } | null)
+                  | ({
+                      relationTo: 'temporadas';
+                      value: number | Temporada;
+                    } | null)
+                  | ({
+                      relationTo: 'categorias';
+                      value: number | Categoria;
+                    } | null)
+                  | ({
+                      relationTo: 'pilotos';
+                      value: number | Piloto;
+                    } | null)
+                  | ({
+                      relationTo: 'galerias';
+                      value: number | Galeria;
+                    } | null)
+                  | ({
+                      relationTo: 'documentos';
+                      value: number | Documento;
+                    } | null)
+                  | ({
+                      relationTo: 'eventos';
+                      value: number | Evento;
+                    } | null);
+                rota?:
+                  | (
+                      | 'inicio'
+                      | 'bks'
+                      | 'campeonatos'
+                      | 'classificacao'
+                      | 'calendario'
+                      | 'resultados'
+                      | 'treinos'
+                      | 'pilotos'
+                      | 'categorias'
+                      | 'noticias'
+                      | 'comunicados'
+                      | 'eventos'
+                      | 'galeria'
+                      | 'documentos'
+                      | 'historico'
+                      | 'estatisticas'
+                      | 'kartodromo'
+                      | 'sobre'
+                      | 'contato'
+                      | 'busca'
+                    )
+                  | null;
+                /**
+                 * Endereço completo: https://… (site), mailto:… (e-mail) ou tel:… (telefone).
+                 */
+                url?: string | null;
+                /**
+                 * Opcional. Vazio = título do conteúdo ou nome da seção escolhida.
+                 */
+                rotulo?: string | null;
+                /**
+                 * Indicado para endereços externos.
+                 */
+                novaAba?: boolean | null;
+              };
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Identidade do site. Só o administrador altera.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes".
+ */
+export interface Configuracoe {
+  id: number;
+  nome: string;
+  sigla: string;
+  /**
+   * Uma ou duas frases. Aparece no rodapé e nos resultados do Google.
+   */
+  descricao?: string | null;
+  /**
+   * Versão para fundo claro. PNG ou WebP com fundo transparente, de preferência.
+   */
+  logo?: (number | null) | Midia;
+  /**
+   * Opcional. Usada no rodapé.
+   */
+  logoFundoEscuro?: (number | null) | Midia;
+  /**
+   * Imagem quadrada, mínimo 512 × 512 px.
+   */
+  favicon?: (number | null) | Midia;
+  /**
+   * Cor principal: faixas, botões e destaques.
+   */
+  corPrimaria?: string | null;
+  /**
+   * Cor de apoio: placas de número e detalhes.
+   */
+  corSecundaria?: string | null;
+  /**
+   * Cor escura: cabeçalho e rodapé.
+   */
+  corEscura?: string | null;
+  /**
+   * O campeonato da aba BKS (Brasília Kart Series). Também é o padrão da classificação e do calendário.
+   */
+  campeonatoPrincipal?: (number | null) | Campeonato;
+  /**
+   * Página da IZY Pass para comprar treinos livres e corridas. Cada etapa pode ter um link próprio; sem ele, vale este.
+   */
+  izyPass?: string | null;
+  izyPassTexto?: string | null;
+  /**
+   * Opcional. Ex.: CNPJ, endereço resumido, aviso legal.
+   */
+  textoRodape?: string | null;
+  /**
+   * Aparece na aba do navegador e no Google. Vazio = sigla e nome da associação.
+   */
+  tituloSite?: string | null;
+  /**
+   * Aparece quando alguém envia o link do site no WhatsApp ou nas redes. Ideal: 1200 × 630 px.
+   */
+  imagemCompartilhamento?: (number | null) | Midia;
+  /**
+   * Ligue enquanto o site tiver dados de exemplo. Desligue antes de divulgar o site oficialmente.
+   */
+  faixaDemonstracao?: boolean | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagina-inicial_select".
+ */
+export interface PaginaInicialSelect<T extends boolean = true> {
+  topo?:
+    | T
+    | {
+        titulo?: T;
+        subtitulo?: T;
+        imagem?: T;
+        botoes?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+            };
+      };
+  secoes?:
+    | T
+    | {
+        'proxima-etapa'?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              contagem?: T;
+              id?: T;
+              blockName?: T;
+            };
+        lideres?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              quantidade?: T;
+              id?: T;
+              blockName?: T;
+            };
+        calendario?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        treinos?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        noticias?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              quantidade?: T;
+              id?: T;
+              blockName?: T;
+            };
+        comunicados?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              quantidade?: T;
+              id?: T;
+              blockName?: T;
+            };
+        pilotos?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              pilotos?: T;
+              id?: T;
+              blockName?: T;
+            };
+        'galeria-destaque'?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              galeria?: T;
+              id?: T;
+              blockName?: T;
+            };
+        kartodromo?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        ingressos?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        perguntas?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              quantidade?: T;
+              id?: T;
+              blockName?: T;
+            };
+        contato?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        apoiadores?:
+          | T
+          | {
+              ativo?: T;
+              titulo?: T;
+              subtitulo?: T;
+              botao?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              apoiadores?:
+                | T
+                | {
+                    nome?: T;
+                    logo?: T;
+                    url?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "kartodromo_select".
+ */
+export interface KartodromoSelect<T extends boolean = true> {
+  nome?: T;
+  resumo?: T;
+  imagemTopo?: T;
+  historia?: T;
+  galerias?: T;
+  taxasIntroducao?: T;
+  taxas?:
+    | T
+    | {
+        item?: T;
+        valor?: T;
+        aConfirmar?: T;
+        obrigatoria?: T;
+        observacao?: T;
+        id?: T;
+      };
+  comoTreinarIntroducao?: T;
+  comoTreinar?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        id?: T;
+      };
+  estrutura?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        imagem?: T;
+        id?: T;
+      };
+  dadosPista?:
+    | T
+    | {
+        rotulo?: T;
+        valor?: T;
+        id?: T;
+      };
+  tracado?: T;
+  infoPilotos?: T;
+  infoVisitantes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contato_select".
+ */
+export interface ContatoSelect<T extends boolean = true> {
+  canais?:
+    | T
+    | {
+        tipo?: T;
+        rotulo?: T;
+        valor?: T;
+        observacao?: T;
+        exibirEm?: T;
+        provisorio?: T;
+        id?: T;
+      };
+  endereco?:
+    | T
+    | {
+        texto?: T;
+        linkMapa?: T;
+        imagemMapa?: T;
+      };
+  horarios?:
+    | T
+    | {
+        dias?: T;
+        horario?: T;
+        id?: T;
+      };
+  redes?:
+    | T
+    | {
+        rede?: T;
+        usuario?: T;
+        url?: T;
+        referente?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "institucional_select".
+ */
+export interface InstitucionalSelect<T extends boolean = true> {
+  resumo?: T;
+  imagemTopo?: T;
+  sobre?: T;
+  pilares?:
+    | T
+    | {
+        titulo?: T;
+        texto?: T;
+        id?: T;
+      };
+  historia?: T;
+  marcos?:
+    | T
+    | {
+        ano?: T;
+        titulo?: T;
+        texto?: T;
+        id?: T;
+      };
+  diretoria?:
+    | T
+    | {
+        nome?: T;
+        cargo?: T;
+        foto?: T;
+        id?: T;
+      };
+  documentos?: T;
+  galeria?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "textos-paginas_select".
+ */
+export interface TextosPaginasSelect<T extends boolean = true> {
+  paginas?:
+    | T
+    | {
+        rota?: T;
+        titulo?: T;
+        subtitulo?: T;
+        introducao?: T;
+        imagem?: T;
+        textoVazio?: T;
+        seoTitulo?: T;
+        seoDescricao?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navegacao_select".
+ */
+export interface NavegacaoSelect<T extends boolean = true> {
+  menu?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              tipo?: T;
+              documento?: T;
+              rota?: T;
+              url?: T;
+              rotulo?: T;
+              novaAba?: T;
+            };
+        subitens?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  botaoDestaque?:
+    | T
+    | {
+        tipo?: T;
+        documento?: T;
+        rota?: T;
+        url?: T;
+        rotulo?: T;
+        novaAba?: T;
+      };
+  rodape?:
+    | T
+    | {
+        titulo?: T;
+        links?:
+          | T
+          | {
+              link?:
+                | T
+                | {
+                    tipo?: T;
+                    documento?: T;
+                    rota?: T;
+                    url?: T;
+                    rotulo?: T;
+                    novaAba?: T;
+                  };
+              id?: T;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configuracoes_select".
+ */
+export interface ConfiguracoesSelect<T extends boolean = true> {
+  nome?: T;
+  sigla?: T;
+  descricao?: T;
+  logo?: T;
+  logoFundoEscuro?: T;
+  favicon?: T;
+  corPrimaria?: T;
+  corSecundaria?: T;
+  corEscura?: T;
+  campeonatoPrincipal?: T;
+  izyPass?: T;
+  izyPassTexto?: T;
+  textoRodape?: T;
+  tituloSite?: T;
+  imagemCompartilhamento?: T;
+  faixaDemonstracao?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

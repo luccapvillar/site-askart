@@ -10,6 +10,7 @@ import {
 } from '../../hooks/competicao/cadastros'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
 import { slugSemColisao } from '../../hooks/competicao/slug'
+import { campoCor } from '../conteudo/comum'
 import { campoTextoBusca, REL } from './campos'
 
 /** Campeonatos organizados pela ASKART. Cada um tem várias temporadas (2026, 2027…). */
@@ -72,6 +73,38 @@ export const Campeonatos: CollectionConfig = comAcessoRestrito({
           admin: { width: '50%', description: 'Imagem larga do topo da página do campeonato.' },
         },
       ],
+    },
+    {
+      name: 'cores',
+      label: 'Cores do campeonato',
+      type: 'group',
+      admin: {
+        description:
+          'Opcional. Usadas na aba do campeonato (ex.: BKS em vermelho, azul e branco). Sem cores, o site usa as da ASKART.',
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            campoCor('Cor principal (faixas e títulos).', 'primaria', 'Principal'),
+            campoCor('Cor de apoio (botões e detalhes).', 'secundaria', 'Secundária'),
+            campoCor('Cor de destaque (pequenos detalhes).', 'destaque', 'Destaque'),
+          ],
+        },
+      ],
+    },
+    {
+      name: 'historia',
+      label: 'História do campeonato',
+      type: 'richText',
+      admin: { description: 'Opcional. Aparece na sub-aba "História", acima da lista de campeões de cada temporada.' },
+    },
+    {
+      name: 'regulamento',
+      label: 'Regulamento',
+      type: 'relationship',
+      relationTo: 'documentos',
+      admin: { description: 'Opcional. Documento do regulamento em vigor (cadastre antes em Documentos).' },
     },
     {
       name: 'temporadas',
