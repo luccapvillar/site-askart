@@ -29,7 +29,7 @@ import { contarUsos } from './exclusao'
 import { aplicarPosicoesOficiais, validarResultados, type ErroLinha, type LinhaResultado } from './resultados'
 import type { CorridaDoc, EtapaDoc, InscricaoDoc, TemporadaDoc } from './tipos'
 import type { ID } from './util'
-import { contemId, idDe, idsDe, mesmoId, mudouAlgum } from './util'
+import { contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
 import { chaveCorrida, encontrarTabela } from './validacoes'
 
 type Erro = { caminho: string; mensagem: string }
@@ -101,7 +101,7 @@ const paraMotor = (i: InscricaoDoc): Inscricao => ({
 
 export const prepararCorrida: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
-  const anterior = originalDoc as CorridaDoc | undefined
+  const anterior = docAnterior<CorridaDoc>(originalDoc)
   const { etapa, temporada } = await etapaETemporada(req, data.etapa)
   if (!etapa || !temporada) return data
   const erros: Erro[] = []
@@ -207,7 +207,8 @@ async function etapaETemporada(req: PayloadRequest, etapaId: unknown) {
 
 export const regrasDaCorrida: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req, context }) => {
   const atual = await carregarEtapa(req, data.etapa)
-  const antiga = originalDoc && !mesmoId(originalDoc.etapa, data.etapa) ? await carregarEtapa(req, originalDoc.etapa) : null
+  const original = docAnterior<CorridaDoc>(originalDoc)
+  const antiga = original && !mesmoId(original.etapa, data.etapa) ? await carregarEtapa(req, original.etapa) : null
   await conferirCongelamento({
     req,
     context,

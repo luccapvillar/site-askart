@@ -34,7 +34,7 @@ import type {
   TemporadaDoc,
 } from './tipos'
 import type { ID } from './util'
-import { camposAlterados, contemId, idDe, idsDe, mesmoId, mudouAlgum } from './util'
+import { camposAlterados, contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
 import { encontrarTabela } from './validacoes'
 
 /** Campos que continuam editáveis numa temporada encerrada (apresentação e visibilidade). */
@@ -49,7 +49,7 @@ export const slugDaTemporada: FieldHook = ({ value, data, originalDoc }) => {
 
 export const prepararTemporada: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
-  const anterior = originalDoc as TemporadaDoc | undefined
+  const anterior = docAnterior<TemporadaDoc>(originalDoc)
   if (typeof data.nome === 'string') data.nome = data.nome.trim()
   const campeonatoId = idDe(data.campeonato ?? anterior?.campeonato)
   const ano = data.ano ?? anterior?.ano
@@ -151,7 +151,7 @@ async function tirarCategoriasDasEtapas(req: PayloadRequest, temporada: Temporad
 }
 
 export const regrasDaTemporada: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req, context }) => {
-  const anterior = originalDoc as TemporadaDoc | undefined
+  const anterior = docAnterior<TemporadaDoc>(originalDoc)
   const contexto = context as ContextoCompeticao
   const novoStatus = data.status ?? anterior?.status
 

@@ -26,7 +26,7 @@ import { falharNoCampo } from './erros'
 import { bloquearExclusaoComVinculos } from './exclusao'
 import type { InscricaoDoc, PilotoDoc } from './tipos'
 import type { ID } from './util'
-import { contemId, idDe, idsDe, mesmoId } from './util'
+import { contemId, idDe, idsDe, mesmoId, docAnterior } from './util'
 
 type Erro = { caminho: string; mensagem: string }
 
@@ -53,7 +53,7 @@ export function conflitoDeNumero<T extends { id: ID; numero?: number | null; sta
 
 export const prepararInscricao: CollectionBeforeValidateHook = async ({ data, originalDoc, operation, req }) => {
   if (!data) return data
-  const anterior = originalDoc as InscricaoDoc | undefined
+  const anterior = docAnterior<InscricaoDoc>(originalDoc)
   const temporadaId = idDe(data.temporada)
   const categoriaId = idDe(data.categoria)
   const pilotoId = idDe(data.piloto)

@@ -1,7 +1,7 @@
 {
   "name": "askart",
   "version": "1.0.0",
-  "description": "A blank template to get started with Payload 3.0",
+  "description": "Site oficial e painel da ASKART — Kartódromo Ayrton Senna do Guará e BKS (Brasília Kart Series)",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,9 +13,14 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
-    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test": "npm run test:int && npm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
+    "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
+    "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-demo.ts",
+    "seed:limpar": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-limpar.ts",
+    "criar-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/criar-admin.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",

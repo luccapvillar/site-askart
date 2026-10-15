@@ -1,3 +1,4 @@
+import { docAnterior } from './util'
 /**
  * Hooks de regras-pontuacao: nomes de tabela únicos, critérios sem repetição e o bloqueio de edição
  * quando a regra já foi usada por uma temporada encerrada (o histórico não pode mudar).
@@ -54,7 +55,7 @@ export const prepararRegra: CollectionBeforeValidateHook = ({ data, req }) => {
  * estar em uso por corridas nem pelo formato de etapa das temporadas.
  */
 export const protegerRegraEmUso: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req }) => {
-  if (operation !== 'update' || !originalDoc) return data
+  if (operation !== 'update' || !docAnterior(originalDoc)) return data
   const usos = await temporadasQueUsam(req, originalDoc.id)
   const encerradas = usos.filter((t) => t.status === 'encerrada')
   if (encerradas.length && camposAlterados(data, originalDoc, ['nome', 'temporadas', 'classificacoes']).length) {

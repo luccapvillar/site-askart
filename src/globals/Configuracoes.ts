@@ -32,7 +32,7 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
                     label: 'Nome da associação',
                     type: 'text',
                     required: true,
-                    defaultValue: 'Associação de Kart de Brasília',
+                    defaultValue: 'Associação de Pilotos de Kart de Brasília',
                     admin: { width: '70%' },
                   },
                   { name: 'sigla', label: 'Sigla', type: 'text', required: true, defaultValue: 'ASKART', admin: { width: '30%' } },

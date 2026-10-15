@@ -30,7 +30,7 @@ import { contarUsos, mensagemVinculos } from './exclusao'
 import { nomeEtapaPadrao } from './texto'
 import type { CorridaDoc, EtapaDoc } from './tipos'
 import type { ID } from './util'
-import { contemId, idDe, idsDe, mesmoId, mudouAlgum } from './util'
+import { contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
 import { statusEtapaAutomatico } from './validacoes'
 
 /** Campos que continuam editáveis com a temporada encerrada (apresentação e visibilidade). */
@@ -74,7 +74,7 @@ export const corridaTemResultado = (c: Pick<CorridaDoc, 'status' | 'resultados'>
 
 export const prepararEtapa: CollectionBeforeValidateHook = async ({ data, originalDoc, operation, req, context }) => {
   if (!data) return data
-  const anterior = originalDoc as EtapaDoc | undefined
+  const anterior = docAnterior<EtapaDoc>(originalDoc)
   const contexto = context as ContextoCompeticao
   const temporadaId = idDe(data.temporada)
   if (temporadaId === null) return data

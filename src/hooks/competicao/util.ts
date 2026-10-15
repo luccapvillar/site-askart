@@ -133,3 +133,13 @@ export function semIdsDeLinha<T extends Record<string, unknown>>(linhas: T[] | n
     return resto
   })
 }
+
+/**
+ * Documento anterior de um hook, só quando ele existe de fato. Na criação o Payload passa `{}` como
+ * `originalDoc`; tratar isso como "edição" faria consultas com id indefinido.
+ */
+export function docAnterior<T>(originalDoc: unknown): T | undefined {
+  if (!originalDoc || typeof originalDoc !== 'object') return undefined
+  const id = (originalDoc as { id?: unknown }).id
+  return id === undefined || id === null || id === '' ? undefined : (originalDoc as T)
+}

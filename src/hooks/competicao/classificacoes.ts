@@ -22,7 +22,7 @@ import { falhar, falharNoCampo } from './erros'
 import { normalizarBusca } from './texto'
 import type { AjusteDoc, EtapaDoc, InscricaoDoc, LinhaManualDoc, TemporadaCategoriaDoc } from './tipos'
 import type { ID } from './util'
-import { contemId, idDe, idsDe, mesmoId } from './util'
+import { contemId, idDe, idsDe, mesmoId, docAnterior } from './util'
 
 /** Campos que continuam editáveis com a temporada encerrada. */
 const LIVRES_ENCERRADA = ['publicada', 'ordem']
@@ -97,7 +97,7 @@ async function inscricoesDoGrupo(req: PayloadRequest, temporada: ID, categorias:
 export const prepararClassificacao: CollectionBeforeValidateHook = async ({ data, originalDoc, operation, req, context }) => {
   if (!data) return data
   const contexto = context as ContextoCompeticao
-  const anterior = originalDoc as TemporadaCategoriaDoc | undefined
+  const anterior = docAnterior<TemporadaCategoriaDoc>(originalDoc)
   const temporadaId = idDe(data.temporada ?? anterior?.temporada)
   const categoriaId = idDe(data.categoria ?? anterior?.categoria)
   // Criação automática pela temporada: dados já conferidos lá
@@ -160,7 +160,7 @@ export const prepararClassificacao: CollectionBeforeValidateHook = async ({ data
  * modo manual e título calculado.
  */
 export const regrasDaClassificacao: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req, context }) => {
-  const anterior = originalDoc as TemporadaCategoriaDoc | undefined
+  const anterior = docAnterior<TemporadaCategoriaDoc>(originalDoc)
   const contexto = context as ContextoCompeticao
   const temporadaId = idDe(data.temporada ?? anterior?.temporada)
 

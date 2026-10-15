@@ -46,6 +46,7 @@ export interface Config {
     tags: Tag;
     'tipos-documento': TiposDocumento;
     usuarios: Usuario;
+    atividades: Atividade;
     'payload-kv': PayloadKv;
     'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
@@ -103,6 +104,7 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     'tipos-documento': TiposDocumentoSelect<false> | TiposDocumentoSelect<true>;
     usuarios: UsuariosSelect<false> | UsuariosSelect<true>;
+    atividades: AtividadesSelect<false> | AtividadesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -2484,6 +2486,23 @@ export interface Pergunta {
   deletedAt?: string | null;
 }
 /**
+ * Cada criação, alteração, publicação e exclusão feita no painel. Somente leitura.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "atividades".
+ */
+export interface Atividade {
+  id: number;
+  usuario?: (number | null) | Usuario;
+  acao: 'criou' | 'alterou' | 'publicou' | 'excluiu';
+  onde: string;
+  colecao?: string | null;
+  documento?: string | null;
+  resumo?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -2610,6 +2629,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'usuarios';
         value: number | Usuario;
+      } | null)
+    | ({
+        relationTo: 'atividades';
+        value: number | Atividade;
       } | null)
     | ({
         relationTo: 'payload-folders';
@@ -3408,6 +3431,20 @@ export interface UsuariosSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "atividades_select".
+ */
+export interface AtividadesSelect<T extends boolean = true> {
+  usuario?: T;
+  acao?: T;
+  onde?: T;
+  colecao?: T;
+  documento?: T;
+  resumo?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
