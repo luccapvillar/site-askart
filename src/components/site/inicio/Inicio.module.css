@@ -1,0 +1,346 @@
+/* ---------- Topo ---------- */
+.topo {
+  position: relative;
+  overflow: hidden;
+  background: var(--marca-escuro);
+  color: var(--texto-claro);
+  isolation: isolate;
+}
+
+.topoFoto {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.topo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgb(10 12 10 / 0.92) 0%, rgb(10 12 10 / 0.72) 48%, rgb(10 12 10 / 0.35) 100%),
+    linear-gradient(0deg, rgb(10 12 10 / 0.6), transparent 40%);
+}
+
+.topoGrade {
+  display: grid;
+  gap: 32px;
+  align-items: end;
+  padding-block: clamp(48px, 9vw, 120px) clamp(32px, 6vw, 72px);
+}
+
+@media (min-width: 1000px) {
+  .topoGrade {
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+    min-height: min(78vh, 720px);
+  }
+}
+
+.topoTextos {
+  display: grid;
+  gap: 18px;
+  align-content: end;
+}
+
+.topoTextos .rotulo {
+  color: var(--amarelo);
+}
+
+.topoSub {
+  max-width: 52ch;
+  font-size: clamp(1.05rem, 1rem + 0.3vw, 1.25rem);
+  color: var(--texto-claro-2);
+}
+
+.topoBotoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Próxima etapa */
+.proxima {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 3vw, 28px);
+  background: var(--branco);
+  color: var(--texto);
+  border-radius: var(--raio-g);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.35);
+  border-top: 5px solid var(--marca-primaria);
+}
+
+.proxima > .rotulo {
+  color: var(--texto-2);
+}
+
+.proximaCabeca {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.proximaMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+.proximaProgramacao summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 650;
+  cursor: pointer;
+  color: var(--verde-escuro);
+}
+
+.proximaAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
+/* ---------- Líderes ---------- */
+.notaDemo {
+  margin: -8px 0 16px;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.lideres {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.lider {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  background: var(--papel);
+  border: 1px solid var(--linha);
+  border-top: 5px solid var(--marca-primaria);
+  border-radius: var(--raio-g);
+}
+
+.lider .rotulo {
+  color: var(--texto-2);
+}
+
+.liderNome {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.liderNome > div {
+  display: grid;
+}
+
+.liderNome strong {
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
+.liderPontos {
+  font-size: 0.9375rem;
+}
+
+.liderPontos .mono {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+/* ---------- Calendário (linha do tempo) ---------- */
+.linhaTempo {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+}
+
+.marco a {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  height: 100%;
+  padding: 16px;
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s var(--curva);
+}
+
+.marco a:hover {
+  border-color: var(--marca-primaria);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marco a:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.marcoFeito a {
+  background: var(--papel-2);
+}
+
+.marcoProximo a {
+  border: 2px solid var(--marca-primaria);
+}
+
+.marcoNome {
+  font-weight: 750;
+}
+
+.marcoTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--marca-primaria);
+  color: var(--sobre-primaria, #fff);
+  font-size: 0.75rem;
+}
+
+.marcoStatus {
+  font-size: 0.875rem;
+  color: var(--verde-escuro);
+  font-weight: 600;
+}
+
+/* ---------- Comunicados ---------- */
+.comunicados {
+  display: grid;
+  border-top: 1px solid var(--linha);
+}
+
+.comunicados a {
+  display: grid;
+  gap: 4px;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--linha);
+  text-decoration: none;
+}
+
+@media (min-width: 700px) {
+  .comunicados a {
+    grid-template-columns: 120px 1fr;
+  }
+}
+
+/* ---------- Kartódromo ---------- */
+.kartodromo {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .kartodromo {
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+  }
+}
+
+.kartodromoFoto img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--raio-g);
+}
+
+.kartodromoTextos {
+  display: grid;
+  gap: 24px;
+  justify-items: start;
+}
+
+.kartodromoTextos > div {
+  width: 100%;
+}
+
+/* As tabelas claras continuam legíveis sobre o fundo escuro */
+.kartodromoTextos table {
+  color: var(--texto);
+}
+
+/* ---------- IZY Pass ---------- */
+.ingressos {
+  background: var(--marca-primaria);
+  color: var(--sobre-primaria, #fff);
+}
+
+.ingressosConteudo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 40px;
+  padding-block: clamp(36px, 5vw, 56px);
+}
+
+.ingressosConteudo p {
+  margin-top: 8px;
+  max-width: 56ch;
+}
+
+/* ---------- Perguntas e contato ---------- */
+.perguntas,
+.contato {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 1000px) {
+  .perguntas,
+  .contato {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+/* ---------- Pilotos e apoiadores ---------- */
+.pilotos {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+}
+
+.piloto {
+  display: grid;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.piloto img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--raio-g);
+}
+
+.apoiadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 40px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.apoiadores img {
+  max-height: 56px;
+  width: auto;
+}

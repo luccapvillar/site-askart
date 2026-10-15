@@ -1,12 +1,12 @@
 /**
  * Atualização do site depois de uma mudança no painel.
  *
- * Todas as leituras do site público usam a etiqueta de cache `site` (src/lib/publico.ts). Qualquer
- * gravação no painel expira essa etiqueta; a próxima visita já vê o conteúdo novo. A expiração roda
+ * Qualquer gravação no painel expira o cache do site (etiqueta `site` e as páginas geradas);
+ * a próxima visita já vê o conteúdo novo. A expiração roda
  * depois da resposta (`after`), quando a gravação já foi confirmada no banco. Fora do Next (scripts
  * de carga e testes) não há cache para limpar e nada acontece.
  */
-import { revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 import type {
   CollectionAfterChangeHook,
@@ -20,6 +20,8 @@ export const TAG_SITE = 'site'
 function expirar() {
   try {
     revalidateTag(TAG_SITE, { expire: 0 })
+    // Páginas geradas (ISR): todas são refeitas na próxima visita
+    revalidatePath('/', 'layout')
   } catch {
     // Fora de uma requisição do Next (scripts): não há cache
   }

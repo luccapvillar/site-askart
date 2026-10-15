@@ -79,7 +79,8 @@ export default buildConfig({
     // Na Vercel, fotos e documentos ficam no Blob; localmente, numa pasta do projeto
     vercelBlobStorage({
       enabled: Boolean(env.BLOB_READ_WRITE_TOKEN),
-      collections: { midia: true, documentos: true },
+      // Fotos são públicas: o endereço aponta direto para o Blob (mais rápido). Documentos passam pelo controle de acesso.
+      collections: { midia: { disablePayloadAccessControl: true }, documentos: true },
       token: env.BLOB_READ_WRITE_TOKEN,
       addRandomSuffix: true,
       clientUploads: true,

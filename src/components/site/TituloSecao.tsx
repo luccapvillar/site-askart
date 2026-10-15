@@ -4,7 +4,7 @@ import s from './TituloSecao.module.css'
 
 type Props = {
   rotulo?: string
-  titulo: string
+  titulo: ReactNode
   subtitulo?: string | null
   acao?: ReactNode
   nivel?: 1 | 2

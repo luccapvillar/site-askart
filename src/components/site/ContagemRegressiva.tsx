@@ -14,7 +14,7 @@ const PARTES = [
  * Contagem regressiva para a próxima etapa. Calculada no navegador (o cache das páginas não a congela).
  * Sem JS, mostra o texto alternativo (data por extenso), que vem do servidor.
  */
-export function ContagemRegressiva({ alvo, textoAlternativo }: { alvo: string; textoAlternativo: string }) {
+export function ContagemRegressiva({ alvo, textoAlternativo, claro = false }: { alvo: string; textoAlternativo: string; claro?: boolean }) {
   const [restante, setRestante] = useState<number | null>(null)
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export function ContagemRegressiva({ alvo, textoAlternativo }: { alvo: string; t
     return () => window.clearInterval(id)
   }, [alvo])
 
-  if (restante === null) return <p className={s.agora}>{textoAlternativo}</p>
-  if (restante === 0) return <p className={s.agora}>É hoje! Acompanhe a programação.</p>
+  if (restante === null) return <p className={`${s.agora} ${claro ? s.claro : ''}`}>{textoAlternativo}</p>
+  if (restante === 0) return <p className={`${s.agora} ${claro ? s.claro : ''}`}>É hoje! Acompanhe a programação.</p>
 
   let resto = restante
   const valores = PARTES.map(([nome, seg]) => {
@@ -36,7 +36,7 @@ export function ContagemRegressiva({ alvo, textoAlternativo }: { alvo: string; t
   })
 
   return (
-    <div className={s.contagem} role="timer" aria-label={`Faltam ${valores[0][1]} dias e ${valores[1][1]} horas`}>
+    <div className={`${s.contagem} ${claro ? s.claro : ''}`} role="timer" aria-label={`Faltam ${valores[0][1]} dias e ${valores[1][1]} horas`}>
       {valores.map(([nome, v]) => (
         <div key={nome} className={s.bloco}>
           <span className={s.valor} aria-hidden="true">

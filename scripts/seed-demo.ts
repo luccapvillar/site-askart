@@ -82,7 +82,7 @@ export async function semearDemonstracao(payload: Payload) {
     chuva: await enviarFoto(payload, 'marca/recebidos/largada-chuva.jpg', {
       alt: 'Largada de uma corrida de kart com pista molhada',
     }),
-    logoAskart: await enviarFoto(payload, 'marca/recebidos/logo-askart-224.jpg', {
+    logoAskart: await enviarFoto(payload, 'marca/recebidos/logo-askart-recortada.png', {
       alt: 'Logo da ASKART — Associação de Pilotos de Kart de Brasília',
     }),
     logoBks: await enviarFoto(payload, 'marca/recebidos/bks-logo-transparente.png', {

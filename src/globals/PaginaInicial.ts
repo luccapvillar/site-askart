@@ -2,6 +2,9 @@ import type { Block, Field, GlobalConfig } from 'payload'
 import { comAcessoRestrito, editores, membros, todos } from '../access'
 import { campoLink } from '../fields/link'
 import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { ORDEM_PADRAO_INICIO } from './ordem-inicio'
+
+export { ORDEM_PADRAO_INICIO }
 
 /** Campos comuns a todas as seções: liga/desliga, títulos e botão. */
 const comuns = (tituloPadrao: string): Field[] => [
@@ -72,20 +75,6 @@ export const SECOES_INICIO: Block[] = [
     },
   ]),
 ]
-
-/** Ordem padrão da página inicial (usada também quando nada foi configurado). */
-export const ORDEM_PADRAO_INICIO = [
-  'proxima-etapa',
-  'lideres',
-  'calendario',
-  'noticias',
-  'treinos',
-  'kartodromo',
-  'ingressos',
-  'galeria-destaque',
-  'perguntas',
-  'contato',
-] as const
 
 export const PaginaInicial: GlobalConfig = comAcessoRestrito(
   {

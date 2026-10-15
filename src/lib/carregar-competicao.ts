@@ -95,7 +95,10 @@ interface BuscaPayload {
 
 type Contexto = { p: BuscaPayload; req?: PayloadRequest }
 
-async function buscar(ctx: Contexto, collection: string, where: Where, select: Record<string, true>, overrideAccess = true): Promise<Doc[]> {
+/** Campos pedidos ao banco (um nível de subcampos quando necessário). */
+type Selecao = Record<string, true | Record<string, true>>
+
+async function buscar(ctx: Contexto, collection: string, where: Where, select: Selecao, overrideAccess = true): Promise<Doc[]> {
   const r = await ctx.p.find({
     collection,
     where,
@@ -109,7 +112,7 @@ async function buscar(ctx: Contexto, collection: string, where: Where, select: R
   return r.docs as Doc[]
 }
 
-async function buscarUm(ctx: Contexto, collection: string, where: Where, select: Record<string, true>, overrideAccess = true): Promise<Doc | null> {
+async function buscarUm(ctx: Contexto, collection: string, where: Where, select: Selecao, overrideAccess = true): Promise<Doc | null> {
   const r = await ctx.p.find({
     collection,
     where,
@@ -336,7 +339,9 @@ const SELECT_CLASSIFICACAO = {
 // Sem os campos "join" (temporadas/classificações que usam a regra), que só servem ao painel.
 const SELECT_REGRA = {
   nome: true,
-  tabelas: true,
+  // Campos da tabela nomeados um a um: com `tabelas: true` o Payload 3.90 devolve `pontos` (número múltiplo
+  // dentro de lista) vazio, e a classificação sairia zerada.
+  tabelas: { nome: true, pontos: true },
   pontosPole: true,
   pontosVoltaRapida: true,
   pontosParticipacao: true,

@@ -299,3 +299,41 @@ table {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------- Site: peças compartilhadas ---------- */
+
+main:focus {
+  outline: none;
+}
+
+.faixa-demo {
+  background: #fff4c2;
+  color: #4a3b00;
+  border-bottom: 1px solid #e8d488;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  padding-block: 8px;
+}
+
+.credito-foto {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.cartao-base {
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+}
+
+.fundo-branco {
+  background: var(--branco);
+}

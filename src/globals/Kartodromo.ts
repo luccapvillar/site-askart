@@ -3,13 +3,7 @@ import { comAcessoRestrito, editores, membros, todos } from '../access'
 import { editorPadrao, editorSimples } from '../collections/conteudo/editores'
 import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
-/** Texto mostrado no lugar do valor enquanto a ASKART não informa o preço (pedido do cliente). */
-export const VALOR_A_CONFIRMAR = 'R$ X'
-
-export function valorDaTaxa(taxa: { valor?: number | null; aConfirmar?: boolean | null }): string {
-  if (taxa.aConfirmar || taxa.valor === null || taxa.valor === undefined) return VALOR_A_CONFIRMAR
-  return taxa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
+export { VALOR_A_CONFIRMAR, valorDaTaxa } from '../lib/taxas'
 
 /**
  * Aba Kartódromo: onde fica, história, taxas, como treinar, estrutura e informações.

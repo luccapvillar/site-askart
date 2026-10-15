@@ -1,0 +1,55 @@
+.lista {
+  border-top: 1px solid var(--linha);
+}
+
+.item {
+  border-bottom: 1px solid var(--linha);
+}
+
+.item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 14px 4px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+
+.item summary::-webkit-details-marker {
+  display: none;
+}
+
+.sinal {
+  position: relative;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.sinal::before,
+.sinal::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 14px;
+  height: 2px;
+  background: currentColor;
+  transition: transform 0.2s var(--curva);
+}
+
+.sinal::after {
+  transform: rotate(90deg);
+}
+
+.item[open] .sinal::after {
+  transform: rotate(0deg);
+}
+
+.resposta {
+  padding: 0 4px 18px;
+  color: var(--texto-2);
+}

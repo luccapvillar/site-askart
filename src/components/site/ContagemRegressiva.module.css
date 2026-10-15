@@ -37,3 +37,19 @@
   font-weight: 700;
   color: var(--amarelo);
 }
+
+/* Sobre fundo claro (cartão da próxima etapa) */
+.claro .bloco {
+  background: var(--papel);
+  border-color: var(--linha);
+}
+
+.claro .valor,
+.agora.claro {
+  color: var(--texto);
+}
+
+.claro .rotulo {
+  color: var(--texto-2);
+  opacity: 1;
+}

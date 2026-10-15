@@ -110,3 +110,8 @@
 .base a {
   color: inherit;
 }
+
+/* Textos secundários legíveis sobre o fundo escuro (contraste AA) */
+.rodape :global(.texto-2) {
+  color: var(--texto-claro-2);
+}
