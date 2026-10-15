@@ -16,11 +16,10 @@ import type {
   CollectionBeforeDeleteHook,
   CollectionBeforeValidateHook,
   FilterOptions,
-  PayloadRequest,
   Where,
 } from 'payload'
 import { buscar, buscarPorId, COLECOES, contar } from './api'
-import { carregarCategorias, carregarTemporada, rotuloCategoria, temporadaAtualPadrao } from './consultas'
+import { carregarCategorias, carregarTemporada, rotuloCategoria } from './consultas'
 import { conferirCongelamento } from './congelamento'
 import { atualizarDerivados, derivadosInscricao } from './derivados'
 import { falharNoCampo } from './erros'
@@ -30,10 +29,6 @@ import type { ID } from './util'
 import { contemId, idDe, idsDe, mesmoId } from './util'
 
 type Erro = { caminho: string; mensagem: string }
-
-/** Valor padrão da temporada (a temporada atual do campeonato principal). */
-export const temporadaPadrao = async ({ req }: { req: PayloadRequest }) =>
-  (await temporadaAtualPadrao(req)) ?? undefined
 
 /** No seletor de categoria, só as categorias da temporada escolhida. */
 export const categoriasDaTemporadaEscolhida: FilterOptions = async ({ data, req }) => {

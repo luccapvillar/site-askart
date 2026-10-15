@@ -364,6 +364,7 @@ const SELECT_CORRIDA = {
 const SELECT_INSCRICAO = { categoria: true, piloto: true, numero: true, equipe: true, condicao: true, status: true } as const
 const SELECT_PILOTO = { nome: true, nomeExibicao: true, slug: true, visibilidade: true } as const
 const SELECT_EQUIPE = { nome: true, sigla: true } as const
+const SELECT_CATEGORIA = { nome: true, sigla: true, slug: true } as const
 
 export interface DadosTemporada {
   temporada: Doc
@@ -387,11 +388,24 @@ export interface OpcoesCarga {
   req?: PayloadRequest
   /** Limita às classificações destas categorias (vazio = todas da temporada). */
   categorias?: Id[]
+  /** Recalcula mesmo com fotografia final gravada (encerramento da temporada). */
+  ignorarFotografia?: boolean
+  /** Carrega os resultados mesmo quando fotografia/modo manual bastariam (ex.: classificação "após a etapa X"). */
+  comResultados?: boolean
+}
+
+/** Ids de piloto e equipe citados nas linhas manuais e nas fotografias (para buscar os nomes atuais). */
+function idsCitados(classificacoes: Doc[], campo: 'piloto' | 'equipe'): Id[] {
+  return classificacoes.flatMap((c) => [
+    ...lista(c.linhasManuais).map((l) => idDe(l[campo])),
+    ...(lerFotografiaFinal(c.fotografiaFinal)?.linhas ?? []).map((l) => idDe(l[campo])),
+  ]).filter((x): x is Id => x !== null)
 }
 
 /**
- * Carrega de uma vez tudo o que o cálculo precisa de uma temporada (9 consultas, independentemente do
+ * Carrega de uma vez tudo o que o cálculo precisa de uma temporada (até 9 consultas, independentemente do
  * número de categorias). Devolve null quando a temporada não existe ou não é visível.
+ * Resultados (regras, etapas, corridas) só são lidos quando alguma classificação pedida é automática.
  */
 export async function carregarDadosTemporada(opcoes: OpcoesCarga): Promise<DadosTemporada | null> {
   const publico = opcoes.publico === true
@@ -404,44 +418,71 @@ export async function carregarDadosTemporada(opcoes: OpcoesCarga): Promise<Dados
   if (publico) filtroClassif.push({ publicada: { equals: true } })
   const classificacoes = await buscar(ctx, SLUGS.temporadaCategorias, { and: filtroClassif }, SELECT_CLASSIFICACAO, !publico)
 
-  const idsRegras = unicos([idDe(temporada.regra), ...classificacoes.map((c) => idDe(c.regra))].filter((x): x is Id => x !== null))
-  const regras = idsRegras.length ? await buscar(ctx, SLUGS.regras, { id: { in: idsRegras } }, SELECT_REGRA) : []
-
-  const etapas = (await buscar(ctx, SLUGS.etapas, { temporada: { equals: temporada.id } }, SELECT_ETAPA)).map(paraEtapa)
-  // Só as corridas oficiais de etapas realizadas entram no cálculo.
-  const realizadas = etapas.filter((e) => e.status === 'realizada').map((e) => e.id)
-  const corridas = realizadas.length
-    ? (await buscar(ctx, SLUGS.corridas, { and: [{ etapa: { in: realizadas } }, { status: { equals: 'oficial' } }] }, SELECT_CORRIDA)).map(paraCorrida)
-    : []
-
-  const docsInscricoes = await buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO)
-  // Pilotos das linhas manuais também precisam de nome.
-  const idsPilotos = unicos([
-    ...docsInscricoes.map((i) => idDe(i.piloto)),
-    ...classificacoes.flatMap((c) => lista(c.linhasManuais).map((l) => idDe(l.piloto))),
-  ].filter((x): x is Id => x !== null))
-  const idsEquipes = unicos([
-    ...docsInscricoes.map((i) => idDe(i.equipe)),
-    ...classificacoes.flatMap((c) => lista(c.linhasManuais).map((l) => idDe(l.equipe))),
-  ].filter((x): x is Id => x !== null))
-  const [pilotos, equipes] = await Promise.all([
-    idsPilotos.length ? buscar(ctx, SLUGS.pilotos, { id: { in: idsPilotos } }, SELECT_PILOTO) : Promise.resolve([]),
-    idsEquipes.length ? buscar(ctx, SLUGS.equipes, { id: { in: idsEquipes } }, SELECT_EQUIPE) : Promise.resolve([]),
-  ])
-  const nomes: Nomes = {
-    pilotos: new Map(pilotos.map((p) => [String(p.id), p] as const)),
-    equipes: new Map(equipes.map((e) => [String(e.id), e] as const)),
-  }
-
-  return {
+  const vazio: DadosTemporada = {
     temporada,
     classificacoes,
+    regras: new Map(),
+    etapas: [],
+    corridas: [],
+    inscricoes: [],
+    nomes: { pilotos: new Map(), equipes: new Map() },
+    publico,
+  }
+  // No site, sem classificação publicada não há nada a calcular.
+  if (publico && !classificacoes.length) return vazio
+
+  // Resultados só fazem falta quando alguma classificação pedida será calculada (modo automático).
+  const encerrada = temporada.status === 'encerrada'
+  const soFinal = temporada.fonteDados === 'so-classificacao-final'
+  const dispensaResultados = (c: Doc) =>
+    soFinal || c.modo === 'manual' || (encerrada && !opcoes.ignorarFotografia && lerFotografiaFinal(c.fotografiaFinal) !== null)
+  const todasTemDocumento =
+    !opcoes.categorias?.length || opcoes.categorias.every((cat) => classificacoes.some((c) => String(idDe(c.categoria)) === String(cat)))
+  const precisaResultados =
+    opcoes.comResultados === true || !(classificacoes.length > 0 && todasTemDocumento && classificacoes.every(dispensaResultados))
+
+  let regras: Doc[] = []
+  let etapas: Etapa[] = []
+  let corridas: Corrida[] = []
+  if (precisaResultados) {
+    const idsRegras = unicos([idDe(temporada.regra), ...classificacoes.map((c) => idDe(c.regra))].filter((x): x is Id => x !== null))
+    regras = idsRegras.length ? await buscar(ctx, SLUGS.regras, { id: { in: idsRegras } }, SELECT_REGRA) : []
+    etapas = (await buscar(ctx, SLUGS.etapas, { temporada: { equals: temporada.id } }, SELECT_ETAPA)).map(paraEtapa)
+    // Só as corridas oficiais de etapas realizadas entram no cálculo.
+    const realizadas = etapas.filter((e) => e.status === 'realizada').map((e) => e.id)
+    corridas = realizadas.length
+      ? (await buscar(ctx, SLUGS.corridas, { and: [{ etapa: { in: realizadas } }, { status: { equals: 'oficial' } }] }, SELECT_CORRIDA)).map(paraCorrida)
+      : []
+  }
+
+  const docsInscricoes = await buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO)
+  const nomes = await carregarNomes(
+    ctx,
+    [...docsInscricoes.map((i) => idDe(i.piloto)).filter((x): x is Id => x !== null), ...idsCitados(classificacoes, 'piloto')],
+    [...docsInscricoes.map((i) => idDe(i.equipe)).filter((x): x is Id => x !== null), ...idsCitados(classificacoes, 'equipe')],
+  )
+
+  return {
+    ...vazio,
     regras: new Map(regras.map((r) => [String(r.id), r] as const)),
     etapas,
     corridas,
     inscricoes: docsInscricoes.map((d) => paraInscricao(d, nomes, publico)),
     nomes,
-    publico,
+  }
+}
+
+/** Pilotos e equipes pelo id, só com campos públicos (dados privados de menores nunca são lidos). */
+async function carregarNomes(ctx: Contexto, idsPilotos: Id[], idsEquipes: Id[]): Promise<Nomes> {
+  const p = unicos(idsPilotos)
+  const e = unicos(idsEquipes)
+  const [pilotos, equipes] = await emSequenciaOuParalelo(ctx, [
+    () => (p.length ? buscar(ctx, SLUGS.pilotos, { id: { in: p } }, SELECT_PILOTO) : Promise.resolve([])),
+    () => (e.length ? buscar(ctx, SLUGS.equipes, { id: { in: e } }, SELECT_EQUIPE) : Promise.resolve([])),
+  ])
+  return {
+    pilotos: new Map(pilotos.map((x) => [String(x.id), x] as const)),
+    equipes: new Map(equipes.map((x) => [String(x.id), x] as const)),
   }
 }
 
@@ -457,6 +498,8 @@ export interface ClassificacaoCarregada {
   classificacao: Id | null
   publicada: boolean
   encerrada: boolean
+  /** Categorias somadas a esta classificação (vazio = só a própria). */
+  incluiResultadosDe: Id[]
   linhas: LinhaClassificacao[]
   criterios: CriteriosAplicados | null
   etapasRealizadas: number
@@ -479,7 +522,6 @@ function linhasManuais(classificacao: Doc, dados: DadosTemporada, categoria: Id)
     const p = piloto === null ? undefined : nomes.pilotos.get(String(piloto))
     const e = equipe === null ? undefined : nomes.equipes.get(String(equipe))
     const ins = piloto === null ? undefined : inscricaoDoPiloto.get(String(piloto))
-    const pilotoVisivel = !dados.publico || !p || p.visibilidade === 'visivel' || p.visibilidade === 'arquivado'
     return {
       ordem: i,
       linha: {
@@ -490,10 +532,10 @@ function linhasManuais(classificacao: Doc, dados: DadosTemporada, categoria: Id)
         inscricoes: ins ? [ins.id] : [],
         piloto,
         nome: p ? nomePiloto(p) : texto(l.nome) ?? 'Piloto sem nome',
-        pilotoSlug: pilotoVisivel ? texto(p?.slug) : null,
+        pilotoSlug: slugDoPiloto(p, dados.publico),
         numero: (num(l.numero) ?? texto(l.numero) ?? ins?.numero ?? null) as number | string | null,
         equipe: equipe ?? ins?.equipe ?? null,
-        equipeNome: texto(e?.nome) ?? texto(e?.sigla) ?? (equipe === null ? ins?.equipeNome ?? null : null),
+        equipeNome: nomeEquipe(e) ?? (equipe === null ? ins?.equipeNome ?? null : null),
         categoria,
         pontos: num(l.pontos) ?? 0,
         pontosBrutos: num(l.pontos) ?? 0,
@@ -518,6 +560,28 @@ function linhasManuais(classificacao: Doc, dados: DadosTemporada, categoria: Id)
       (a.linha.posicao || Infinity) - (b.linha.posicao || Infinity) || b.linha.pontos - a.linha.pontos || a.ordem - b.ordem,
   )
   return brutas.map((b, i) => ({ ...b.linha, posicao: i + 1 }))
+}
+
+/**
+ * Fotografia final: posições, pontos e números ficam congelados; nome, link do perfil e nome da equipe vêm
+ * do cadastro atual (uma informação, um dono — corrigir a grafia de um nome vale também no histórico).
+ */
+function atualizarExibicao(linhas: LinhaClassificacao[], dados: DadosTemporada): LinhaClassificacao[] {
+  return linhas.map((l) => {
+    const piloto = idDe(l.piloto)
+    const equipe = idDe(l.equipe)
+    const p = piloto === null ? undefined : dados.nomes.pilotos.get(String(piloto))
+    const e = equipe === null ? undefined : dados.nomes.equipes.get(String(equipe))
+    return {
+      ...l,
+      inscricoes: Array.isArray(l.inscricoes) ? l.inscricoes : [],
+      porEtapa: Array.isArray(l.porEtapa) ? l.porEtapa : [],
+      nome: p ? nomePiloto(p) : texto(l.nome) ?? 'Piloto sem nome',
+      // Piloto que não está mais no cadastro: sem link no site.
+      pilotoSlug: p ? slugDoPiloto(p, dados.publico) : dados.publico ? null : (l.pilotoSlug ?? null),
+      equipeNome: nomeEquipe(e) ?? l.equipeNome ?? null,
+    }
+  })
 }
 
 /** Monta a entrada do motor para uma categoria a partir dos dados já carregados (null = sem regra). */
@@ -563,22 +627,26 @@ export function montarClassificacao(
     classificacao: classificacao?.id ?? null,
     publicada: classificacao?.publicada === true,
     encerrada,
+    incluiResultadosDe: idsDe(classificacao?.incluiResultadosDe),
     podioFinal: { campeao: idDe(classificacao?.campeao), vice: idDe(classificacao?.vice), terceiro: idDe(classificacao?.terceiro) },
   }
   const agora = opcoes.agora ?? new Date()
   const semCorte = opcoes.ateEtapa === null || opcoes.ateEtapa === undefined
+  // Temporada encerrada não tem "destaque" temporário: o 1º é o campeão.
+  const destaqueValido = encerrada ? null : destaqueManual
 
   // 1) Temporada encerrada: a fotografia final é a classificação oficial (congelada).
   const foto = encerrada && semCorte && !opcoes.ignorarFotografia ? lerFotografiaFinal(classificacao?.fotografiaFinal) : null
   if (foto) {
+    const linhas = atualizarExibicao(foto.linhas, dados)
     return {
       ...base,
       fonte: 'fotografia',
-      linhas: foto.linhas,
+      linhas,
       criterios: foto.criterios,
       etapasRealizadas: foto.etapasRealizadas,
       etapas: [],
-      lider: liderDe(foto.linhas, null, agora),
+      lider: liderDe(linhas, null, agora),
       avisos: [],
     }
   }
@@ -594,8 +662,8 @@ export function montarClassificacao(
       criterios: null,
       etapasRealizadas: 0,
       etapas: [],
-      lider: liderDe(linhas, encerrada ? null : destaqueManual, agora),
-      avisos: linhas.length ? [] : ['Classificação em modo manual ainda sem linhas.'],
+      lider: liderDe(linhas, destaqueValido, agora),
+      avisos: linhas.length ? [] : ['Classificação em modo manual ainda sem linhas: digite as posições e os pontos.'],
     }
   }
 
@@ -614,7 +682,9 @@ export function montarClassificacao(
     }
   }
   const r = calcularClassificacao(entrada)
-  if (encerrada && semCorte && !opcoes.ignorarFotografia) r.avisos.push('Temporada encerrada sem fotografia final: a classificação foi recalculada a partir dos resultados.')
+  if (encerrada && semCorte && !opcoes.ignorarFotografia) {
+    r.avisos.push('Temporada encerrada sem fotografia final: a classificação foi recalculada a partir dos resultados.')
+  }
   return {
     ...base,
     fonte: 'automatica',
@@ -622,7 +692,7 @@ export function montarClassificacao(
     criterios: r.criterios,
     etapasRealizadas: r.etapasRealizadas,
     etapas: r.etapas,
-    lider: liderDe(r.linhas, encerrada ? null : destaqueManual, agora),
+    lider: liderDe(r.linhas, destaqueValido, agora),
     avisos: r.avisos,
   }
 }
@@ -637,15 +707,18 @@ export async function classificacaoDe(opcoes: {
   categoria: Id
   publico?: boolean
   req?: PayloadRequest
+  /** Classificação "após a etapa X" (inclusive). */
   ateEtapa?: Id | null
   agora?: Date
 }): Promise<ClassificacaoCarregada | null> {
+  const comCorte = opcoes.ateEtapa !== null && opcoes.ateEtapa !== undefined
   const dados = await carregarDadosTemporada({
     payload: opcoes.payload,
     temporada: opcoes.temporada,
     publico: opcoes.publico,
     req: opcoes.req,
     categorias: [opcoes.categoria],
+    comResultados: comCorte,
   })
   if (!dados) return null
   return montarClassificacao(dados, opcoes.categoria, { ateEtapa: opcoes.ateEtapa, agora: opcoes.agora })
@@ -656,11 +729,7 @@ export async function classificacaoDe(opcoes: {
  * Usado pelas páginas de temporada, histórico, estatísticas e pelo encerramento da temporada.
  */
 export async function classificacoesDaTemporada(
-  opcoes: Omit<OpcoesCarga, 'categorias'> & {
-    agora?: Date
-    /** Recalcula mesmo com fotografia gravada (usado ao encerrar a temporada para gerar a fotografia). */
-    ignorarFotografia?: boolean
-  },
+  opcoes: Omit<OpcoesCarga, 'categorias' | 'comResultados'> & { agora?: Date },
 ): Promise<ClassificacaoCarregada[]> {
   const dados = await carregarDadosTemporada(opcoes)
   if (!dados) return []
@@ -670,4 +739,204 @@ export async function classificacoesDaTemporada(
     .filter((c): c is Id => c !== null)
     .map((c) => montarClassificacao(dados, c, { agora: opcoes.agora, ignorarFotografia: opcoes.ignorarFotografia }))
     .filter((c): c is ClassificacaoCarregada => c !== null)
+}
+
+// ───────────────────────────── estatísticas (várias temporadas) ─────────────────────────────
+
+/** Classificação carregada → entrada de src/lib/estatisticas.ts. */
+export function paraEstatisticas(c: ClassificacaoCarregada, categoriaNome: string | null = null): ClassificacaoDaTemporada {
+  return {
+    temporada: c.temporada.id,
+    temporadaNome: c.temporada.nome,
+    ano: c.temporada.ano,
+    categoria: c.categoria,
+    categoriaNome,
+    encerrada: c.encerrada,
+    fonte: c.fonte === 'sem-regra' ? undefined : c.fonte,
+    agregada: c.incluiResultadosDe.length > 0,
+    linhas: c.linhas,
+  }
+}
+
+/**
+ * Classificações (publicadas, no site) de várias temporadas, prontas para totais de carreira, rankings,
+ * recordes e campeões (src/lib/estatisticas.ts). Filtra por campeonato e/ou lista de temporadas.
+ */
+export async function classificacoesParaEstatisticas(opcoes: {
+  payload: Payload
+  publico?: boolean
+  req?: PayloadRequest
+  campeonato?: Id | null
+  temporadas?: Id[] | null
+  agora?: Date
+}): Promise<ClassificacaoDaTemporada[]> {
+  const publico = opcoes.publico === true
+  const ctx: Contexto = { p: opcoes.payload as unknown as BuscaPayload, req: opcoes.req }
+  const filtros: Where[] = []
+  if (opcoes.campeonato !== null && opcoes.campeonato !== undefined) filtros.push({ campeonato: { equals: opcoes.campeonato } })
+  if (opcoes.temporadas?.length) filtros.push({ id: { in: opcoes.temporadas } })
+  const temporadas = await buscar(ctx, SLUGS.temporadas, filtros.length ? { and: filtros } : {}, { ano: true }, !publico)
+  temporadas.sort((a, b) => (num(b.ano) ?? 0) - (num(a.ano) ?? 0))
+
+  const porTemporada = await emSequenciaOuParalelo(
+    ctx,
+    temporadas.map((t) => () => classificacoesDaTemporada({ payload: opcoes.payload, temporada: t.id, publico, req: opcoes.req, agora: opcoes.agora })),
+  )
+  const classificacoes = porTemporada.flat()
+  const idsCategorias = unicos(classificacoes.map((c) => c.categoria))
+  // Nome da categoria é informação pública da classificação publicada.
+  const categorias = idsCategorias.length ? await buscar(ctx, SLUGS.categorias, { id: { in: idsCategorias } }, SELECT_CATEGORIA) : []
+  const nomeCategoria = new Map(categorias.map((c) => [String(c.id), texto(c.nome) ?? texto(c.sigla)] as const))
+  return classificacoes.map((c) => paraEstatisticas(c, nomeCategoria.get(String(c.categoria)) ?? null))
+}
+
+// ───────────────────────────── resultados de uma etapa ─────────────────────────────
+
+export type LinhaCorridaExibida = LinhaResultadoCalculada & { pilotoSlug: string | null; equipeNome: string | null }
+
+export interface CorridaComResultado {
+  id: Id
+  nome: string | null
+  tipo: TipoCorrida
+  inicio: string | null
+  /** Conta para a classificação (dá pontos). */
+  conta: boolean
+  /** Linhas na ordem oficial (posicionados primeiro), só da categoria. */
+  linhas: LinhaCorridaExibida[]
+  /** Inscrição com a volta mais rápida na categoria. */
+  voltaMaisRapida: Id | null
+}
+
+export interface ResultadoCategoriaNaEtapa {
+  categoria: Id
+  categoriaNome: string | null
+  categoriaSlug: string | null
+  corridas: CorridaComResultado[]
+  /** Resultado da etapa (corridas + pole, pela regra da categoria), na ordem da etapa. Sem convidados. */
+  etapa: ReturnType<typeof resultadoDaEtapa>
+  /** A categoria ainda não tem regra de pontuação: posições aparecem, pontos ficam zerados. */
+  semRegra: boolean
+}
+
+export interface ResultadosDaEtapa {
+  etapa: { id: Id; numero: number; nome: string | null; inicio: string | null; status: string }
+  temporada: { id: Id; nome: string | null; ano: number | null }
+  /** Etapa ainda não realizada: só as corridas já oficiais (o resultado da etapa é parcial). */
+  parcial: boolean
+  categorias: ResultadoCategoriaNaEtapa[]
+}
+
+/**
+ * Resultado oficial de uma etapa, por categoria: cada corrida oficial (posição oficial, pontos, voltas,
+ * status, penalidades, volta mais rápida) e o resultado somado da etapa. Base da sub-aba "Resultados".
+ * Corridas em rascunho nunca aparecem; etapa cancelada não tem resultado. null = etapa/temporada não
+ * existe ou não está visível (no modo público).
+ */
+export async function resultadosDaEtapa(opcoes: {
+  payload: Payload
+  etapa: Id
+  publico?: boolean
+  req?: PayloadRequest
+}): Promise<ResultadosDaEtapa | null> {
+  const publico = opcoes.publico === true
+  const ctx: Contexto = { p: opcoes.payload as unknown as BuscaPayload, req: opcoes.req }
+  const etapaDoc = await buscarUm(ctx, SLUGS.etapas, { id: { equals: opcoes.etapa } }, { ...SELECT_ETAPA, temporada: true }, !publico)
+  const idTemporada = idDe(etapaDoc?.temporada)
+  if (!etapaDoc || idTemporada === null) return null
+  const temporada = await buscarUm(ctx, SLUGS.temporadas, { id: { equals: idTemporada } }, SELECT_TEMPORADA, !publico)
+  if (!temporada) return null
+
+  const etapa = paraEtapa(etapaDoc)
+  const saida: ResultadosDaEtapa = {
+    etapa: { id: etapa.id, numero: etapa.numero, nome: etapa.nome ?? null, inicio: texto(etapaDoc.inicio), status: etapa.status },
+    temporada: { id: temporada.id, nome: texto(temporada.nome), ano: num(temporada.ano) },
+    parcial: etapa.status !== 'realizada',
+    categorias: [],
+  }
+  if (etapa.status === 'cancelada') return saida
+
+  const corridas = (
+    await buscar(ctx, SLUGS.corridas, { and: [{ etapa: { equals: etapa.id } }, { status: { equals: 'oficial' } }] }, SELECT_CORRIDA)
+  ).map(paraCorrida)
+  if (!corridas.length) return saida
+
+  // Regra de cada categoria (a própria da classificação, senão a da temporada) e ordem do painel.
+  const [classificacoes, docsInscricoes] = await emSequenciaOuParalelo(ctx, [
+    () => buscar(ctx, SLUGS.temporadaCategorias, { temporada: { equals: temporada.id } }, { categoria: true, ordem: true, regra: true }),
+    () => buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO),
+  ])
+  const classificacaoDa = new Map(classificacoes.map((c) => [String(idDe(c.categoria)), c] as const))
+  const idsRegras = unicos([idDe(temporada.regra), ...classificacoes.map((c) => idDe(c.regra))].filter((x): x is Id => x !== null))
+  const nomes = await carregarNomes(
+    ctx,
+    docsInscricoes.map((i) => idDe(i.piloto)).filter((x): x is Id => x !== null),
+    docsInscricoes.map((i) => idDe(i.equipe)).filter((x): x is Id => x !== null),
+  )
+  const inscricoes = docsInscricoes.map((d) => paraInscricao(d, nomes, publico))
+  const mapaIns = new Map(inscricoes.map((i) => [String(i.id), i] as const))
+
+  // Categorias da etapa: as cadastradas nela ou, se vazias, as que aparecem nas corridas.
+  const categoriasDaCorrida = (c: Corrida) =>
+    c.categorias?.length
+      ? c.categorias.map(String)
+      : (c.resultados ?? []).map((l) => String(mapaIns.get(String(l.inscricao))?.categoria ?? '')).filter(Boolean)
+  const idsCategorias = unicos(
+    etapa.categorias?.length ? etapa.categorias : corridas.flatMap((c) => (c.categorias?.length ? c.categorias : categoriasDaCorrida(c))),
+  )
+  const [regras, categorias] = await emSequenciaOuParalelo(ctx, [
+    () => (idsRegras.length ? buscar(ctx, SLUGS.regras, { id: { in: idsRegras } }, SELECT_REGRA) : Promise.resolve([])),
+    () => (idsCategorias.length ? buscar(ctx, SLUGS.categorias, { id: { in: idsCategorias } }, SELECT_CATEGORIA) : Promise.resolve([])),
+  ])
+  const regraDoc = new Map(regras.map((r) => [String(r.id), r] as const))
+  const categoriaDoc = new Map(categorias.map((c) => [String(c.id), c] as const))
+
+  for (const categoria of idsCategorias) {
+    const chave = String(categoria)
+    const corridasCat = corridas.filter((c) => categoriasDaCorrida(c).includes(chave))
+    if (!corridasCat.length) continue
+    const idRegra = idDe(classificacaoDa.get(chave)?.regra) ?? idDe(temporada.regra)
+    const doc = idRegra === null ? undefined : regraDoc.get(String(idRegra))
+    const regra = paraRegra(doc)
+    const corridasExibidas: CorridaComResultado[] = corridasCat.map((c) => {
+      const r = calcularResultadoCorrida(c, regra, { inscricoes: mapaIns, categorias: [categoria], fatorEtapa: etapa.fatorPontuacao })
+      return {
+        id: c.id,
+        nome: c.nome ?? null,
+        tipo: c.tipo ?? 'bateria',
+        inicio: typeof c.inicio === 'string' ? c.inicio : null,
+        conta: r.conta,
+        voltaMaisRapida: r.voltaMaisRapida,
+        linhas: r.linhas.map((l) => {
+          const ins = mapaIns.get(String(l.inscricao))
+          return { ...l, pilotoSlug: ins?.pilotoSlug ?? null, equipeNome: ins?.equipeNome ?? null }
+        }),
+      }
+    })
+    // Resultado somado da etapa: o motor com só esta etapa (tratada como realizada, sem descartes nem ajustes).
+    const soma = calcularClassificacao({
+      regra: { ...regra, descartes: null },
+      categoria,
+      etapas: [{ ...etapa, status: 'realizada' }],
+      corridas: corridasCat,
+      inscricoes,
+      ajustes: [],
+      comPosicaoAnterior: false,
+    })
+    const cat = categoriaDoc.get(chave)
+    saida.categorias.push({
+      categoria,
+      categoriaNome: texto(cat?.nome) ?? texto(cat?.sigla),
+      categoriaSlug: texto(cat?.slug),
+      corridas: corridasExibidas,
+      etapa: resultadoDaEtapa(soma, etapa.id),
+      semRegra: !doc,
+    })
+  }
+
+  // Ordem do painel (temporada-categorias.ordem), depois pelo nome.
+  const ordem = (c: ResultadoCategoriaNaEtapa) => num(classificacaoDa.get(String(c.categoria))?.ordem) ?? Number.MAX_SAFE_INTEGER
+  saida.categorias.sort(
+    (a, b) => ordem(a) - ordem(b) || (a.categoriaNome ?? '').localeCompare(b.categoriaNome ?? '', 'pt-BR', { sensitivity: 'base' }),
+  )
+  return saida
 }

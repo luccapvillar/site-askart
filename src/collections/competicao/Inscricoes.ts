@@ -8,8 +8,8 @@ import {
   categoriasDaTemporadaEscolhida,
   prepararInscricao,
   regrasDaInscricao,
-  temporadaPadrao,
 } from '../../hooks/competicao/inscricoes'
+import { temporadaPadrao } from '../../hooks/competicao/consultas'
 import { validarInteiro } from '../../hooks/competicao/validacoes'
 import { campoTitulo, REL } from './campos'
 

@@ -90,6 +90,9 @@ export function temporadaAtualPadrao(req: PayloadRequest): Promise<ID | null> {
   })
 }
 
+/** Valor padrão de campos "temporada" (formulário novo): a temporada atual. */
+export const temporadaPadrao = async ({ req }: { req: PayloadRequest }) => (await temporadaAtualPadrao(req)) ?? undefined
+
 /** Nome do kartódromo cadastrado no global "kartodromo" (frente Informações), se houver. */
 export function nomeKartodromo(req: PayloadRequest): Promise<string | null> {
   return memo(req, 'competicao:nomeKartodromo', async () => {
