@@ -494,6 +494,7 @@ export interface Midia {
   capaDoVideo?: (number | null) | Midia;
   titulo?: string | null;
   enviadoPor?: (number | null) | Usuario;
+  _objectKey?: string | null;
   folder?: (number | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
@@ -865,6 +866,7 @@ export interface Documento {
    */
   publicarEm?: string | null;
   textoBusca?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -3166,6 +3168,7 @@ export interface MidiaSelect<T extends boolean = true> {
   capaDoVideo?: T;
   titulo?: T;
   enviadoPor?: T;
+  _objectKey?: T;
   folder?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -3242,6 +3245,7 @@ export interface DocumentosSelect<T extends boolean = true> {
   visibilidade?: T;
   publicarEm?: T;
   textoBusca?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
