@@ -6,7 +6,7 @@ import { COLECOES } from '../../hooks/competicao/api'
 import { buscaPiloto, prepararPiloto, propagarNomePiloto } from '../../hooks/competicao/cadastros'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
 import { slugSemColisao } from '../../hooks/competicao/slug'
-import { campoCidade, campoTextoBusca, campoUF, FORMATO_DATA } from './campos'
+import { campoCidade, campoTextoBusca, campoUF, FORMATO_DATA, REL } from './campos'
 
 /** Dados pessoais de menores (LGPD): só aparecem no painel, nunca na API pública nem no site. */
 const privado = {
@@ -80,7 +80,7 @@ export const Pilotos: CollectionConfig = comAcessoRestrito({
               name: 'foto',
               label: 'Foto',
               type: 'upload',
-              relationTo: 'midia',
+              relationTo: REL.midia,
               admin: { description: 'Opcional. Confira a autorização de imagem (aba "Dados privados").' },
             },
             { type: 'row', fields: [campoCidade(), campoUF()] },
@@ -100,7 +100,7 @@ export const Pilotos: CollectionConfig = comAcessoRestrito({
               name: 'inscricoes',
               label: 'Inscrições',
               type: 'join',
-              collection: COLECOES.inscricoes,
+              collection: REL.inscricoes,
               on: 'piloto',
               defaultSort: '-createdAt',
               admin: { defaultColumns: ['titulo', 'condicao', 'status'] },
@@ -155,7 +155,7 @@ export const Pilotos: CollectionConfig = comAcessoRestrito({
                   name: 'documento',
                   label: 'Documento assinado',
                   type: 'relationship',
-                  relationTo: 'documentos',
+                  relationTo: REL.documentos,
                   admin: {
                     description:
                       'Opcional. Envie em Documentos e deixe-o como rascunho ou oculto (não publique).',

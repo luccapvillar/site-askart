@@ -5,6 +5,7 @@ import { endpointDuplicarRegra } from '../../hooks/competicao/endpoints'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
 import { nomeDaCopia, prepararRegra, protegerRegraEmUso } from '../../hooks/competicao/regras'
 import { validarInteiro, validarPontos } from '../../hooks/competicao/validacoes'
+import { REL } from './campos'
 
 /**
  * Regras de pontuação (do regulamento de cada campeonato). Nada vem preenchido: os valores são os
@@ -246,7 +247,7 @@ export const RegrasPontuacao: CollectionConfig = comAcessoRestrito({
               name: 'temporadas',
               label: 'Temporadas que usam esta regra',
               type: 'join',
-              collection: COLECOES.temporadas,
+              collection: REL.temporadas,
               on: 'regra',
               admin: { allowCreate: false, defaultColumns: ['nome', 'ano', 'status'] },
             },
@@ -254,7 +255,7 @@ export const RegrasPontuacao: CollectionConfig = comAcessoRestrito({
               name: 'classificacoes',
               label: 'Categorias com esta regra própria',
               type: 'join',
-              collection: COLECOES.temporadaCategorias,
+              collection: REL.temporadaCategorias,
               on: 'regra',
               admin: { allowCreate: false, defaultColumns: ['titulo', 'modo'] },
             },

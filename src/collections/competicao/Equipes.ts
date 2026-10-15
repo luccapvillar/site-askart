@@ -4,7 +4,7 @@ import { campoVisibilidade } from '../../fields/visibilidade'
 import { COLECOES } from '../../hooks/competicao/api'
 import { buscaEquipe } from '../../hooks/competicao/cadastros'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
-import { campoCidade, campoTextoBusca, campoUF } from './campos'
+import { campoCidade, campoTextoBusca, campoUF, REL } from './campos'
 
 /** Equipes. A equipe de cada piloto em cada temporada fica na inscrição. */
 export const Equipes: CollectionConfig = comAcessoRestrito({
@@ -36,7 +36,7 @@ export const Equipes: CollectionConfig = comAcessoRestrito({
       name: 'logo',
       label: 'Logo',
       type: 'upload',
-      relationTo: 'midia',
+      relationTo: REL.midia,
       admin: { description: 'Opcional.' },
     },
     { type: 'row', fields: [campoCidade(), campoUF()] },

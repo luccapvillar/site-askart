@@ -10,7 +10,6 @@ import {
   criarFotografiaFinal,
   lerFotografiaFinal,
   liderDe,
-  validarResultadosCorrida,
   type Ajuste,
   type Corrida,
   type EntradaClassificacao,
@@ -107,6 +106,7 @@ describe('pontuação básica', () => {
 
   it('várias baterias na etapa: soma e conta vitórias/corridas por bateria', () => {
     const r = calc({
+      regra: regraBase({ criteriosDesempate: ['melhor-resultado-ultima-etapa'] }),
       etapas: [etapa('e1', 1)],
       corridas: [corrida('e1', chegada('A', 'B', 'C')), corrida('e1', chegada('B', 'A', 'C'))],
       inscricoes: tres,
@@ -484,6 +484,7 @@ describe('desempates', () => {
   it('contagem de posições (mais 2º lugares)', () => {
     const inscricoes = ['A', 'B', 'C', 'D', 'E', 'F'].map((x) => ins(x))
     const r = calc({
+      regra: regraBase({ criteriosDesempate: ['contagem-de-posicoes'] }),
       etapas: [etapa('e1', 1), etapa('e2', 2), etapa('e3', 3)],
       corridas: [
         corrida('e1', chegada('A', 'C', 'B')), // A 10, B 6
@@ -622,7 +623,7 @@ describe('posição anterior, ateEtapa e líder', () => {
   const corridas = () => [corrida('e1', chegada('A', 'B', 'C')), corrida('e2', chegada('B', 'C', 'A')), corrida('e2', chegada('B', 'C', 'A'))]
 
   it('posicaoAnterior = classificação até a etapa anterior', () => {
-    const r = calc({ etapas: etapas(), corridas: corridas(), inscricoes: tres })
+    const r = calc({ regra: regraBase({ criteriosDesempate: ['mais-vitorias'] }), etapas: etapas(), corridas: corridas(), inscricoes: tres })
     // Depois da etapa 1: A, B, C. Depois da etapa 2: B 28, C 22, A 22 (A tem 1 vitória → à frente de C).
     expect(ordem(r)).toEqual(['B', 'A', 'C'])
     const l = porNome(r)
@@ -682,19 +683,6 @@ describe('calcularResultadoCorrida e validação', () => {
     )
     expect(r.linhas).toHaveLength(2)
     expect(r.avisos).toHaveLength(2)
-  })
-
-  it('validarResultadosCorrida aponta inscrição repetida, chegada repetida e penalidade sem motivo', () => {
-    const erros = validarResultadosCorrida([
-      { inscricao: 'A', posicaoChegada: 1 },
-      { inscricao: 'A', posicaoChegada: 1 },
-      { inscricao: 'B', status: 'classificado' },
-      { inscricao: 'C', posicaoChegada: 3, penalidade: { tipo: 'pontos', valor: 2 } },
-      { inscricao: 'D', status: 'desclassificado', posicaoOficial: 1, motivoPosicaoOficial: 'x' },
-      { inscricao: 'E', posicaoChegada: 4, pontosManuais: 1.25 },
-    ])
-    expect(erros).toHaveLength(6)
-    expect(validarResultadosCorrida(chegada('A', 'B'))).toEqual([])
   })
 
   it('fotografia final: grava e lê de volta', () => {

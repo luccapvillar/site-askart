@@ -15,12 +15,18 @@
  *   de um piloto não pode mudar os pontos oficiais. Piloto oculto aparece pelo nome, sem link (slug nulo).
  *   Dados privados de pilotos (nascimento, autorização de imagem) nunca são selecionados.
  *
+ * Exporta também `classificacoesDaTemporada` (todas as categorias), `classificacoesParaEstatisticas`
+ * (entrada de src/lib/estatisticas.ts para histórico, estatísticas e página do piloto) e `resultadosDaEtapa`
+ * (resultado oficial de cada corrida e da etapa, por categoria — sub-aba "Resultados").
+ *
  * Só usa `import type` de 'payload' (nada roda do Payload aqui), então pode ser testado com um
- * Payload simulado.
+ * Payload simulado. Consultas com `req` (dentro de hook/endpoint) são feitas uma de cada vez, na mesma
+ * transação; sem `req` (site), em paralelo.
  */
 import type { Payload, PayloadRequest, Where } from 'payload'
 import {
   calcularClassificacao,
+  calcularResultadoCorrida,
   lerFotografiaFinal,
   liderDe,
   type Ajuste,
@@ -36,6 +42,7 @@ import {
   type Lider,
   type LinhaClassificacao,
   type LinhaResultado,
+  type LinhaResultadoCalculada,
   type Penalidade,
   type Regra,
   type RegraAbandono,
@@ -49,6 +56,7 @@ import {
   type TipoCorrida,
   type UnidadeDescarte,
 } from './classificacao'
+import { resultadoDaEtapa, type ClassificacaoDaTemporada } from './estatisticas'
 
 /** Slugs das coleções (iguais aos da ARQUITETURA §4). */
 export const SLUGS = {
@@ -112,6 +120,14 @@ async function buscarUm(ctx: Contexto, collection: string, where: Where, select:
     ...(ctx.req ? { req: ctx.req } : {}),
   })
   return (r.docs[0] as Doc | undefined) ?? null
+}
+
+/** Várias consultas: em paralelo no site; uma de cada vez quando há `req` (mesma transação do Postgres). */
+async function emSequenciaOuParalelo<T>(ctx: Contexto, tarefas: (() => Promise<T>)[]): Promise<T[]> {
+  if (!ctx.req) return Promise.all(tarefas.map((t) => t()))
+  const saida: T[] = []
+  for (const t of tarefas) saida.push(await t())
+  return saida
 }
 
 // ───────────────────────────── conversões (documento → tipos do motor) ─────────────────────────────
@@ -258,21 +274,33 @@ export type Nomes = { pilotos: Map<string, Doc>; equipes: Map<string, Doc> }
 /** Nome exibido do piloto (nome de exibição, senão o nome). */
 const nomePiloto = (p: Doc | undefined) => texto(p?.nomeExibicao) ?? texto(p?.nome) ?? 'Piloto sem nome'
 
+/**
+ * Link do perfil do piloto. No site, só quando o perfil é público (visível ou arquivado): piloto oculto
+ * continua na classificação pelo nome (o resultado é oficial), mas sem link para uma página que não abre.
+ */
+const slugDoPiloto = (p: Doc | undefined, publico: boolean): string | null => {
+  if (!p) return null
+  const v = p.visibilidade
+  const publicoOk = v === undefined || v === null || v === 'visivel' || v === 'arquivado'
+  return !publico || publicoOk ? texto(p.slug) : null
+}
+
+const nomeEquipe = (e: Doc | undefined) => texto(e?.nome) ?? texto(e?.sigla)
+
 export function paraInscricao(d: Doc, nomes: Nomes, publico: boolean): Inscricao {
   const piloto = idDe(d.piloto)
   const equipe = idDe(d.equipe)
   const p = piloto === null ? undefined : nomes.pilotos.get(String(piloto))
   const e = equipe === null ? undefined : nomes.equipes.get(String(equipe))
-  const pilotoVisivel = !publico || p?.visibilidade === undefined || p?.visibilidade === 'visivel' || p?.visibilidade === 'arquivado'
   return {
     id: d.id,
     categoria: idDe(d.categoria) ?? '',
     piloto: piloto ?? `inscricao:${d.id}`,
     nome: nomePiloto(p),
-    pilotoSlug: pilotoVisivel ? texto(p?.slug) : null,
+    pilotoSlug: slugDoPiloto(p, publico),
     numero: (num(d.numero) ?? texto(d.numero)) as number | string | null,
     equipe,
-    equipeNome: texto(e?.nome) ?? texto(e?.sigla),
+    equipeNome: nomeEquipe(e),
     condicao: de<CondicaoInscricao>(d.condicao, CONDICOES) ?? 'titular',
     status: de<StatusInscricao>(d.status, STATUS_INSCRICAO) ?? 'ativa',
   }

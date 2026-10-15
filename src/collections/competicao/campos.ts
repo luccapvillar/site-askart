@@ -1,10 +1,35 @@
 /**
  * Campos reutilizados pelas coleções da Competição.
  */
-import type { Field, FieldAccess, Option } from 'payload'
-import { normalizarCorHex, validarCorHex } from '../../hooks/competicao/validacoes'
+import type { CollectionSlug, Field, FieldAccess, Option } from 'payload'
+import { COLECOES } from '../../hooks/competicao/api'
+import { normalizarCorHex, validarCorHex, validarUrl } from '../../hooks/competicao/validacoes'
 
 const ninguemEscreve: FieldAccess = () => false
+
+/**
+ * Slugs para `relationTo`/`collection`. A conversão para CollectionSlug evita depender de
+ * src/payload-types.ts regenerado enquanto as frentes trabalham em paralelo (os nomes seguem a ARQUITETURA).
+ */
+const rel = (slug: string) => slug as CollectionSlug
+export const REL = {
+  campeonatos: rel(COLECOES.campeonatos),
+  temporadas: rel(COLECOES.temporadas),
+  temporadaCategorias: rel(COLECOES.temporadaCategorias),
+  categorias: rel(COLECOES.categorias),
+  equipes: rel(COLECOES.equipes),
+  pilotos: rel(COLECOES.pilotos),
+  inscricoes: rel(COLECOES.inscricoes),
+  regras: rel(COLECOES.regras),
+  etapas: rel(COLECOES.etapas),
+  corridas: rel(COLECOES.corridas),
+  // Coleções de outras frentes (docs/ARQUITETURA.md §4)
+  midia: rel('midia'),
+  documentos: rel('documentos'),
+  noticias: rel('noticias'),
+  galerias: rel('galerias'),
+  usuarios: rel('usuarios'),
+} as const
 
 /**
  * Texto de busca (oculto): nome e afins sem acento e em minúsculas, preenchido pelo hook
@@ -39,6 +64,16 @@ export const campoCor = (descricao: string): Field => ({
   validate: validarCorHex,
   hooks: { beforeValidate: [({ value }) => normalizarCorHex(value)] },
   admin: { description: descricao, placeholder: '#1A7F37' },
+})
+
+/** Link externo (https://…), validado: só http(s), sem espaços. */
+export const campoLink = (nome: string, rotulo: string, descricao: string): Field => ({
+  name: nome,
+  label: rotulo,
+  type: 'text',
+  validate: validarUrl,
+  hooks: { beforeValidate: [({ value }) => (typeof value === 'string' ? value.trim() : value)] },
+  admin: { description: descricao, placeholder: 'https://' },
 })
 
 export const UFS = [

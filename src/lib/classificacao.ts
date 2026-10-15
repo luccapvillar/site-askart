@@ -12,16 +12,24 @@
  * - Pontos de tabela = tabela da corrida × fator da etapa × fator da corrida. Pole, volta mais rápida e
  *   participação são bônus fixos (não multiplicam).
  * - Vitórias, pódios, corridas, contagem de posições e voltas mais rápidas são contados POR CORRIDA que conta
- *   (baterias, pré-final, final…), nunca na tomada de tempo. A pole vem da tomada de tempo (P1 da etapa).
+ *   (baterias, pré-final, final…), nunca na tomada de tempo. Resultados descartados continuam contando
+ *   nessas estatísticas e nos desempates (o descarte só tira PONTOS).
+ * - Pole = P1 (entre os pilotos da classificação) da 1ª tomada de tempo oficial da etapa que inclui a
+ *   categoria. Uma tomada comum a duas categorias somadas dá uma pole só; tomadas separadas, uma cada.
  * - "Pontos manuais" de uma linha substituem os pontos daquela corrida (tabela + volta mais rápida +
  *   participação). A pole é da etapa e não é afetada.
  * - Penalidade de pontos (na linha da corrida) e ajustes (na classificação) são aplicados DEPOIS dos descartes
  *   e nunca são descartados.
+ * - Penalidade de posições: quem perde N posições vai para (posição que teria) + N e os demais ocupam as
+ *   vagas que sobram, na ordem. Correção manual da posição oficial (com motivo) sempre prevalece.
  * - Convidado nunca pontua nem aparece na classificação. Em `reclassificar-elegiveis` os titulares sobem
  *   (o 2º na pista, atrás de um convidado, recebe os pontos e a vitória de 1º); em `manter-posicoes` cada um
  *   fica com a sua posição e os pontos do convidado simplesmente não são dados a ninguém.
+ * - Desempate: só os critérios cadastrados na regra, na ordem dela. Nada é presumido: sem critérios (ou
+ *   persistindo o empate) vale a ordem alfabética, e o motor avisa o administrador quando isso decidiu algo.
  * - Pontos têm 1 casa decimal: todas as contas são feitas em DÉCIMOS inteiros (sem erro de ponto flutuante).
  */
+import { instanteDeChave } from './datas'
 
 export type Id = string | number
 
@@ -92,7 +100,10 @@ export interface Regra {
   percentualMinimoVoltas?: number | null
   convidados?: RegraConvidados | null
   descartes?: RegraDescartes | null
-  /** Ordem dos critérios de desempate. Vazio/ausente = CRITERIOS_PADRAO; lista vazia explícita = só ordem alfabética. */
+  /**
+   * Critérios de desempate do regulamento, na ordem em que são aplicados. Vazio/ausente = nenhum critério
+   * (empate em pontos fica na ordem alfabética, com aviso ao administrador).
+   */
   criteriosDesempate?: CriterioDesempate[] | null
 }
 
@@ -307,8 +318,11 @@ export interface ResultadoClassificacao {
 
 // ───────────────────────────── padrões e utilitários ─────────────────────────────
 
-export const CRITERIOS_PADRAO: CriterioDesempate[] = ['mais-vitorias', 'contagem-de-posicoes', 'melhor-resultado-ultima-etapa']
-
+/**
+ * Valores usados quando o campo da regra está vazio (o painel exige abandono e convidados; o requisito de
+ * participação só aparece quando há pontos de participação). Não são regras da ASKART: são o comportamento
+ * neutro do sistema para dados incompletos.
+ */
 export const REGRA_PADRAO = {
   requisitoParticipacao: 'largou' as RequisitoParticipacao,
   abandono: 'so-participacao' as RegraAbandono,
@@ -479,9 +493,13 @@ const ORDEM_STATUS: Record<StatusResultado, number> = {
  * (prévia), e pode ser usado no hook da corrida para gravar `posicaoOficial`.
  *
  * Ordem oficial: classificados pela chegada (penalidade de tempo reordena quando há tempo total de todos),
- * depois quem abandonou com o mínimo de voltas (pela chegada, senão por mais voltas); penalidade de posições
- * empurra o piloto N posições para trás; correções manuais (com motivo) ficam fixas na posição digitada.
- * Desclassificado, não largou e não classificado ficam sem posição.
+ * depois quem abandonou com o mínimo de voltas (pela chegada, senão por mais voltas); quem perde N posições
+ * vai para (posição que teria) + N; correções manuais (com motivo) ficam fixas na posição digitada.
+ * Desclassificado, não largou e não classificado (abaixo do mínimo de voltas) ficam sem posição, e os de
+ * trás sobem.
+ *
+ * A posição oficial é GERAL (todas as categorias que largaram juntas); `posicaoCategoria` e
+ * `posicaoParaPontos` são calculadas dentro do grupo `opcoes.categorias`.
  * Abandono só pontua pela posição (e conta vitória/pódio) quando a regra é `pela-posicao`.
  */
 export function calcularResultadoCorrida(
@@ -605,33 +623,61 @@ export function calcularResultadoCorrida(
     }
   }
 
-  // Penalidade de posições: quem perde N posições passa para logo depois de quem estava N posições atrás.
-  const ordemAuto = [...classificados, ...abandonos]
-    .map((x, i) => ({ x, chaveOrdem: i + 1 + (somaPenalidade(x.linha, 'posicoes') > 0 ? somaPenalidade(x.linha, 'posicoes') + 0.5 : 0), i }))
-    .sort((a, b) => a.chaveOrdem - b.chaveOrdem || a.i - b.i)
-    .map((y) => y.x)
+  // 5) Encaixe nas posições oficiais (1..total):
+  //    a) correções manuais (com motivo) ficam na posição digitada;
+  //    b) quem perdeu N posições vai para (posição que teria sem a penalidade) + N;
+  //    c) os demais ocupam as vagas que sobraram, na ordem automática.
+  //    Ex.: chegada A, B, C, D e A perde 2 → B, C, A, D. A e B perdendo 1 cada → C, A, B.
+  const ordemBase = [...classificados, ...abandonos]
+  const manuais = internas
+    .filter((x) => x.manual)
+    .sort((a, b) => (a.linha.posicaoOficial as number) - (b.linha.posicaoOficial as number) || a.indice - b.indice)
+  const total = ordemBase.length + manuais.length
 
-  // 5) Encaixa as correções manuais nas posições digitadas e completa com a ordem automática.
-  const manuais = internas.filter((x) => x.manual).sort((a, b) => (a.linha.posicaoOficial as number) - (b.linha.posicaoOficial as number) || a.indice - b.indice)
-  const total = ordemAuto.length + manuais.length
-  const vagas: (Interna | null)[] = Array.from({ length: total }, () => null)
-  for (const x of manuais) {
-    let p = Math.min(Math.max(1, Math.trunc(x.linha.posicaoOficial as number)), total) - 1
-    if (vagas[p]) {
-      avisos.push(`${nomeCorrida}: duas correções manuais para a posição ${p + 1}; uma foi movida para a próxima posição livre.`)
-      while (p < total && vagas[p]) p++
-      if (p >= total) p = vagas.findIndex((v) => v === null)
-    }
+  /** Põe `x` na vaga `alvo`; ocupada → próxima livre para trás; sem nenhuma atrás → última livre. */
+  const ocupar = (vagas: (Interna | null)[], x: Interna, alvo: number) => {
+    let p = Math.min(Math.max(1, Math.trunc(alvo)), vagas.length) - 1
+    while (p < vagas.length && vagas[p]) p++
+    if (p >= vagas.length) p = vagas.lastIndexOf(null)
     vagas[p] = x
   }
-  let cursor = 0
-  for (const x of ordemAuto) {
-    while (vagas[cursor]) cursor++
-    vagas[cursor] = x
+  const montarVagas = (penalizados: [Interna, number][], avisar: boolean) => {
+    const vagas: (Interna | null)[] = Array.from({ length: total }, () => null)
+    for (const x of manuais) {
+      const alvo = Math.min(Math.max(1, Math.trunc(x.linha.posicaoOficial as number)), total)
+      if (avisar && vagas[alvo - 1]) {
+        avisos.push(`${nomeCorrida}: duas correções manuais para a posição ${alvo}; uma foi movida para a próxima posição livre.`)
+      }
+      ocupar(vagas, x, alvo)
+    }
+    for (const [x, alvo] of penalizados) ocupar(vagas, x, alvo)
+    const fixos = new Set(penalizados.map(([x]) => x))
+    let cursor = 0
+    for (const x of ordemBase) {
+      if (fixos.has(x)) continue
+      while (vagas[cursor]) cursor++
+      vagas[cursor] = x
+    }
+    return vagas
   }
-  vagas.forEach((x, i) => {
-    if (x) x.posicaoOficial = i + 1
+
+  // Posição que cada um teria sem penalidade de posições.
+  const posicaoBase = new Map<Interna, number>()
+  montarVagas([], true).forEach((x, i) => {
+    if (x) posicaoBase.set(x, i + 1)
   })
+  const penalizados = ordemBase
+    .map((x) => [x, Math.trunc(somaPenalidade(x.linha, 'posicoes'))] as const)
+    .filter(([, n]) => n > 0)
+    .map(([x, n]) => [x, (posicaoBase.get(x) as number) + n] as [Interna, number])
+    .sort((a, b) => a[1] - b[1] || (posicaoBase.get(a[0]) as number) - (posicaoBase.get(b[0]) as number))
+  if (penalizados.length) {
+    montarVagas(penalizados, false).forEach((x, i) => {
+      if (x) x.posicaoOficial = i + 1
+    })
+  } else {
+    for (const [x, p] of posicaoBase) x.posicaoOficial = p
+  }
 
   // 6) Grupo (categorias da classificação), convidados e posição para pontos.
   const noGrupo = internas.filter((x) => !grupo || (x.ins && grupo.has(k(x.ins.categoria))))
@@ -639,7 +685,7 @@ export function calcularResultadoCorrida(
   const posicionadosGrupo = noGrupo.filter((x) => x.posicaoOficial !== null).sort((a, b) => (a.posicaoOficial as number) - (b.posicaoOficial as number))
   const posCategoria = new Map<Interna, number>()
   posicionadosGrupo.forEach((x, i) => posCategoria.set(x, i + 1))
-  // Quem abandona fica atrás de todos os que terminaram, então não altera a posição deles.
+  // Posição para pontos: a ordem oficial do grupo, pulando os convidados (reclassificar) ou não (manter).
   const posPontos = new Map<Interna, number>()
   if (convidados === 'reclassificar-elegiveis') {
     posicionadosGrupo.filter((x) => !ehConvidado(x)).forEach((x, i) => pontuaPelaPosicao(x) && posPontos.set(x, i + 1))
@@ -745,44 +791,6 @@ export function calcularResultadoCorrida(
   }
 }
 
-/**
- * Confere uma lista de resultados antes de gravar (para o hook/validação da corrida e a tela de lançamento).
- * Devolve mensagens em português; lista vazia = tudo certo.
- */
-export function validarResultadosCorrida(resultados: LinhaResultado[]): string[] {
-  const erros: string[] = []
-  const inscricoes = new Map<string, number>()
-  const chegadas = new Map<number, number>()
-  resultados.forEach((l, i) => {
-    const n = i + 1
-    const ins = k(l?.inscricao)
-    if (!ins) erros.push(`Linha ${n}: escolha o piloto (inscrição).`)
-    else if (inscricoes.has(ins)) erros.push(`Linha ${n}: este piloto já está na linha ${inscricoes.get(ins)}.`)
-    else inscricoes.set(ins, n)
-    const status = l.status ?? 'classificado'
-    if (typeof l.posicaoChegada === 'number') {
-      if (!Number.isInteger(l.posicaoChegada) || l.posicaoChegada < 1) erros.push(`Linha ${n}: a posição de chegada deve ser um número inteiro a partir de 1.`)
-      else if (chegadas.has(l.posicaoChegada)) erros.push(`Linha ${n}: a posição de chegada ${l.posicaoChegada} já está na linha ${chegadas.get(l.posicaoChegada)}.`)
-      else chegadas.set(l.posicaoChegada, n)
-    } else if (status === 'classificado') {
-      erros.push(`Linha ${n}: piloto classificado precisa da posição de chegada.`)
-    }
-    for (const p of penalidadesDa(l)) {
-      if (p.tipo !== 'advertencia' && !(typeof p.valor === 'number' && p.valor > 0)) {
-        erros.push(`Linha ${n}: informe o valor da penalidade (${p.tipo === 'tempo' ? 'segundos' : p.tipo === 'posicoes' ? 'posições' : 'pontos'}).`)
-      }
-      if (!(p.motivo ?? '').trim()) erros.push(`Linha ${n}: informe o motivo da penalidade.`)
-    }
-    if (typeof l.posicaoOficial === 'number' && (l.motivoPosicaoOficial ?? '').trim() && (status === 'desclassificado' || status === 'nao-largou')) {
-      erros.push(`Linha ${n}: piloto desclassificado ou que não largou não tem posição oficial.`)
-    }
-    if (typeof l.pontosManuais === 'number' && paraDecimos(l.pontosManuais) / 10 !== l.pontosManuais) {
-      erros.push(`Linha ${n}: os pontos manuais aceitam no máximo 1 casa decimal.`)
-    }
-  })
-  return erros
-}
-
 // ───────────────────────────── classificação da temporada × categoria ─────────────────────────────
 
 type EtapaAcum = {
@@ -837,13 +845,16 @@ const sinalAjuste = (a: Ajuste): number => {
 /** Etapas da temporada relevantes para o grupo (pela lista de categorias da etapa; vazia = todas). */
 const etapaDoGrupo = (e: Etapa, grupo: Set<string>) => !e.categorias?.length || e.categorias.some((c) => grupo.has(k(c)))
 
+/** Categorias de uma corrida: as informadas nela ou, se vazias, as das inscrições dos resultados. */
+const categoriasDaCorrida = (c: Corrida, mapaIns: Map<string, Inscricao>): Set<string> =>
+  new Set(
+    c.categorias?.length
+      ? c.categorias.map(k)
+      : (c.resultados ?? []).map((l) => k(mapaIns.get(k(l?.inscricao))?.categoria)).filter(Boolean),
+  )
+
 const corridaDoGrupo = (c: Corrida, grupo: Set<string>, mapaIns: Map<string, Inscricao>) =>
-  c.categorias?.length
-    ? c.categorias.some((x) => grupo.has(k(x)))
-    : (c.resultados ?? []).some((l) => {
-        const i = mapaIns.get(k(l?.inscricao))
-        return !!i && grupo.has(k(i.categoria))
-      })
+  [...categoriasDaCorrida(c, mapaIns)].some((x) => grupo.has(x))
 
 type Nucleo = {
   linhas: LinhaClassificacao[]
@@ -912,9 +923,14 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
     const corridas = corridasPorEtapa.get(idEtapa) ?? []
     const fatorEtapa = etapa.fatorPontuacao
     const contadas: Corrida[] = []
-    // Pole: a tomada de tempo da etapa (prefere a que inclui a categoria principal; depois a primeira).
+    // Pole: para cada categoria do grupo, a 1ª tomada de tempo oficial da etapa que a inclui. Tomada comum a
+    // categorias somadas vale uma vez (uma pole); tomadas separadas dão uma pole cada.
     const tomadas = corridas.filter((c) => (c.tipo ?? 'bateria') === 'tomada-de-tempo')
-    const tomadaPole = tomadas.find((c) => (c.categorias ?? []).some((x) => k(x) === k(entrada.categoria))) ?? tomadas[0] ?? null
+    const tomadasPole = new Set<Corrida>()
+    for (const cat of grupo) {
+      const t = tomadas.find((c) => categoriasDaCorrida(c, mapaIns).has(cat))
+      if (t) tomadasPole.add(t)
+    }
 
     for (const corrida of corridas) {
       const r = calcularResultadoCorrida(corrida, regra, { inscricoes: mapaIns, categorias: [...grupo], fatorEtapa })
@@ -933,7 +949,8 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
         e.penalidades += paraDecimos(l.penalidadePontos)
         if (ehTomada) {
           e.extras += pts
-          if (tomadaPole && corrida === tomadaPole && l.posicaoParaPontos === 1) {
+          // `!e.pole`: o mesmo piloto não ganha duas poles na mesma etapa (ex.: inscrito em duas categorias somadas).
+          if (tomadasPole.has(corrida) && l.posicaoParaPontos === 1 && !e.pole) {
             e.pole = true
             p.poles++
             const pp = paraDecimos(numeroOu(regra.pontosPole, 0))
@@ -1121,8 +1138,8 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
     })
   }
 
-  // Ordenação: pontos, critérios de desempate na ordem da regra, e por fim ordem alfabética estável.
-  const criterios = regra.criteriosDesempate ?? CRITERIOS_PADRAO
+  // Ordenação: pontos, critérios de desempate na ordem da regra (sem repetir), e por fim ordem alfabética estável.
+  const criterios = [...new Set(regra.criteriosDesempate ?? [])]
   type L = (typeof linhas)[number]
   const comparadores: Record<CriterioDesempate, (a: L, b: L) => number> = {
     'mais-vitorias': (a, b) => b.vitorias - a.vitorias,
@@ -1165,6 +1182,14 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
     if (anterior && paraDecimos(anterior.pontos) === paraDecimos(l.pontos)) {
       const criterio = quemDecide(anterior, l).criterio
       l.desempate = criterio
+      // Empate com pontos que só a ordem alfabética separou: o administrador precisa saber.
+      if (comAvisos && criterio === 'ordem-alfabetica' && paraDecimos(l.pontos) !== 0) {
+        avisos.push(
+          criterios.length
+            ? `${anterior.nome} e ${l.nome} continuam empatados (${l.pontos} pontos) depois de todos os critérios de desempate da regra; ficaram em ordem alfabética.`
+            : `A regra não tem critérios de desempate: ${anterior.nome} e ${l.nome} empataram com ${l.pontos} pontos e ficaram em ordem alfabética. Cadastre os critérios do regulamento.`,
+        )
+      }
       const ultimo = empates[empates.length - 1]
       if (ultimo && ultimo.posicoes[ultimo.posicoes.length - 1] === i) {
         ultimo.posicoes.push(i + 1)
@@ -1235,8 +1260,19 @@ export interface DestaqueManual {
   inscricao: Id | null
   /** Rótulo exibido no site (padrão "Destaque"; nunca "Líder", que é só do 1º calculado). */
   rotulo?: string | null
-  /** Até quando o destaque aparece (vazio = sem prazo). */
+  /**
+   * Até quando o destaque aparece (vazio = sem prazo). Data e hora: vale até aquele instante; só a data
+   * ("AAAA-MM-DD"): vale até o fim daquele dia no horário de Brasília.
+   */
   exibirAte?: string | Date | null
+}
+
+/** Instante final de um prazo: data sem hora = até 23:59:59,999 daquele dia em Brasília. */
+function fimDoPrazo(v: string | Date | null): number | null {
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.trim())) {
+    return instanteDeChave(v.trim(), '23:59').getTime() + 59_999
+  }
+  return tempo(v)
 }
 
 export interface Lider {
@@ -1256,11 +1292,13 @@ export function liderDe(
 ): Lider | null {
   const instante = agora instanceof Date ? agora.getTime() : new Date(agora).getTime()
   if (destaqueManual?.inscricao !== null && destaqueManual?.inscricao !== undefined && k(destaqueManual.inscricao) !== '') {
-    const ate = tempo(destaqueManual.exibirAte ?? null)
+    const ate = fimDoPrazo(destaqueManual.exibirAte ?? null)
     const valido = ate === null || ate >= instante
     const alvo = k(destaqueManual.inscricao)
-    const linha = valido ? linhas.find((l) => k(l.inscricao) === alvo || l.inscricoes.some((i) => k(i) === alvo)) : undefined
-    if (linha) return { linha, tipo: 'destaque', rotulo: (destaqueManual.rotulo ?? '').trim() || 'Destaque' }
+    const linha = valido ? linhas.find((l) => k(l.inscricao) === alvo || (l.inscricoes ?? []).some((i) => k(i) === alvo)) : undefined
+    // "Líder" é só do 1º calculado: um destaque escolhido à mão nunca aparece com esse rótulo.
+    const rotulo = (destaqueManual.rotulo ?? '').trim()
+    if (linha) return { linha, tipo: 'destaque', rotulo: rotulo && normalizarNome(rotulo) !== 'lider' ? rotulo : 'Destaque' }
   }
   const primeiro = [...linhas].sort((a, b) => a.posicao - b.posicao)[0]
   if (!primeiro || !(primeiro.pontos > 0)) return null

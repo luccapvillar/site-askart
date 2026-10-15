@@ -81,11 +81,13 @@ const CAMPOS_DE_SISTEMA = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt', 
  * Campos ausentes nos dados novos são considerados inalterados.
  */
 export function camposAlterados(
-  novos: Record<string, unknown> | undefined,
-  antigos: Record<string, unknown> | undefined,
+  novosDados: object | null | undefined,
+  antigosDados: object | null | undefined,
   ignorar: string[] = [],
 ): string[] {
-  if (!novos) return []
+  if (!novosDados) return []
+  const novos = novosDados as Record<string, unknown>
+  const antigos = antigosDados as Record<string, unknown> | null | undefined
   const ignorados = new Set([...CAMPOS_DE_SISTEMA, ...ignorar])
   const alterados: string[] = []
   for (const chave of Object.keys(novos)) {
@@ -99,15 +101,11 @@ export function camposAlterados(
 }
 
 /** Mudou algum dos campos indicados? (usado em afterChange para evitar trabalho à toa) */
-export function mudouAlgum(
-  novo: Record<string, unknown> | undefined,
-  anterior: Record<string, unknown> | undefined,
-  campos: string[],
-): boolean {
+export function mudouAlgum(novo: object | null | undefined, anterior: object | null | undefined, campos: string[]): boolean {
   if (!anterior) return true
-  return campos.some(
-    (campo) => JSON.stringify(comparavel(novo?.[campo])) !== JSON.stringify(comparavel(anterior[campo])),
-  )
+  const n = (novo ?? {}) as Record<string, unknown>
+  const a = anterior as Record<string, unknown>
+  return campos.some((campo) => JSON.stringify(comparavel(n[campo])) !== JSON.stringify(comparavel(a[campo])))
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

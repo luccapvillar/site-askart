@@ -6,7 +6,7 @@ import { COLECOES } from '../../hooks/competicao/api'
 import { buscaPorNomeESigla, propagarNomeCategoria } from '../../hooks/competicao/cadastros'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
 import { slugSemColisao } from '../../hooks/competicao/slug'
-import { campoCor, campoTextoBusca } from './campos'
+import { campoCor, campoTextoBusca, REL } from './campos'
 
 /**
  * Categorias de kart (ex.: as categorias oficiais que a ASKART informar). Os pilotos de cada
@@ -61,7 +61,7 @@ export const Categorias: CollectionConfig = comAcessoRestrito({
       name: 'imagem',
       label: 'Imagem',
       type: 'upload',
-      relationTo: 'midia',
+      relationTo: REL.midia,
       admin: { description: 'Opcional. Foto ou logo da categoria.' },
     },
     campoCor('Opcional. Cor de destaque da categoria no site, no formato #RRGGBB (ex.: #1A7F37).'),

@@ -26,7 +26,12 @@ const comparaNome = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sens
 
 /** Linha mínima de classificação (calculada, manual ou da fotografia final). */
 export type LinhaParaTotais = Pick<LinhaClassificacao, 'nome' | 'posicao' | 'pontos'> &
-  Partial<Pick<LinhaClassificacao, 'chave' | 'piloto' | 'pilotoSlug' | 'numero' | 'equipeNome' | 'vitorias' | 'podios' | 'corridas' | 'poles' | 'voltasRapidas'>>
+  Partial<
+    Pick<
+      LinhaClassificacao,
+      'chave' | 'piloto' | 'pilotoSlug' | 'numero' | 'equipeNome' | 'categoria' | 'vitorias' | 'podios' | 'corridas' | 'poles' | 'voltasRapidas'
+    >
+  >
 
 export type FonteClassificacao = 'automatica' | 'manual' | 'fotografia'
 
@@ -40,8 +45,10 @@ export interface ClassificacaoDaTemporada {
   encerrada?: boolean
   fonte?: FonteClassificacao
   /**
-   * Classificação que soma resultados de outras categorias (`incluiResultadosDe`). Fica de fora dos totais
-   * de carreira, senão as mesmas vitórias seriam contadas duas vezes.
+   * Classificação que soma resultados de outras categorias (`incluiResultadosDe`). Nela, só contam para os
+   * totais as linhas de pilotos da própria categoria — e as de outra categoria apenas quando essa categoria
+   * não tem classificação própria na lista (senão as mesmas vitórias seriam contadas duas vezes). Linhas sem
+   * a categoria informada numa classificação agregada são ignoradas.
    */
   agregada?: boolean
   linhas: LinhaParaTotais[]
@@ -88,67 +95,89 @@ export interface TotaisDoPiloto {
 
 const chaveDaLinha = (l: LinhaParaTotais) => k(l.piloto) || k(l.chave) || `nome:${l.nome}`
 
+type LinhaValida = { classificacao: ClassificacaoDaTemporada; linha: LinhaParaTotais }
+
 /**
- * Totais de carreira e por temporada de cada piloto, a partir das classificações (automáticas ou manuais).
- * Classificações `agregada` não entram (evita contar duas vezes).
+ * Linhas que valem para as estatísticas: cada piloto conta UMA vez por temporada × categoria.
+ * Preferência: a classificação própria da categoria do piloto; depois a agregada da categoria dele; por
+ * último uma agregada de outra categoria (só quando a dele não tem classificação na lista).
+ */
+function linhasValidas(classificacoes: ClassificacaoDaTemporada[]): LinhaValida[] {
+  const temPropria = new Set(classificacoes.filter((c) => !c.agregada).map((c) => `${k(c.temporada)}|${k(c.categoria)}`))
+  const escolhidas = new Map<string, LinhaValida & { prioridade: number }>()
+  for (const c of classificacoes) {
+    for (const l of c.linhas) {
+      const categoria = k(l.categoria) || (c.agregada ? '' : k(c.categoria))
+      if (!categoria) continue
+      const daPropria = categoria === k(c.categoria)
+      if (!daPropria && temPropria.has(`${k(c.temporada)}|${categoria}`)) continue
+      const prioridade = (daPropria ? 2 : 0) + (c.agregada ? 0 : 1)
+      const chave = `${k(c.temporada)}|${categoria}|${chaveDaLinha(l)}`
+      const atual = escolhidas.get(chave)
+      if (!atual || prioridade > atual.prioridade) escolhidas.set(chave, { classificacao: c, linha: l, prioridade })
+    }
+  }
+  return [...escolhidas.values()].map(({ classificacao, linha }) => ({ classificacao, linha }))
+}
+
+/**
+ * Totais de carreira e por temporada de cada piloto, a partir das classificações (automáticas, manuais ou
+ * fotografias finais). Ver `agregada` para as classificações que somam categorias.
  */
 export function totaisPorPiloto(classificacoes: ClassificacaoDaTemporada[]): TotaisDoPiloto[] {
   const mapa = new Map<string, TotaisDoPiloto & { _pontos: number; _temporadas: Set<string> }>()
-  for (const c of classificacoes) {
-    if (c.agregada) continue
-    for (const l of c.linhas) {
-      const chave = chaveDaLinha(l)
-      let t = mapa.get(chave)
-      if (!t) {
-        t = {
-          chave,
-          nome: l.nome,
-          pilotoSlug: l.pilotoSlug ?? null,
-          temporadas: [],
-          pontos: 0,
-          vitorias: 0,
-          podios: 0,
-          corridas: 0,
-          poles: 0,
-          voltasRapidas: 0,
-          titulos: 0,
-          temporadasDisputadas: 0,
-          melhorPosicao: null,
-          _pontos: 0,
-          _temporadas: new Set(),
-        }
-        mapa.set(chave, t)
+  for (const { classificacao: c, linha: l } of linhasValidas(classificacoes)) {
+    const chave = chaveDaLinha(l)
+    let t = mapa.get(chave)
+    if (!t) {
+      t = {
+        chave,
+        nome: l.nome,
+        pilotoSlug: l.pilotoSlug ?? null,
+        temporadas: [],
+        pontos: 0,
+        vitorias: 0,
+        podios: 0,
+        corridas: 0,
+        poles: 0,
+        voltasRapidas: 0,
+        titulos: 0,
+        temporadasDisputadas: 0,
+        melhorPosicao: null,
+        _pontos: 0,
+        _temporadas: new Set(),
       }
-      const campeao = !!c.encerrada && l.posicao === 1
-      t.temporadas.push({
-        temporada: c.temporada,
-        temporadaNome: c.temporadaNome ?? null,
-        ano: c.ano ?? null,
-        categoria: c.categoria,
-        categoriaNome: c.categoriaNome ?? null,
-        fonte: c.fonte ?? null,
-        posicao: l.posicao,
-        pontos: n(l.pontos),
-        vitorias: n(l.vitorias),
-        podios: n(l.podios),
-        corridas: n(l.corridas),
-        poles: n(l.poles),
-        voltasRapidas: n(l.voltasRapidas),
-        numero: l.numero ?? null,
-        equipeNome: l.equipeNome ?? null,
-        campeao,
-      })
-      t._pontos += paraDecimos(n(l.pontos))
-      t.vitorias += n(l.vitorias)
-      t.podios += n(l.podios)
-      t.corridas += n(l.corridas)
-      t.poles += n(l.poles)
-      t.voltasRapidas += n(l.voltasRapidas)
-      if (campeao) t.titulos++
-      t._temporadas.add(k(c.temporada))
-      if (l.posicao > 0 && (t.melhorPosicao === null || l.posicao < t.melhorPosicao)) t.melhorPosicao = l.posicao
-      if (!t.pilotoSlug && l.pilotoSlug) t.pilotoSlug = l.pilotoSlug
+      mapa.set(chave, t)
     }
+    const campeao = !!c.encerrada && l.posicao === 1
+    t.temporadas.push({
+      temporada: c.temporada,
+      temporadaNome: c.temporadaNome ?? null,
+      ano: c.ano ?? null,
+      categoria: c.categoria,
+      categoriaNome: c.categoriaNome ?? null,
+      fonte: c.fonte ?? null,
+      posicao: l.posicao,
+      pontos: n(l.pontos),
+      vitorias: n(l.vitorias),
+      podios: n(l.podios),
+      corridas: n(l.corridas),
+      poles: n(l.poles),
+      voltasRapidas: n(l.voltasRapidas),
+      numero: l.numero ?? null,
+      equipeNome: l.equipeNome ?? null,
+      campeao,
+    })
+    t._pontos += paraDecimos(n(l.pontos))
+    t.vitorias += n(l.vitorias)
+    t.podios += n(l.podios)
+    t.corridas += n(l.corridas)
+    t.poles += n(l.poles)
+    t.voltasRapidas += n(l.voltasRapidas)
+    if (campeao) t.titulos++
+    t._temporadas.add(k(c.temporada))
+    if (l.posicao > 0 && (t.melhorPosicao === null || l.posicao < t.melhorPosicao)) t.melhorPosicao = l.posicao
+    if (!t.pilotoSlug && l.pilotoSlug) t.pilotoSlug = l.pilotoSlug
   }
   return [...mapa.values()]
     .map(({ _pontos, _temporadas, ...t }) => ({
@@ -210,14 +239,41 @@ export function ranking(totais: TotaisDoPiloto[], indicador: Indicador, opcoes: 
   return itens.filter((it, i) => i < limite || it.posicao === corte)
 }
 
-/** Recordes de uma temporada (ou de qualquer recorte): maior pontuação numa única temporada. */
+/** Recordes: maiores pontuações numa única temporada × categoria. */
 export function maioresPontuacoes(classificacoes: ClassificacaoDaTemporada[], limite = 10) {
-  return classificacoes
-    .filter((c) => !c.agregada)
-    .flatMap((c) => c.linhas.map((l) => ({ classificacao: c, linha: l, pontos: n(l.pontos) })))
+  return linhasValidas(classificacoes)
+    .map((x) => ({ ...x, pontos: n(x.linha.pontos) }))
     .filter((x) => x.pontos > 0)
     .sort((a, b) => b.pontos - a.pontos || comparaNome(a.linha.nome, b.linha.nome))
     .slice(0, limite)
+}
+
+export interface CampeoesDaTemporada {
+  temporada: Id
+  temporadaNome: string | null
+  ano: number | null
+  categoria: Id
+  categoriaNome: string | null
+  /** 1º, 2º e 3º da classificação final (pode ter menos de 3). */
+  podio: LinhaParaTotais[]
+}
+
+/**
+ * Campeões (pódio final) das temporadas encerradas, da mais recente para a mais antiga — para o histórico.
+ * Usa a classificação oficial de cada categoria (inclusive a que soma categorias).
+ */
+export function campeoesPorTemporada(classificacoes: ClassificacaoDaTemporada[]): CampeoesDaTemporada[] {
+  return classificacoes
+    .filter((c) => c.encerrada && c.linhas.length > 0)
+    .map((c) => ({
+      temporada: c.temporada,
+      temporadaNome: c.temporadaNome ?? null,
+      ano: c.ano ?? null,
+      categoria: c.categoria,
+      categoriaNome: c.categoriaNome ?? null,
+      podio: [...c.linhas].filter((l) => l.posicao >= 1 && l.posicao <= 3).sort((a, b) => a.posicao - b.posicao),
+    }))
+    .sort((a, b) => (b.ano ?? 0) - (a.ano ?? 0) || comparaNome(a.categoriaNome ?? '', b.categoriaNome ?? ''))
 }
 
 // ───────────────────────────── métricas por etapa (a partir dos resultados) ─────────────────────────────
@@ -323,11 +379,16 @@ export function resultadoDaEtapa(resultado: Pick<ResultadoClassificacao, 'linhas
     )
     .map((x) => ({
       chave: x.linha.chave,
+      inscricao: x.linha.inscricao,
       nome: x.linha.nome,
+      pilotoSlug: x.linha.pilotoSlug ?? null,
       numero: x.linha.numero,
       equipeNome: x.linha.equipeNome ?? null,
       posicao: x.etapa.posicao,
+      /** Pontos da etapa (corridas + pole), antes de penalidades. */
       pontos: x.etapa.pontos,
+      /** Penalidades de pontos e ajustes ligados à etapa (com sinal). */
+      ajustes: x.etapa.ajustes,
       pole: x.etapa.pole,
       desclassificado: x.etapa.desclassificado,
     }))

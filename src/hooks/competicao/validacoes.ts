@@ -60,6 +60,22 @@ export function validarCorHex(valor: unknown): string | true {
 export const normalizarCorHex = (valor: unknown) =>
   typeof valor === 'string' && valor.trim() ? valor.trim().toUpperCase() : valor
 
+/** Link externo: só http:// ou https:// com endereço válido (nada de "javascript:" ou texto solto). Aceita vazio. */
+export function validarUrl(valor: unknown): string | true {
+  if (valor === null || valor === undefined || valor === '') return true
+  if (typeof valor !== 'string') return 'Informe um link começando com https://'
+  const texto = valor.trim()
+  if (/\s/.test(texto)) return 'O link não pode ter espaços.'
+  try {
+    const url = new URL(texto)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return 'O link deve começar com https://'
+    if (!url.hostname.includes('.')) return 'Confira o endereço do link (ex.: https://exemplo.com.br/...).'
+  } catch {
+    return 'Link inválido. Copie o endereço completo, começando com https://'
+  }
+  return true
+}
+
 /**
  * Encontra a tabela de pontos pelo nome, sem diferenciar maiúsculas e acentos.
  * Devolve o nome como está cadastrado na regra, ou null se não existir.

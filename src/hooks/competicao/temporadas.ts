@@ -16,7 +16,7 @@ import type {
 } from 'payload'
 import { ehAdmin } from '../../access'
 import { slugificar } from '../../fields/slug'
-import { buscar, buscarPorId, COLECOES, contar, criar, excluir, type ContextoCompeticao } from './api'
+import { atualizar, buscar, buscarPorId, COLECOES, contar, criar, excluir, type ContextoCompeticao } from './api'
 import { carregarCategorias, rotuloCategoria } from './consultas'
 import { estaEncerrada, mensagemCongelada } from './congelamento'
 import { atualizarDerivados, derivadosTemporada } from './derivados'
@@ -27,6 +27,7 @@ import { nomeTemporadaPadrao, normalizarBusca } from './texto'
 import type {
   CampeonatoDoc,
   CorridaDoc,
+  EtapaDoc,
   RegraPontuacaoDoc,
   TemporadaCategoriaDoc,
   TemporadaDoc,
@@ -45,17 +46,26 @@ export const slugDaTemporada: FieldHook = ({ value, data, originalDoc }) => {
   return ano ? slugificar(String(ano)) : value
 }
 
-export const prepararTemporada: CollectionBeforeValidateHook = async ({ data, req }) => {
+export const prepararTemporada: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
-  if (!data.nome?.toString().trim() && data.campeonato && data.ano) {
-    const campeonato = await buscarPorId<CampeonatoDoc>(req, COLECOES.campeonatos, idDe(data.campeonato))
-    data.nome = nomeTemporadaPadrao(campeonato?.nome, Number(data.ano))
+  const anterior = originalDoc as TemporadaDoc | undefined
+  if (typeof data.nome === 'string') data.nome = data.nome.trim()
+  const campeonatoId = idDe(data.campeonato ?? anterior?.campeonato)
+  const ano = data.ano ?? anterior?.ano
+  // Obs.: em atualizações o Payload já completa `data` com os valores salvos antes dos hooks da coleção
+  if (!data.nome && campeonatoId !== null && ano) {
+    const campeonato = await buscarPorId<CampeonatoDoc>(req, COLECOES.campeonatos, campeonatoId)
+    data.nome = nomeTemporadaPadrao(campeonato?.nome, Number(ano))
   }
 
-  // Formato da etapa: nomes únicos e tabela existente na regra (gravada com o nome exato da regra)
-  const formato = Array.isArray(data.formatoEtapa) ? (data.formatoEtapa as NonNullable<TemporadaDoc['formatoEtapa']>) : []
+  // Formato da etapa: nomes únicos e tabela existente na regra (gravada com o nome exato da regra).
+  // Confere quando o formato ou a regra mudam (a regra nova precisa ter as tabelas do formato).
+  if (data.formatoEtapa === undefined && data.regra === undefined) return data
+  const formato = (
+    Array.isArray(data.formatoEtapa) ? data.formatoEtapa : (anterior?.formatoEtapa ?? []).map((f) => ({ ...f }))
+  ) as NonNullable<TemporadaDoc['formatoEtapa']>
   const erros: Array<{ caminho: string; mensagem: string }> = []
-  const regra = await buscarPorId<RegraPontuacaoDoc>(req, COLECOES.regras, idDe(data.regra))
+  const regra = await buscarPorId<RegraPontuacaoDoc>(req, COLECOES.regras, idDe(data.regra !== undefined ? data.regra : anterior?.regra))
   const nomes = new Map<string, number>()
   formato.forEach((item, i) => {
     if (typeof item.nome === 'string') item.nome = item.nome.trim()
@@ -181,6 +191,9 @@ export const regrasDaTemporada: CollectionBeforeChangeHook = async ({ data, orig
   return data
 }
 
+/** Modo inicial da classificação: temporada histórica (só classificação final) nasce em modo manual. */
+const modoInicial = (temporada: TemporadaDoc) => (temporada.fonteDados === 'so-classificacao-final' ? 'manual' : 'automatico')
+
 /** Cria (ou remove, se vazias) as classificações das categorias da temporada. */
 async function sincronizarClassificacoes(req: PayloadRequest, temporada: TemporadaDoc) {
   const categorias = idsDe(temporada.categorias)
@@ -193,7 +206,7 @@ async function sincronizarClassificacoes(req: PayloadRequest, temporada: Tempora
     await criar(
       req,
       COLECOES.temporadaCategorias,
-      { temporada: temporada.id, categoria, ordem: indice + 1, modo: 'automatico', publicada: true },
+      { temporada: temporada.id, categoria, ordem: indice + 1, modo: modoInicial(temporada), publicada: true },
       contexto,
     )
   }
@@ -203,19 +216,58 @@ async function sincronizarClassificacoes(req: PayloadRequest, temporada: Tempora
   }
 }
 
+/**
+ * Categoria nova na temporada: entra também nas etapas ainda por realizar que tinham todas as
+ * categorias anteriores (o padrão da etapa é "as categorias da temporada").
+ */
+async function levarCategoriasNovasParaEtapas(req: PayloadRequest, temporada: TemporadaDoc, anterior: TemporadaDoc) {
+  const antes = idsDe(anterior.categorias)
+  const novas = idsDe(temporada.categorias).filter((id) => !contemId(antes, id))
+  if (!novas.length || !antes.length) return
+  const etapas = await buscar<EtapaDoc>(req, COLECOES.etapas, {
+    where: { and: [{ temporada: { equals: temporada.id } }, { status: { in: ['agendada', 'confirmada', 'adiada'] } }] },
+  })
+  for (const etapa of etapas) {
+    const daEtapa = idsDe(etapa.categorias)
+    if (!antes.every((id) => contemId(daEtapa, id))) continue
+    await atualizar(req, COLECOES.etapas, etapa.id, { categorias: [...daEtapa, ...novas] })
+  }
+}
+
 export const aposSalvarTemporada: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
   const temporada = doc as TemporadaDoc
-  const anterior = previousDoc as TemporadaDoc | undefined
+  const anterior = operation === 'update' ? (previousDoc as TemporadaDoc | undefined) : undefined
 
-  if (operation === 'create' || mudouAlgum(temporada, anterior, ['categorias'])) {
+  if (!anterior || mudouAlgum(temporada, anterior, ['categorias'])) {
     await sincronizarClassificacoes(req, temporada)
   }
+  if (anterior && mudouAlgum(temporada, anterior, ['categorias'])) {
+    await levarCategoriasNovasParaEtapas(req, temporada, anterior)
+  }
 
-  if (operation === 'update' && estaEncerrada(temporada) && !estaEncerrada(anterior)) {
+  // Virou temporada histórica (só classificação final): as classificações passam ao modo manual
+  if (anterior && temporada.fonteDados === 'so-classificacao-final' && anterior.fonteDados !== 'so-classificacao-final') {
+    const automaticas = await buscar<TemporadaCategoriaDoc>(req, COLECOES.temporadaCategorias, {
+      where: { and: [{ temporada: { equals: temporada.id } }, { modo: { not_equals: 'manual' } }] },
+    })
+    for (const c of automaticas) {
+      await atualizar(req, COLECOES.temporadaCategorias, c.id, { modo: 'manual' }, { criandoClassificacoes: temporada.id })
+    }
+  }
+
+  // Primeira temporada do campeonato: vira a "temporada atual" sozinha (dá para trocar no campeonato)
+  if (!anterior) {
+    const campeonato = await buscarPorId<CampeonatoDoc>(req, COLECOES.campeonatos, idDe(temporada.campeonato))
+    if (campeonato && idDe(campeonato.temporadaAtual) === null) {
+      await atualizar(req, COLECOES.campeonatos, campeonato.id, { temporadaAtual: temporada.id })
+    }
+  }
+
+  if (anterior && estaEncerrada(temporada) && !estaEncerrada(anterior)) {
     await gravarFotografiasFinais(req, temporada.id)
   }
 
-  if (operation === 'update' && mudouAlgum(temporada, anterior, ['nome', 'ano', 'campeonato'])) {
+  if (anterior && mudouAlgum(temporada, anterior, ['nome', 'ano', 'campeonato'])) {
     const id = temporada.id
     await atualizarDerivados(req, COLECOES.etapas, { temporada: { equals: id } })
     await atualizarDerivados(req, COLECOES.corridas, { 'etapa.temporada': { equals: id } })

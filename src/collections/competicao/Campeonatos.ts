@@ -10,7 +10,7 @@ import {
 } from '../../hooks/competicao/cadastros'
 import { bloquearExclusaoComVinculos } from '../../hooks/competicao/exclusao'
 import { slugSemColisao } from '../../hooks/competicao/slug'
-import { campoTextoBusca } from './campos'
+import { campoTextoBusca, REL } from './campos'
 
 /** Campeonatos organizados pela ASKART. Cada um tem várias temporadas (2026, 2027…). */
 export const Campeonatos: CollectionConfig = comAcessoRestrito({
@@ -45,7 +45,7 @@ export const Campeonatos: CollectionConfig = comAcessoRestrito({
       name: 'temporadaAtual',
       label: 'Temporada atual',
       type: 'relationship',
-      relationTo: COLECOES.temporadas,
+      relationTo: REL.temporadas,
       filterOptions: ({ id }) => (id ? { campeonato: { equals: id } } : { campeonato: { exists: false } }),
       admin: {
         // Só faz sentido depois que o campeonato existe e tem temporadas
@@ -63,12 +63,12 @@ export const Campeonatos: CollectionConfig = comAcessoRestrito({
     {
       type: 'row',
       fields: [
-        { name: 'logo', label: 'Logo', type: 'upload', relationTo: 'midia', admin: { width: '50%' } },
+        { name: 'logo', label: 'Logo', type: 'upload', relationTo: REL.midia, admin: { width: '50%' } },
         {
           name: 'banner',
           label: 'Banner',
           type: 'upload',
-          relationTo: 'midia',
+          relationTo: REL.midia,
           admin: { width: '50%', description: 'Imagem larga do topo da página do campeonato.' },
         },
       ],
@@ -77,7 +77,7 @@ export const Campeonatos: CollectionConfig = comAcessoRestrito({
       name: 'temporadas',
       label: 'Temporadas',
       type: 'join',
-      collection: COLECOES.temporadas,
+      collection: REL.temporadas,
       on: 'campeonato',
       defaultSort: '-ano',
       admin: { defaultColumns: ['nome', 'ano', 'status', 'visibilidade'] },
