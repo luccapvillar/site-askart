@@ -358,9 +358,9 @@ const paraConferir = (l: LinhaGrade | HorarioDeFora, visivel: boolean): HorarioG
 })
 
 /**
- * Problemas de cada linha (chave → mensagens). O aviso de sobreposição vale para as linhas novas ou
- * alteradas (as que serão gravadas), como no hook da coleção: confere com os outros horários visíveis do
- * mesmo dia, inclusive os vencidos que ficam fora do editor.
+ * Problemas de cada linha (chave → mensagens). Só as linhas novas ou alteradas são conferidas (são as que
+ * serão gravadas, como no hook da coleção); o aviso de sobreposição as compara com os outros horários
+ * visíveis do mesmo dia, inclusive os vencidos que ficam fora do editor.
  */
 export function validarGrade(
   atual: LinhaGrade[],
@@ -378,8 +378,9 @@ export function validarGrade(
     })),
   ]
   for (const l of atual) {
+    if (!mudaram.has(l.chave)) continue
     const lista = errosDosCampos(l, contexto.tipos, contexto.categorias)
-    if (!lista.length && mudaram.has(l.chave) && !l.permitirSobreposicao) {
+    if (!lista.length && !l.permitirSobreposicao) {
       const conflitos = conflitosDaGrade(
         paraConferir(l, l.visivel),
         outros.map((o) => o.ref),
