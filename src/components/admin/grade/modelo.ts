@@ -220,21 +220,27 @@ export function linhaDoDoc(doc: Record<string, unknown>, vinculos = 0): LinhaGra
   }
 }
 
+/** Id de relacionamento: número quando é número ("12" → 12), como o banco grava. */
+const idNormal = (v: unknown): ID | null => {
+  const id = idDe(v)
+  return typeof id === 'string' && /^\d+$/.test(id) ? Number(id) : id
+}
+
 /** Linha recebida no pedido de gravação (JSON de fora): só os campos conhecidos, nos tipos certos. */
 export function lerLinhaRecebida(x: unknown, indice: number): LinhaGrade {
   const o = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>
-  const id = idDe(o.id)
+  const id = idNormal(o.id)
   const lista = Array.isArray(o.categorias) ? o.categorias : []
+  const categorias = new Map<string, ID>()
+  for (const c of lista.map(idNormal)) if (c !== null) categorias.set(String(c), c)
   return {
     chave: texto(o.chave) || (id !== null ? `h${id}` : `linha-${indice + 1}`),
     id,
     diaSemana: (ehDiaSemana(o.diaSemana) ? o.diaSemana : '') as DiaSemana,
     horaInicio: texto(o.horaInicio),
     horaFim: texto(o.horaFim),
-    tipo: idDe(o.tipo),
-    categorias: [...new Set(lista.map(idDe).filter((c): c is ID => c !== null).map(String))].map((c) =>
-      /^\d+$/.test(c) ? Number(c) : c,
-    ),
+    tipo: idNormal(o.tipo),
+    categorias: [...categorias.values()],
     observacao: typeof o.observacao === 'string' ? o.observacao : '',
     visivel: o.visivel !== false,
     validoDe: dataOuNulo(o.validoDe),
