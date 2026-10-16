@@ -21,6 +21,7 @@ if [ -z "$DATABASE_URL" ]; then
   echo "Falta o banco de dados. Na Vercel: aba Storage → Create Database → Neon (Postgres) → conecte a este projeto"
   echo "(marque Production, Preview e Development). Se já conectou, confira em Settings → Environment Variables."
   echo "Depois, em Storage → Create → Blob, conecte também o armazenamento de fotos. Em seguida: Deployments → Redeploy."
+  echo "Variáveis de banco/fotos que este deploy recebeu (só os nomes): $(compgen -e | grep -iE 'database|postgres|^pg|neon|blob' | tr '\n' ' ' || true)"
   echo ""
   exit 1
 fi
