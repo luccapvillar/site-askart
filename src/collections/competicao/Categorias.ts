@@ -9,6 +9,20 @@ import { slugSemColisao } from '../../hooks/competicao/slug'
 import { campoCor, campoTextoBusca, REL } from './campos'
 
 /**
+ * Modalidade da categoria: divide a aba BKS do site em "Karts profissionais" e "Karts indoor". Uma etapa
+ * aparece na área de cada modalidade que tiver pelo menos uma categoria nela.
+ */
+export const OPCOES_MODALIDADE = [
+  { label: 'Karts profissionais', value: 'profissional' },
+  { label: 'Karts indoor', value: 'indoor' },
+] as const
+
+export type ModalidadeCategoria = (typeof OPCOES_MODALIDADE)[number]['value']
+
+/** Categorias de kart indoor informadas pelo cliente (só os nomes, exatamente como ele escreveu). */
+export const CATEGORIAS_INDOOR_OFICIAIS = ['Novatos - 95KGs (15HP)', '80KGs (15HP)', '95KGs (15HP)', '110KGs (15HP)'] as const
+
+/**
  * Categorias de kart (ex.: as categorias oficiais que a ASKART informar). Os pilotos de cada
  * categoria vêm das inscrições de cada temporada.
  */
@@ -20,7 +34,7 @@ export const Categorias: CollectionConfig = comAcessoRestrito({
   admin: {
     group: 'Competição',
     useAsTitle: 'nome',
-    defaultColumns: ['nome', 'sigla', 'cor', 'visibilidade'],
+    defaultColumns: ['nome', 'modalidade', 'sigla', 'cor', 'visibilidade'],
     listSearchableFields: ['nome', 'sigla', 'textoBusca'],
     description:
       'Categorias de kart. Arraste para definir a ordem em que aparecem no site. Para tirar uma categoria do site, use "No site: Oculto" — excluir só é possível quando ela não tem histórico.',
@@ -51,6 +65,18 @@ export const Categorias: CollectionConfig = comAcessoRestrito({
       ],
     },
     campoSlug('nome'),
+    {
+      name: 'modalidade',
+      label: 'Modalidade',
+      type: 'select',
+      required: true,
+      defaultValue: 'profissional',
+      options: OPCOES_MODALIDADE.map((o) => ({ ...o })),
+      admin: {
+        description:
+          'Em qual parte da aba BKS a categoria aparece no site: "Karts profissionais" ou "Karts indoor" (datas, horários, classificação e resultados de cada uma).',
+      },
+    },
     {
       name: 'subcategorias',
       label: 'Subcategorias',

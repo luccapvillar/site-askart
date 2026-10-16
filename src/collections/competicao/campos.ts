@@ -96,7 +96,12 @@ export const campoCidade = (): Field => ({
   admin: { width: '70%' },
 })
 
+/**
+ * Tipos de sessão/corrida. Nomes que a ASKART usa: Warm-up = `warm-up`; Classificação = `tomada-de-tempo`;
+ * Corrida 1 e Corrida 2 = `bateria`. Warm-up nunca dá pontos nem pole (o motor o ignora).
+ */
 export const OPCOES_TIPO_CORRIDA: Option[] = [
+  { label: 'Warm-up', value: 'warm-up' },
   { label: 'Tomada de tempo', value: 'tomada-de-tempo' },
   { label: 'Classificatória', value: 'classificatoria' },
   { label: 'Bateria', value: 'bateria' },

@@ -172,7 +172,7 @@ export const lerEtapas = cache((temporada: number) =>
         imagem: true,
         temporada: true,
       },
-      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true }, temporadas: { nome: true, ano: true } },
+      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true, modalidade: true }, temporadas: { nome: true, ano: true } },
       ...(await leitura('etapas', { and: [{ temporada: { equals: temporada } }, { visibilidade: { in: ['visivel', 'arquivado'] } }] })),
     })
     return docs as Etapa[]
@@ -199,7 +199,7 @@ export const lerProgramacao = cache((etapas: number[]) =>
       depth: 1,
       limit: 500,
       select: { etapa: true, nome: true, tipo: true, inicio: true, categorias: true, status: true },
-      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true } },
+      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true, modalidade: true } },
       ...PUBLICO,
     })
     return docs as Corrida[]
@@ -224,6 +224,37 @@ export const lerCategorias = cache((ids: number[]) =>
     const payload = await payloadSite()
     const { docs } = await payload.find({ collection: 'categorias', where: { id: { in: ids } }, sort: '_order', depth: 0, limit: 100, ...PUBLICO })
     return docs
+  }),
+)
+
+/** Categorias visíveis de uma modalidade (karts profissionais ou indoor), na ordem do painel. */
+export const lerCategoriasDaModalidade = cache((modalidade: 'profissional' | 'indoor') =>
+  seguro('categorias da modalidade', [] as Categoria[], async () => {
+    const payload = await payloadSite()
+    // Categoria gravada antes da divisão (sem modalidade) é de karts profissionais
+    const where: Where =
+      modalidade === 'indoor' ? { modalidade: { equals: 'indoor' } } : { or: [{ modalidade: { equals: 'profissional' } }, { modalidade: { exists: false } }] }
+    const { docs } = await payload.find({
+      collection: 'categorias',
+      where,
+      sort: '_order',
+      depth: 0,
+      limit: 100,
+      select: { nome: true, sigla: true, slug: true, cor: true, modalidade: true, subcategorias: true },
+      ...PUBLICO,
+    })
+    return docs as Categoria[]
+  }),
+)
+
+/** Ids das categorias que estão na grade semanal de treinos do kartódromo (ex.: Moto, que é só de treino). */
+export const lerIdsCategoriasDeTreino = cache(() =>
+  seguro('categorias da grade de treinos', [] as number[], async () => {
+    const payload = await payloadSite()
+    const { docs } = await payload.find({ collection: 'horarios-treino', depth: 0, limit: 500, select: { categorias: true }, ...PUBLICO })
+    const ids = new Set<number>()
+    for (const d of docs) for (const c of (d as { categorias?: unknown[] | null }).categorias ?? []) if (idDe(c) !== null) ids.add(idDe(c)!)
+    return [...ids]
   }),
 )
 

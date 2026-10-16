@@ -111,10 +111,10 @@ export type StatusCorrida = 'rascunho' | 'oficial' | 'cancelada'
  */
 export function statusEtapaAutomatico(
   atual: StatusEtapa | null | undefined,
-  corridas: Array<{ status?: StatusCorrida | null; contaParaClassificacao?: boolean | null }>,
+  corridas: Array<{ status?: StatusCorrida | null; contaParaClassificacao?: boolean | null; tipo?: TipoCorrida | null }>,
 ): StatusEtapa | null {
   if (atual === 'cancelada') return null
-  const contam = corridas.filter((c) => c.contaParaClassificacao !== false && c.status !== 'cancelada')
+  const contam = corridas.filter((c) => corridaContaPontos(c) && c.status !== 'cancelada')
   if (contam.length === 0) return null
   const todasOficiais = contam.every((c) => c.status === 'oficial')
   if (todasOficiais && atual !== 'realizada') return 'realizada'
@@ -132,7 +132,14 @@ export function chaveCorrida(etapa: unknown, categorias: unknown[], nome: string
   return `${idDe(etapa) ?? ''}|${ids.join(',')}|${normalizarBusca(nome ?? '')}`
 }
 
-export type TipoCorrida = 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'
+export type TipoCorrida = 'warm-up' | 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'
+
+/**
+ * A corrida dá pontos (e entra nas conferências de "falta oficializar")? Warm-up nunca dá, mesmo com
+ * "Conta para a classificação" marcado; as demais seguem a caixa (padrão: sim).
+ */
+export const corridaContaPontos = (c: { tipo?: TipoCorrida | string | null; contaParaClassificacao?: boolean | null }) =>
+  c.tipo !== 'warm-up' && c.contaParaClassificacao !== false
 
 export interface ItemFormato {
   nome?: string | null
@@ -183,7 +190,8 @@ export function planejarCorridas(
         nome,
         tipo: item.tipo || 'bateria',
         tabela: item.tabela?.trim() || null,
-        contaParaClassificacao: item.contaParaClassificacao !== false,
+        // Warm-up nasce sem contar para a classificação (o motor o ignora de qualquer forma).
+        contaParaClassificacao: corridaContaPontos({ tipo: item.tipo, contaParaClassificacao: item.contaParaClassificacao }),
         fator: typeof item.fator === 'number' && item.fator > 0 ? item.fator : 1,
         status: 'rascunho',
         chaveUnica: chave,

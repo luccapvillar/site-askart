@@ -36,7 +36,7 @@ import type {
 } from './tipos'
 import type { ID } from './util'
 import { camposAlterados, contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
-import { encontrarTabela } from './validacoes'
+import { corridaContaPontos, encontrarTabela } from './validacoes'
 
 /** Campos que continuam editáveis numa temporada encerrada (apresentação e visibilidade). */
 const LIVRES_ENCERRADA = ['nome', 'slug', 'descricao', 'logo', 'banner', 'visibilidade', 'status', 'etapas', 'classificacoes']
@@ -96,7 +96,7 @@ async function corridasPendentes(req: PayloadRequest, temporadaId: ID) {
   const corridas = await buscar<CorridaDoc>(req, COLECOES.corridas, {
     where: { and: [{ 'etapa.temporada': { equals: temporadaId } }, { status: { equals: 'rascunho' } }] },
   })
-  return corridas.filter((c) => (c.resultados?.length ?? 0) > 0 && c.contaParaClassificacao !== false)
+  return corridas.filter((c) => (c.resultados?.length ?? 0) > 0 && corridaContaPontos(c))
 }
 
 /**

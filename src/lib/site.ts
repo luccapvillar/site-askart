@@ -264,7 +264,56 @@ export const linkExterno = (v: unknown): string | null => {
   return /^https?:\/\/\S+$/i.test(t) ? t : null
 }
 
-export type Transmissao = { tipo: 'profissional' | 'indoor'; rotulo: string; href: string | null }
+/* ─────────────────── transmissão no YouTube ─────────────────── */
+
+export type VideoYoutube = { id: string; inicio: number | null }
+
+const HOST_YOUTUBE = /^(?:www\.|m\.|music\.)?(?:youtube\.com|youtube-nocookie\.com)$/
+const ID_YOUTUBE = /^[A-Za-z0-9_-]{11}$/
+
+/** "90", "90s", "1m30s", "1h2m3s" → segundos. */
+function segundos(v: string | null): number | null {
+  if (!v) return null
+  if (/^\d+$/.test(v)) return Number(v) || null
+  const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(v)
+  if (!m || !m[0]) return null
+  const total = Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0)
+  return total || null
+}
+
+/**
+ * Vídeo de um link do YouTube (watch?v=, youtu.be/, /live/, /embed/, /shorts/), com o instante de início
+ * quando o link traz (t= ou start=). Qualquer outro link: null (o site mostra um botão comum).
+ */
+export function videoDoYoutube(link: unknown): VideoYoutube | null {
+  const href = linkExterno(link)
+  if (!href) return null
+  let url: URL
+  try {
+    url = new URL(href)
+  } catch {
+    return null
+  }
+  const host = url.hostname.toLowerCase()
+  const partes = url.pathname.split('/').filter(Boolean)
+  let id: string | null | undefined = null
+  if (host === 'youtu.be' || host === 'www.youtu.be') id = partes[0]
+  else if (HOST_YOUTUBE.test(host)) {
+    if (partes[0] === 'watch') id = url.searchParams.get('v')
+    else if (['live', 'embed', 'shorts', 'v'].includes(partes[0] ?? '')) id = partes[1]
+  }
+  if (!id || !ID_YOUTUBE.test(id)) return null
+  return { id, inicio: segundos(url.searchParams.get('t') ?? url.searchParams.get('start')) }
+}
+
+/** Endereço do player (domínio sem cookies do YouTube), carregado só depois do clique do visitante. */
+export function enderecoDoPlayer(video: VideoYoutube): string {
+  const busca = new URLSearchParams({ autoplay: '1', rel: '0' })
+  if (video.inicio) busca.set('start', String(video.inicio))
+  return `https://www.youtube-nocookie.com/embed/${video.id}?${busca.toString()}`
+}
+
+export type Transmissao = { tipo: Modalidade; rotulo: string; href: string | null; video: VideoYoutube | null }
 
 export type CamposEtapaSite = DatasEtapa &
   Partial<
@@ -294,9 +343,13 @@ export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date()
   const cancelada = etapa.status === 'cancelada'
   const jaOcorreu = etapaJaOcorreu(etapa, agora)
   const antes = !cancelada && !jaOcorreu
+  const transmissao = (tipo: Modalidade, link: unknown): Transmissao => {
+    const href = linkExterno(link)
+    return { tipo, rotulo: ROTULO_MODALIDADE[tipo], href, video: href ? videoDoYoutube(href) : null }
+  }
   const transmissoes: Transmissao[] = [
-    { tipo: 'profissional', rotulo: 'Profissional', href: linkExterno(etapa.transmissaoProfissional) },
-    { tipo: 'indoor', rotulo: 'Indoor', href: linkExterno(etapa.transmissaoIndoor) },
+    transmissao('profissional', etapa.transmissaoProfissional),
+    transmissao('indoor', etapa.transmissaoIndoor),
   ]
   return {
     cancelada,
@@ -339,19 +392,117 @@ export function gradeTreinosPorDia(grade: Etapa['gradeTreinosLivres'] | null | u
     .map((d) => ({ ...d, horarios: d.horarios.sort((x, y) => minutosEntre(y.inicio, x.inicio)) }))
 }
 
-/* ─────────────────── etapas: evento aberto ao público ─────────────────── */
+/* ─────────────────── evento aberto ao público ─────────────────── */
 
-export const TEXTO_EVENTO_PUBLICO_PADRAO = 'O evento é aberto ao público, com entrada gratuita.'
-export const ITENS_EVENTO_PUBLICO_PADRAO = ['Food trucks', 'Telão', 'Mesas e cadeiras', 'Narrador']
+export type ItemEventoPublico = { titulo: string; descricao: string | null }
+export type InfoEventoPublico = { texto: string; itens: ItemEventoPublico[] }
 
-/** Texto e itens do bloco "Aberto ao público" (Configurações), com o padrão pedido pelo cliente. Null = desligado. */
+/** Texto do cliente (o mesmo padrão do painel: src/globals/Configuracoes.ts). */
+export const TEXTO_EVENTO_PUBLICO_PADRAO = 'O evento é aberto ao público e a entrada é de graça.'
+export const ITENS_EVENTO_PUBLICO_PADRAO: ItemEventoPublico[] = [
+  { titulo: 'Food trucks', descricao: 'Food trucks para o público se alimentar.' },
+  { titulo: 'Telão', descricao: 'Telão para assistir à corrida de diversos ângulos.' },
+  { titulo: 'Mesas e cadeiras', descricao: 'Mesas e cadeiras para acomodar o público.' },
+  { titulo: 'Narrador', descricao: 'Narrador profissional narrando todas as corridas.' },
+]
+
+/**
+ * Texto e itens do bloco "Venha assistir" (aba BKS) e "Aberto ao público" (etapas), de Configurações,
+ * com o padrão pedido pelo cliente. Null = desligado no painel.
+ */
 export function eventoPublico(
   config: Pick<Configuracoe, 'exibirEventoPublico' | 'textoEventoPublico' | 'itensEventoPublico'> | null | undefined,
-): { texto: string; itens: string[] } | null {
+): InfoEventoPublico | null {
   if (config?.exibirEventoPublico === false) return null
-  const itens = (config?.itensEventoPublico ?? []).map((i) => i?.texto?.trim()).filter((t): t is string => Boolean(t))
+  const itens = (config?.itensEventoPublico ?? [])
+    .map((i) => ({ titulo: i?.texto?.trim() ?? '', descricao: (i as { descricao?: string | null } | null)?.descricao?.trim() || null }))
+    .filter((i) => i.titulo)
   return {
     texto: config?.textoEventoPublico?.trim() || TEXTO_EVENTO_PUBLICO_PADRAO,
     itens: itens.length ? itens : ITENS_EVENTO_PUBLICO_PADRAO,
   }
+}
+
+/* ─────────────────── BKS: karts profissionais e karts indoor ─────────────────── */
+
+/** Modalidade da categoria (campo "modalidade" das categorias): divide a aba BKS em duas áreas. */
+export type Modalidade = 'profissional' | 'indoor'
+
+export const ROTULO_MODALIDADE: Record<Modalidade, string> = { profissional: 'Karts profissionais', indoor: 'Karts indoor' }
+
+/** As duas áreas, na ordem do controle "Karts profissionais | Karts indoor". */
+export const MODALIDADES: Modalidade[] = ['profissional', 'indoor']
+
+export type SecaoArea = 'calendario' | 'classificacao' | 'resultados'
+
+const SUFIXO_SECAO: Record<SecaoArea, string> = { calendario: '', classificacao: '/classificacao', resultados: '/resultados' }
+
+/**
+ * Endereço de uma seção da área. Os endereços antigos continuam sendo a área dos karts profissionais
+ * (/bks, /bks/classificacao, /bks/resultados/2); a área indoor fica em /bks/indoor/….
+ */
+export function caminhoDaArea(modalidade: Modalidade, secao: SecaoArea = 'calendario', numeroEtapa?: number | null): string {
+  const base = modalidade === 'indoor' ? '/bks/indoor' : '/bks'
+  const etapa = secao === 'resultados' && numeroEtapa != null ? `/${numeroEtapa}` : ''
+  return `${base}${SUFIXO_SECAO[secao]}${etapa}`
+}
+
+type ComModalidade = { id?: number | string; modalidade?: string | null }
+
+/** Modalidade de uma categoria (sem valor: karts profissionais, o padrão). */
+export const modalidadeDe = (categoria: ComModalidade | null | undefined): Modalidade =>
+  categoria?.modalidade === 'indoor' ? 'indoor' : 'profissional'
+
+/** Só as categorias que vieram completas (as ocultas chegam só como número e ficam de fora). */
+const categoriasCompletas = (lista: unknown): ComModalidade[] =>
+  (Array.isArray(lista) ? lista : []).filter((c): c is ComModalidade => typeof c === 'object' && c !== null)
+
+/**
+ * A etapa entra na área de cada modalidade que tiver pelo menos uma categoria nela (pode estar nas duas).
+ * Etapa ainda sem categoria fica na área dos karts profissionais, como era antes da divisão.
+ */
+export function etapaNaModalidade(etapa: { categorias?: unknown }, modalidade: Modalidade): boolean {
+  const categorias = categoriasCompletas(etapa.categorias)
+  if (!categorias.length) return modalidade === 'profissional'
+  return categorias.some((c) => modalidadeDe(c) === modalidade)
+}
+
+/** Corrida da área: tem categoria da modalidade. Sem categoria (vale para todas), aparece em todas as áreas. */
+export function corridaNaModalidade(corrida: { categorias?: unknown }, modalidade: Modalidade): boolean {
+  const categorias = categoriasCompletas(corrida.categorias)
+  return !categorias.length || categorias.some((c) => modalidadeDe(c) === modalidade)
+}
+
+/**
+ * Modalidades presentes numa etapa (pelas categorias da etapa e das corridas), na ordem do site.
+ * Sem nenhuma categoria: só karts profissionais.
+ */
+export function modalidadesDaEtapa(etapa: { categorias?: unknown }, corridas: { categorias?: unknown }[] = []): Modalidade[] {
+  const todas = [...categoriasCompletas(etapa.categorias), ...corridas.flatMap((c) => categoriasCompletas(c.categorias))]
+  if (!todas.length) return ['profissional']
+  return MODALIDADES.filter((m) => todas.some((c) => modalidadeDe(c) === m))
+}
+
+/** Ids das categorias (completas) de etapas e corridas. */
+export function idsDasCategorias(itens: { categorias?: unknown }[]): Set<number> {
+  const ids = new Set<number>()
+  for (const item of itens) for (const c of categoriasCompletas(item.categorias)) if (c.id != null) ids.add(Number(c.id))
+  return ids
+}
+
+/**
+ * Categorias que a área mostra: as da modalidade que estão nas etapas e corridas da temporada. Se a área
+ * ainda não tem nenhuma, as categorias cadastradas na modalidade que não são só de treino (as que estão
+ * na grade de treinos do kartódromo, como a Moto, só aparecem quando entram numa etapa).
+ */
+export function categoriasDaArea<T extends ComModalidade & { id: number }>(
+  categorias: T[],
+  modalidade: Modalidade,
+  usadasNaTemporada: Set<number>,
+  usadasNosTreinos: Set<number>,
+): T[] {
+  const daModalidade = categorias.filter((c) => modalidadeDe(c) === modalidade)
+  const naTemporada = daModalidade.filter((c) => usadasNaTemporada.has(Number(c.id)))
+  if (naTemporada.length) return naTemporada
+  return daModalidade.filter((c) => !usadasNosTreinos.has(Number(c.id)))
 }

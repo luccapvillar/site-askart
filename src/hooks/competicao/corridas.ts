@@ -102,6 +102,8 @@ const paraMotor = (i: InscricaoDoc): Inscricao => ({
 export const prepararCorrida: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
   const anterior = docAnterior<CorridaDoc>(originalDoc)
+  // Warm-up nunca conta para a classificação (não dá pontos nem pole): a caixa fica sempre desligada.
+  if ((data.tipo ?? anterior?.tipo) === 'warm-up') data.contaParaClassificacao = false
   const { etapa, temporada } = await etapaETemporada(req, data.etapa)
   if (!etapa || !temporada) return data
   const erros: Erro[] = []

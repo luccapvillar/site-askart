@@ -3,6 +3,21 @@ import { comAcessoRestrito, membros, somenteAdmin, todos } from '../access'
 import { campoCor } from '../collections/conteudo/comum'
 import { campoImagem, campoUrl, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
+/** Texto do evento aberto ao público (pedido do cliente). O site usa o mesmo padrão (src/lib/site.ts). */
+export const TEXTO_EVENTO_PUBLICO_PADRAO = 'O evento é aberto ao público e a entrada é de graça.'
+
+/** O que o público encontra nas etapas (pedido do cliente). */
+export const ITENS_EVENTO_PUBLICO_PADRAO = [
+  { texto: 'Food trucks', descricao: 'Food trucks para o público se alimentar.' },
+  { texto: 'Telão', descricao: 'Telão para assistir à corrida de diversos ângulos.' },
+  { texto: 'Mesas e cadeiras', descricao: 'Mesas e cadeiras para acomodar o público.' },
+  { texto: 'Narrador', descricao: 'Narrador profissional narrando todas as corridas.' },
+] as const
+
+/** Padrões anteriores (para a atualização trocar só o que o administrador não mudou). */
+export const TEXTO_EVENTO_PUBLICO_ANTIGO = 'O evento é aberto ao público, com entrada gratuita.'
+export const ITENS_EVENTO_PUBLICO_ANTIGOS = ['Food trucks', 'Telão', 'Mesas e cadeiras', 'Narrador'] as const
+
 /**
  * Configurações gerais: identidade, cores, campeonato principal (BKS), IZY Pass, rodapé e SEO.
  * Só o administrador altera (o moderador cuida do conteúdo, não da identidade do site).
@@ -98,15 +113,15 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
               {
                 // Grupo sem nome: os campos ficam no primeiro nível (config.textoEventoPublico…)
                 type: 'group',
-                label: 'Etapas do BKS: informações ao público',
+                label: 'BKS: evento aberto ao público',
                 admin: {
                   description:
-                    'Aparece na página de cada etapa (bloco "Aberto ao público") e, resumido, no calendário do BKS. Some nas etapas canceladas e nas que já aconteceram.',
+                    'Aparece na aba BKS (bloco "Venha assistir"), na página de cada etapa (bloco "Aberto ao público") e, resumido, no calendário. Nas etapas, some nas canceladas e nas que já aconteceram.',
                 },
                 fields: [
                   {
                     name: 'exibirEventoPublico',
-                    label: 'Mostrar o bloco "Aberto ao público" nas etapas',
+                    label: 'Mostrar "Venha assistir" na aba BKS e "Aberto ao público" nas etapas',
                     type: 'checkbox',
                     defaultValue: true,
                   },
@@ -115,8 +130,8 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
                     label: 'Texto',
                     type: 'textarea',
                     maxLength: 300,
-                    defaultValue: 'O evento é aberto ao público, com entrada gratuita.',
-                    admin: { description: 'Vazio = "O evento é aberto ao público, com entrada gratuita."' },
+                    defaultValue: TEXTO_EVENTO_PUBLICO_PADRAO,
+                    admin: { description: `Vazio = "${TEXTO_EVENTO_PUBLICO_PADRAO}"` },
                   },
                   {
                     name: 'itensEventoPublico',
@@ -124,12 +139,21 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
                     labels: { singular: 'Item', plural: 'Itens' },
                     type: 'array',
                     maxRows: 12,
-                    defaultValue: [{ texto: 'Food trucks' }, { texto: 'Telão' }, { texto: 'Mesas e cadeiras' }, { texto: 'Narrador' }],
+                    defaultValue: ITENS_EVENTO_PUBLICO_PADRAO.map((i) => ({ ...i })),
                     admin: {
                       description:
-                        'Cada item vira uma etiqueta com ícone. Lista vazia = Food trucks, Telão, Mesas e cadeiras e Narrador.',
+                        'Cada item aparece com um ícone: um nome curto (ex.: Telão) e, se quiser, uma frase explicando. Lista vazia = food trucks, telão, mesas e cadeiras e narrador.',
                     },
-                    fields: [{ name: 'texto', label: 'Texto', type: 'text', required: true, maxLength: 40 }],
+                    fields: [
+                      { name: 'texto', label: 'Nome curto', type: 'text', required: true, maxLength: 40 },
+                      {
+                        name: 'descricao',
+                        label: 'Explicação',
+                        type: 'text',
+                        maxLength: 120,
+                        admin: { description: 'Opcional. Ex.: "Telão para assistir à corrida de diversos ângulos."' },
+                      },
+                    ],
                   },
                 ],
               },
