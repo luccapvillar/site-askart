@@ -6,11 +6,9 @@
 import type { DiaGrade, Legenda } from '@/components/site/treinos/GradeTreinos'
 import type { Categoria, HorariosTreino, TiposTreino } from '@/payload-types'
 import { semDemo } from '@/components/site/TextoDemo'
+import { COR_PADRAO_TURMA } from './modelo'
 
 export type CorLegivel = (hex: string) => { fundo: string; texto: string }
-
-/** Cor da turma quando o tipo de treino não tem cor. */
-export const COR_PADRAO_TURMA = '#6B7069'
 
 export const DIAS_QUADRO = [
   ['segunda', 'Segunda-feira', 'Seg'],

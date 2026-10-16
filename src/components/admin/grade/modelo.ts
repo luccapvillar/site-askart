@@ -73,16 +73,18 @@ export type HorarioDeFora = {
 }
 
 /** O que o editor carrega do banco (e o que o endpoint de gravação devolve depois de salvar). */
-export type DadosGrade = {
+export type EstadoGrade = {
   linhas: LinhaGrade[]
   tipos: OpcaoTipo[]
   categorias: OpcaoCategoria[]
+  /** Cor do tipo → fundo e texto legíveis (mesma conta do site, fundoLegivel de src/lib/site.ts). */
+  cores: Record<string, { fundo: string; texto: string }>
   /** Horários fora do editor: os visíveis contam no aviso de sobreposição; `total` inclui arquivados. */
   foraDoEditor: { visiveis: HorarioDeFora[]; total: number }
 }
 
-/** Dados + cores legíveis de cada tipo (mesma conta do site, feita no servidor por src/lib/grade.ts). */
-export type EstadoGrade = DadosGrade & { cores: Record<string, { fundo: string; texto: string }> }
+/** Cor da turma quando o tipo de treino não tem cor (site e pré-visualização). */
+export const COR_PADRAO_TURMA = '#6B7069'
 
 export type ErroDeLinha = { chave: string | null; mensagem: string }
 

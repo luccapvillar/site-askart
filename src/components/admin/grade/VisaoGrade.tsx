@@ -4,7 +4,6 @@ import { Gutter } from '@payloadcms/ui'
 import { redirect } from 'next/navigation'
 import { ehEditorOuAdmin } from '@/access'
 import { carregarDadosGrade } from '@/collections/kartodromo/endpoints'
-import { coresLegiveis } from '@/lib/grade'
 import { variaveisDeCor } from '@/lib/site'
 import type { Configuracoe } from '@/payload-types'
 import { EditorGrade } from './EditorGrade'
@@ -26,7 +25,7 @@ export async function VisaoGrade({ initPageResult, params, searchParams }: Admin
     ])
     conteudo = (
       <EditorGrade
-        inicial={{ ...dados, cores: coresLegiveis(dados.tipos.map((t) => t.cor)) }}
+        inicial={dados}
         marca={variaveisDeCor(config)}
       />
     )

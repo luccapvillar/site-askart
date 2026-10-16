@@ -38,15 +38,17 @@ import {
   type ID,
 } from '../../lib/agenda'
 import { chaveDia } from '../../lib/datas'
+import { fundoLegivel } from '../../lib/site'
 import {
+  COR_PADRAO_TURMA,
   dadosParaGravar,
   descreverLinha,
   lerLinhaRecebida,
   linhaDoDoc,
   mesmaLinha,
   validarGrade,
-  type DadosGrade,
   type ErroDeLinha,
+  type EstadoGrade,
   type HorarioDeFora,
   type LinhaGrade,
 } from '../../components/admin/grade/modelo'
@@ -176,7 +178,7 @@ const visivelNoSite = (v: unknown) => v === null || v === undefined || v === 'vi
  * Horários que o editor mostra: todos menos os arquivados e os vencidos ("Válido até" antes de hoje).
  * Os vencidos que continuam visíveis vão em `foraDoEditor`, porque ainda contam no aviso de sobreposição.
  */
-export async function carregarDadosGrade(req: PayloadRequest): Promise<DadosGrade> {
+export async function carregarDadosGrade(req: PayloadRequest): Promise<EstadoGrade> {
   const hoje = chaveDia(new Date())
   const comum = { depth: 0, limit: 0, pagination: false, overrideAccess: false, req } as const
   const [horarios, tipos, categorias] = await Promise.all([
@@ -197,13 +199,18 @@ export async function carregarDadosGrade(req: PayloadRequest): Promise<DadosGrad
   }
 
   const vinculos = await contarVinculos(req, noEditor.map((d) => d.id))
+  const listaTipos = (tipos.docs as unknown as Array<{ id: ID; nome?: string | null; cor?: string | null }>).map((t) => ({
+    id: t.id,
+    nome: t.nome ?? '',
+    cor: t.cor ?? null,
+  }))
+  // Cores já legíveis (mesma conta do site), para a pré-visualização não precisar de src/lib/site.ts
+  const cores: EstadoGrade['cores'] = {}
+  for (const cor of [...listaTipos.map((t) => t.cor), COR_PADRAO_TURMA]) if (cor && !cores[cor]) cores[cor] = fundoLegivel(cor)
   return {
     linhas: noEditor.map((d) => linhaDoDoc(d, vinculos.get(String(d.id)) ?? 0)),
-    tipos: (tipos.docs as unknown as Array<{ id: ID; nome?: string | null; cor?: string | null }>).map((t) => ({
-      id: t.id,
-      nome: t.nome ?? '',
-      cor: t.cor ?? null,
-    })),
+    tipos: listaTipos,
+    cores,
     categorias: (
       categorias.docs as unknown as Array<{ id: ID; nome?: string | null; sigla?: string | null; visibilidade?: string | null }>
     ).map((c) => ({
