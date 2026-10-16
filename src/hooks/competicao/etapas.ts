@@ -280,7 +280,7 @@ export async function atualizarEtapaPublicada(req: PayloadRequest, etapaId: unkn
     disableErrors: true,
     req,
   })) as unknown as Dados | null
-  if (publicada._status !== 'published') {
+  if (ehRascunho(publicada)) {
     await gravarEtapa(req, id, aplicar(mudanca, ultima ?? publicada), true, contexto)
     return
   }

@@ -183,10 +183,7 @@ export function GradeTreinosLivres({ etapa }: { etapa: EtapaSite }) {
       )}
       {imagem?.url && (
         <figure className={s.imagemGrade}>
-          <a href={imagem.url} target="_blank" rel="noopener noreferrer">
-            <Foto midia={imagem} ate="destaque" sizes="(min-width: 840px) 760px, 100vw" alt={semDemo(imagem.alt) || 'Grade dos treinos livres (imagem)'} />
-            <span className="visualmente-oculto"> (abre a imagem em tamanho real em nova aba)</span>
-          </a>
+          <Foto midia={imagem} ate="destaque" sizes="(min-width: 840px) 760px, 100vw" alt={semDemo(imagem.alt) || 'Grade dos treinos livres (imagem)'} />
           <figcaption>
             <a href={imagem.url} target="_blank" rel="noopener noreferrer">
               Abrir a imagem da grade em tamanho real <span aria-hidden="true">↗</span>
