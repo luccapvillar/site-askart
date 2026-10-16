@@ -8,6 +8,7 @@ type Props = { payload: Payload; user?: TypedUser | null }
 type Pendencia = { texto: string; href: string; acao: string; grave?: boolean }
 
 const ATALHOS = [
+  { rotulo: '✦ Assistente com IA', href: '/admin/assistente', desc: 'Peça em texto: resultados, treinos, notícias' },
   { rotulo: 'Lançar resultado', href: '/admin/collections/corridas', desc: 'Corridas e resultados de cada etapa' },
   { rotulo: 'Nova notícia', href: '/admin/collections/noticias/create', desc: 'Notícia ou anúncio no site' },
   { rotulo: 'Novo comunicado', href: '/admin/collections/avisos/create', desc: 'Aviso oficial no topo do site' },

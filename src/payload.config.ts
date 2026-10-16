@@ -14,6 +14,7 @@ import { colecoesConteudo } from './collections/conteudo'
 import { colecoesKartodromo } from './collections/kartodromo'
 import { env } from './env'
 import { globais } from './globals'
+import { endpointsAssistente } from './lib/assistente/endpoints'
 import { revalidarAposExcluir, revalidarAposGravar, revalidarGlobal } from './lib/revalidar'
 
 const filename = fileURLToPath(import.meta.url)
@@ -60,11 +61,16 @@ export default buildConfig({
     components: {
       beforeDashboard: ['/components/admin/PainelInicial#PainelInicial'],
       graphics: { Logo: '/components/admin/Marca#Logo', Icon: '/components/admin/Marca#Icone' },
+      beforeNavLinks: ['/components/admin/assistente/LinkAssistente#LinkAssistente'],
+      views: {
+        assistente: { Component: '/components/admin/assistente/VisaoAssistente#VisaoAssistente', path: '/assistente' },
+      },
     },
   },
   i18n: { supportedLanguages: { pt }, fallbackLanguage: 'pt' },
   collections: [...colecoesCompeticao, ...colecoesKartodromo, ...colecoesConteudo, ...colecoesAdmin].map(comEfeitos),
   globals: globais.map(globalComEfeitos),
+  endpoints: endpointsAssistente,
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

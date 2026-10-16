@@ -1,0 +1,28 @@
+.chat { display: grid; gap: 16px; max-width: 900px; padding-bottom: 40px; }
+.cabeca h1 { margin: 0 0 6px; }
+.cabeca p { margin: 0; color: var(--theme-elevation-600); }
+.conversa { display: grid; gap: 12px; min-height: 240px; }
+.exemplos { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.exemplos button { width: 100%; padding: 12px 14px; border: 1px dashed var(--theme-elevation-250); border-radius: 8px; background: none; text-align: left; cursor: pointer; }
+.linha { max-width: 85%; padding: 12px 14px; border-radius: 10px; }
+.voce { justify-self: end; background: var(--theme-elevation-100); }
+.ia { justify-self: start; background: var(--theme-elevation-0); border: 1px solid var(--theme-elevation-150); }
+.sistema { justify-self: center; background: var(--theme-error-50); color: var(--theme-error-800); }
+.texto { margin: 0; white-space: pre-wrap; }
+.proposta { margin-top: 10px; padding: 12px; border-radius: 8px; background: var(--theme-elevation-50); }
+.proposta ol { margin: 8px 0; padding-left: 20px; }
+.proposta li { margin: 4px 0; }
+.etiqueta { display: inline-block; padding: 0 6px; border-radius: 4px; background: var(--theme-elevation-200); font-size: 0.8em; font-weight: 600; }
+.acoes, .botoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.botoes { justify-content: space-between; }
+.acoes button, .botoes button, .anexar { min-height: 40px; padding: 8px 14px; border: 1px solid var(--theme-elevation-250); border-radius: 6px; background: var(--theme-elevation-0); cursor: pointer; font-weight: 600; }
+.confirmar { background: var(--theme-success-500) !important; border-color: var(--theme-success-500) !important; color: #fff; }
+.confirmar:disabled { opacity: 0.5; }
+.resultados { margin: 8px 0 0; padding: 0; list-style: none; }
+.ok { color: var(--theme-success-700); }
+.falha { color: var(--theme-error-700); }
+.ocupado { color: var(--theme-elevation-600); font-style: italic; }
+.entrada { position: sticky; bottom: 0; display: grid; gap: 8px; padding: 12px 0; background: var(--theme-bg); }
+.entrada textarea { width: 100%; padding: 12px; border: 1px solid var(--theme-elevation-250); border-radius: 8px; font: inherit; resize: vertical; }
+.anexo { margin: 0; }
+.anexo button { border: 0; background: none; text-decoration: underline; cursor: pointer; }

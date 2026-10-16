@@ -17,3 +17,4 @@ export const DELETE = REST_DELETE(config)
 export const PATCH = REST_PATCH(config)
 export const PUT = REST_PUT(config)
 export const OPTIONS = REST_OPTIONS(config)
+export const maxDuration = 120 // o assistente com IA pode levar mais de um minuto
