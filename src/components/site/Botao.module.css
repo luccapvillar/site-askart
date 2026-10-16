@@ -79,3 +79,26 @@
 .botao:hover .seta {
   transform: translateX(3px);
 }
+
+/* Estilo de pista (referência KGV): corte inclinado, caixa alta em itálico largo */
+.botao {
+  border-radius: 2px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  padding-inline: 26px;
+  font-style: italic;
+  font-variation-settings: 'wdth' 112;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.contorno {
+  clip-path: none;
+  border-radius: var(--raio);
+}
+
+.texto {
+  clip-path: none;
+  font-style: normal;
+  text-transform: none;
+}

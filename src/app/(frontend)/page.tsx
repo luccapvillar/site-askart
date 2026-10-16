@@ -10,6 +10,7 @@ import { ContagemRegressiva } from '@/components/site/ContagemRegressiva'
 import { Foto, imagemDoCartao } from '@/components/site/Foto'
 import { Galeria } from '@/components/site/Galeria'
 import s from '@/components/site/inicio/Inicio.module.css'
+import { Areas } from '@/components/site/inicio/Areas'
 import { PlacaNumero } from '@/components/site/PlacaNumero'
 import { Perguntas } from '@/components/site/Perguntas'
 import { Taxas } from '@/components/site/Taxas'
@@ -86,6 +87,12 @@ export default async function Inicio() {
     inicio.topo?.subtitulo?.trim() ||
     `Campeonato organizado pela ${config.sigla || 'ASKART'} no ${kartodromo.nome || 'Kartódromo Ayrton Senna do Guará'}, em Brasília.`
   const fotoTopo = comoDoc<Midia>(inicio.topo?.imagem) ?? comoDoc<Midia>(bks?.campeonato.banner)
+  const ultima = (await lerNoticias(1)).docs[0]
+  const areas = [
+    { href: '/bks', titulo: 'BKS', texto: 'Brasília Kart Series: calendário, horários de cada categoria, classificação e resultados.', botao: 'Ver o campeonato', cor: '#D02D21', foto: comoDoc<Midia>(bks?.campeonato.banner) },
+    { href: '/kartodromo', titulo: 'Kartódromo', texto: 'Treino quase todos os dias. Grade de treinos, taxas e como treinar. Só treinos e corridas — sem aluguel de karts.', botao: 'Ver os treinos', cor: '#EDD357', foto: comoDoc<Midia>(kartodromo.imagemTopo) },
+    { href: '/noticias', titulo: 'Notícias', texto: 'Avisos, comunicados oficiais e o que acontece na pista e no campeonato.', botao: 'Ver as notícias', cor: '#3A7F41', foto: comoDoc<Midia>(ultima?.capa) },
+  ]
   const botoes = (inicio.topo?.botoes ?? []).map((b) => ({ attrs: atributosDoLink(b.link as ValorLink), texto: (b.link as ValorLink)?.rotulo }))
 
   const secoes: Record<string, (b: Bloco) => Promise<ReactNode> | ReactNode> = {
@@ -173,6 +180,8 @@ export default async function Inicio() {
           )}
         </div>
       </section>
+
+      <Areas areas={areas} />
 
       {await Promise.all(
         blocos.map(async (b, i) => {

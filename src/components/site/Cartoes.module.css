@@ -141,3 +141,14 @@
 .cancelada .titulo {
   text-decoration: line-through;
 }
+
+.ler {
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--verde-escuro);
+  font-style: italic;
+  font-variation-settings: 'wdth' 112;
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+}

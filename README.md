@@ -25,6 +25,7 @@ Site da **ASKART — Associação de Pilotos de Kart de Brasília**, do **Kartó
    - `PAYLOAD_SECRET` — um texto aleatório com 32 caracteres ou mais (ex.: o resultado de `openssl rand -hex 32`).
    - `ADMIN_EMAIL` e `ADMIN_SENHA` — o primeiro acesso ao painel (senha com 10+ caracteres, letras e números). `ADMIN_NOME` é opcional.
    - `DADOS_DEMONSTRACAO` = `1` — só na prévia, para o site aparecer preenchido com exemplos.
+   - `ANTHROPIC_API_KEY` — chave da API da Anthropic (console.anthropic.com) para o **Assistente com IA** do painel. Sem ela, o resto funciona e o assistente avisa que está desligado.
 3. Clique em **Deploy**. A primeira tentativa vai falhar por falta de banco — é esperado.
 4. No projeto, aba **Storage**:
    - **Create Database → Neon (Postgres)** → conecte ao projeto (cria `DATABASE_URL` sozinho).

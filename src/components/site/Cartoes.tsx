@@ -42,6 +42,9 @@ export function CartaoNoticia({ href, titulo, resumo, data, categoria, imagem }:
           <Link href={href}>{titulo}</Link>
         </h3>
         {resumo && <p className={s.resumo}>{resumo}</p>}
+        <span className={s.ler} aria-hidden="true">
+          Ler notícia →
+        </span>
       </div>
     </article>
   )
