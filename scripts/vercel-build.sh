@@ -32,7 +32,7 @@ if [ -z "$DATABASE_URL" ]; then
   echo ""
   exit 1
 fi
-if [ -z "$BLOB_READ_WRITE_TOKEN" ] && [ "${VERCEL:-}" = "1" ]; then
+if [ -z "$BLOB_READ_WRITE_TOKEN" ] && [ -z "${BLOB_STORE_ID:-}" ] && [ "${VERCEL:-}" = "1" ]; then
   echo ""
   echo "Falta o armazenamento de fotos. Na Vercel: aba Storage → Create → Blob → conecte a este projeto e faça Redeploy."
   echo "Variáveis de banco/fotos que este deploy recebeu (só os nomes): $(nomes)"

@@ -8,11 +8,16 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 import { colecoesAdmin } from './collections/admin'
-import { registrarExclusao, registrarGlobal, registrarMudanca } from './collections/admin/Atividades'
+import {
+  registrarExclusao,
+  registrarGlobal,
+  registrarMudanca,
+} from './collections/admin/Atividades'
 import { colecoesCompeticao } from './collections/competicao'
 import { colecoesConteudo } from './collections/conteudo'
 import { colecoesKartodromo } from './collections/kartodromo'
 import { env } from './env'
+import { blobPorOidc } from './lib/armazenamento'
 import { globais } from './globals'
 import { endpointsAssistente } from './lib/assistente/endpoints'
 import { revalidarAposExcluir, revalidarAposGravar, revalidarGlobal } from './lib/revalidar'
@@ -33,15 +38,26 @@ const comEfeitos = (c: CollectionConfig): CollectionConfig =>
         ...c,
         hooks: {
           ...c.hooks,
-          afterChange: [...(c.hooks?.afterChange ?? []), revalidarAposGravar, registrarMudanca(rotulo(c))],
-          afterDelete: [...(c.hooks?.afterDelete ?? []), revalidarAposExcluir, registrarExclusao(rotulo(c))],
+          afterChange: [
+            ...(c.hooks?.afterChange ?? []),
+            revalidarAposGravar,
+            registrarMudanca(rotulo(c)),
+          ],
+          afterDelete: [
+            ...(c.hooks?.afterDelete ?? []),
+            revalidarAposExcluir,
+            registrarExclusao(rotulo(c)),
+          ],
         },
       }
 
 const globalComEfeitos = (g: GlobalConfig): GlobalConfig => {
   const onde = typeof g.label === 'string' ? g.label : g.slug
   const depois = (g.hooks?.afterChange ?? []).filter((h) => h !== revalidarGlobal)
-  return { ...g, hooks: { ...g.hooks, afterChange: [...depois, revalidarGlobal, registrarGlobal(onde)] } }
+  return {
+    ...g,
+    hooks: { ...g.hooks, afterChange: [...depois, revalidarGlobal, registrarGlobal(onde)] },
+  }
 }
 
 // Com domínio oficial: endereço fixo e lista de origens. Sem ele (prévia), endereços relativos.
@@ -63,12 +79,20 @@ export default buildConfig({
       graphics: { Logo: '/components/admin/Marca#Logo', Icon: '/components/admin/Marca#Icone' },
       beforeNavLinks: ['/components/admin/assistente/LinkAssistente#LinkAssistente'],
       views: {
-        assistente: { Component: '/components/admin/assistente/VisaoAssistente#VisaoAssistente', path: '/assistente' },
+        assistente: {
+          Component: '/components/admin/assistente/VisaoAssistente#VisaoAssistente',
+          path: '/assistente',
+        },
       },
     },
   },
   i18n: { supportedLanguages: { pt }, fallbackLanguage: 'pt' },
-  collections: [...colecoesCompeticao, ...colecoesKartodromo, ...colecoesConteudo, ...colecoesAdmin].map(comEfeitos),
+  collections: [
+    ...colecoesCompeticao,
+    ...colecoesKartodromo,
+    ...colecoesConteudo,
+    ...colecoesAdmin,
+  ].map(comEfeitos),
   globals: globais.map(globalComEfeitos),
   endpoints: endpointsAssistente,
   editor: lexicalEditor(),
@@ -86,16 +110,19 @@ export default buildConfig({
   sharp,
   plugins: [
     // Na Vercel, fotos e documentos ficam no Blob; localmente, numa pasta do projeto
-    vercelBlobStorage({
-      enabled: Boolean(env.BLOB_READ_WRITE_TOKEN),
-      // Fotos são públicas: o endereço aponta direto para o Blob (mais rápido). Documentos passam pelo controle de acesso.
-      collections: { midia: { disablePayloadAccessControl: true }, documentos: true },
-      token: env.BLOB_READ_WRITE_TOKEN,
-      // Mesmos campos no banco com e sem Blob (sem isto a migração local não cria `_object_key` e tudo quebra na Vercel)
-      alwaysInsertFields: true,
-      // Com sufixo aleatório o adaptador troca o nome do original pelo da última variação gravada
-      addRandomSuffix: false,
-      clientUploads: true,
-    }),
+    // Loja ligada pelo jeito novo da Vercel (sem BLOB_READ_WRITE_TOKEN): adaptador próprio; senão, o plugin oficial
+    env.BLOB_STORE_ID && !env.BLOB_READ_WRITE_TOKEN
+      ? blobPorOidc(['midia', 'documentos'])
+      : vercelBlobStorage({
+          enabled: Boolean(env.BLOB_READ_WRITE_TOKEN),
+          // Fotos são públicas: o endereço aponta direto para o Blob (mais rápido). Documentos passam pelo controle de acesso.
+          collections: { midia: { disablePayloadAccessControl: true }, documentos: true },
+          token: env.BLOB_READ_WRITE_TOKEN,
+          // Mesmos campos no banco com e sem Blob (sem isto a migração local não cria `_object_key` e tudo quebra na Vercel)
+          alwaysInsertFields: true,
+          // Com sufixo aleatório o adaptador troca o nome do original pelo da última variação gravada
+          addRandomSuffix: false,
+          clientUploads: true,
+        }),
   ],
 })

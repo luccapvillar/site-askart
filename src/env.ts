@@ -48,5 +48,7 @@ export const env = {
     .map((u) => `https://${u}`),
   BLOB_READ_WRITE_TOKEN:
     ler('BLOB_READ_WRITE_TOKEN') || Object.values(process.env).find((v) => v?.startsWith('vercel_blob_rw_')) || '',
+  /** Loja de fotos ligada pelo jeito novo da Vercel (acesso automático, sem token fixo). */
+  BLOB_STORE_ID: ler('BLOB_STORE_ID') || '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
 } as const

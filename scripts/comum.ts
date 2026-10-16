@@ -18,7 +18,9 @@ export async function enviarFoto(payload: Payload, arquivos: string | string[], 
   // A primeira opção que existir (ex.: logo em alta resolução, senão a recebida)
   const arquivo = (Array.isArray(arquivos) ? arquivos : [arquivos]).find((a) => fs.existsSync(path.join(raiz, a)))
   if (!arquivo) throw new Error(`Foto não encontrada: ${String(arquivos)}`)
-  const doc = await payload.create({ collection: 'midia', data: dados, filePath: path.join(raiz, arquivo), context: contexto })
+  // Contexto novo a cada envio: o armazenamento guarda o arquivo nele, e um contexto reaproveitado faria a
+  // próxima foto ser tomada pela anterior (só a primeira chegava ao Blob)
+  const doc = await payload.create({ collection: 'midia', data: dados, filePath: path.join(raiz, arquivo), context: { ...contexto } })
   return doc.id as Id
 }
 
