@@ -20,6 +20,7 @@ import { slugificar } from '../../fields/slug'
 import { atualizar, buscar, buscarPorId, COLECOES, contar, criar, excluir, type ContextoCompeticao } from './api'
 import { carregarCategorias, rotuloCategoria } from './consultas'
 import { estaEncerrada, mensagemCongelada } from './congelamento'
+import { atualizarEtapaPublicada } from './etapas'
 import { atualizarDerivados, derivadosTemporada } from './derivados'
 import { gravarFotografiasFinais } from './encerramento'
 import { falhar, falharNoCampo } from './erros'
@@ -145,8 +146,10 @@ async function tirarCategoriasDasEtapas(req: PayloadRequest, temporada: Temporad
     where: { and: [{ temporada: { equals: temporada.id } }, { categorias: { in: removidas } }] },
   })
   for (const etapa of etapas) {
-    const restantes = idsDe(etapa.categorias).filter((id) => !contemId(removidas, id))
-    await atualizar(req, COLECOES.etapas, etapa.id, { categorias: restantes })
+    // Na versão publicada e no rascunho pendente (sem publicar o rascunho)
+    await atualizarEtapaPublicada(req, etapa.id, (versao) => ({
+      categorias: idsDe(versao.categorias).filter((id) => !contemId(removidas, id)),
+    }))
   }
 }
 
@@ -250,9 +253,12 @@ async function levarCategoriasNovasParaEtapas(req: PayloadRequest, temporada: Te
     where: { and: [{ temporada: { equals: temporada.id } }, { status: { in: ['agendada', 'confirmada', 'adiada'] } }] },
   })
   for (const etapa of etapas) {
-    const daEtapa = idsDe(etapa.categorias)
-    if (!antes.every((id) => contemId(daEtapa, id))) continue
-    await atualizar(req, COLECOES.etapas, etapa.id, { categorias: [...daEtapa, ...novas] })
+    if (!antes.every((id) => contemId(idsDe(etapa.categorias), id))) continue
+    // Na versão publicada e no rascunho pendente (sem publicar o rascunho)
+    await atualizarEtapaPublicada(req, etapa.id, (versao) => {
+      const daVersao = idsDe(versao.categorias)
+      return { categorias: [...daVersao, ...novas.filter((id) => !contemId(daVersao, id))] }
+    })
   }
 }
 

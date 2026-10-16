@@ -16,6 +16,8 @@ type Props = {
   ano: number
 }
 
+const EMAIL_CREDITO = 'luccapvillar@gmail.com'
+
 const NOMES_REDES: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', tiktok: 'TikTok', x: 'X', whatsapp: 'WhatsApp' }
 
 /**
@@ -105,7 +107,19 @@ export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, a
           <span>
             © {ano} {sigla} — {nome}
           </span>
-          <Link href="/admin">Área administrativa</Link>
+          {/* Crédito de quem fez o site, junto do acesso discreto ao painel */}
+          <p className={s.credito}>
+            <span>
+              Site por Lucca Villar – <a href={`mailto:${EMAIL_CREDITO}`}>{EMAIL_CREDITO}</a>
+            </span>
+            <span className={s.separador} aria-hidden="true">
+              ·
+            </span>
+            {/* Link comum (sem pré-carregar): o painel é outra aplicação, pesada, e só serve a quem administra */}
+            <a href="/admin" rel="nofollow">
+              Acesso do administrador
+            </a>
+          </p>
         </div>
       </div>
     </footer>

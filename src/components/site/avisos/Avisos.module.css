@@ -1,0 +1,222 @@
+/* Aba de avisos (/avisos) e página de um aviso. Cores de nível com contraste AA sobre o fundo claro. */
+
+/* ---------- Etiqueta do nível ---------- */
+
+.nivel {
+  --fundo-icone: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  font-family: var(--fonte-mono);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.nivel svg {
+  flex: none;
+}
+
+/* Texto escuro sobre fundo claro (≥ 7:1) */
+.informativo {
+  --fundo-icone: #e6eef8;
+  background: #e6eef8;
+  color: #1d4f8a;
+}
+
+.atencao {
+  --fundo-icone: #fbf0d4;
+  background: #fbf0d4;
+  color: #6b4700;
+}
+
+/* Urgente: cheio, texto branco (≥ 7:1) */
+.urgente {
+  --fundo-icone: #a32a1d;
+  background: #a32a1d;
+  color: #fff;
+}
+
+/* ---------- Lista ---------- */
+
+.lista {
+  display: grid;
+  gap: 14px;
+  max-width: 880px;
+}
+
+.cartao {
+  --cor: #2f6db3;
+  position: relative;
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-inline-start: 6px solid var(--cor);
+  border-radius: var(--raio-g);
+}
+
+.cartao-atencao {
+  --cor: #c98a00;
+}
+
+.cartao-urgente {
+  --cor: #c23b2b;
+  background: #fdf4f2;
+  border-color: color-mix(in oklab, #c23b2b 35%, transparent);
+  border-inline-start-color: var(--cor);
+}
+
+.conteudo {
+  display: grid;
+  gap: 10px;
+  padding: 18px 18px 18px 16px;
+}
+
+@media (min-width: 700px) {
+  .conteudo {
+    padding: 22px 26px 22px 22px;
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.tipo {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--texto);
+}
+
+.data {
+  font-family: var(--fonte-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-2);
+}
+
+.titulo {
+  margin: 0;
+  font-variation-settings: 'wdth' 106;
+  font-weight: 780;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.link {
+  color: var(--texto);
+  text-decoration: none;
+}
+
+/* O cartão inteiro é clicável (o link do título se estende sobre ele) */
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.cartao:has(.link:focus-visible) {
+  outline: 3px solid var(--marca-escuro);
+  outline-offset: 3px;
+}
+
+@supports not selector(:has(*)) {
+  .link:focus-visible {
+    outline: 3px solid var(--marca-escuro);
+    outline-offset: 3px;
+  }
+}
+
+.cartao:hover .link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cartao:hover {
+  border-color: color-mix(in oklab, var(--cor) 55%, transparent);
+  border-inline-start-color: var(--cor);
+}
+
+.resumo {
+  margin: 0;
+  color: var(--texto-2);
+}
+
+.extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.ler {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
+
+.seta {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cartao {
+    transition: border-color 0.18s var(--curva);
+  }
+
+  .seta {
+    transition: transform 0.18s var(--curva);
+  }
+
+  .cartao:hover .seta {
+    transform: translateX(3px);
+  }
+}
+
+/* ---------- Contagem e páginas ---------- */
+
+.contagem {
+  margin: 0 0 18px;
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+.paginas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: center;
+  justify-content: center;
+  max-width: 880px;
+  margin-top: 36px;
+}
+
+.paginas a {
+  color: var(--verde-escuro);
+  font-weight: 650;
+}
+
+/* ---------- Página do aviso ---------- */
+
+.voltar {
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
