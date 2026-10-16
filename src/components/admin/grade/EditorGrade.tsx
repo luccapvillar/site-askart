@@ -50,6 +50,8 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
   const [salvando, setSalvando] = useState(false)
   const [copiaPara, setCopiaPara] = useState<DiaSemana | ''>('')
   const [substituir, setSubstituir] = useState(false)
+  // Grade como a IA deixou: "Desfazer o que a IA mudou" só aparece enquanto ninguém mexeu depois
+  const [linhasDaIA, setLinhasDaIA] = useState<LinhaGrade[] | null>(null)
   const focoPendente = useRef<string | null>(null)
 
   const tipoPadrao = dados.tipos[0]?.id ?? null
@@ -197,6 +199,7 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
       })
       if (r.aplicadas.length) {
         trocarLinhas(r.linhas)
+        setLinhasDaIA(r.linhas)
         setAviso({ tipo: 'info', texto: 'A IA preparou mudanças no editor. Confira na pré-visualização antes de salvar.' })
       }
       return { aplicadas: r.aplicadas, ignoradas: r.ignoradas }
@@ -310,6 +313,7 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
 
   const doDia = linhas.filter((l) => l.diaSemana === dia)
   const nomeDia = nomeDoDia(dia)
+  const noDia = `${dia === 'sabado' || dia === 'domingo' ? 'no' : 'na'} ${nomeDia.toLowerCase()}`
   const temHorarios = quadro.dias.some((d) => d.horarios.length)
 
   return (
@@ -338,6 +342,7 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
             categorias={dados.categorias}
             desligado={salvando}
             aplicarProposta={aplicarProposta}
+            podeDesfazer={linhasDaIA !== null && linhasDaIA === linhas}
             onDesfazer={desfazer}
           />
 
@@ -420,7 +425,7 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
                   ))}
                 </ol>
               ) : (
-                <p className={s.vazio}>Sem treino na {nomeDia.toLowerCase()}. Adicione um horário ou copie outro dia para cá.</p>
+                <p className={s.vazio}>Sem treino {noDia}. Adicione um horário ou copie outro dia para cá.</p>
               )}
 
               <div className={s.acoesDia}>
@@ -431,7 +436,7 @@ export function EditorGrade({ inicial, marca }: { inicial: EstadoGrade; marca: R
                   onClick={() => adicionar(dia)}
                   disabled={!dados.tipos.length}
                 >
-                  + Adicionar horário em {nomeDia}
+                  + Adicionar horário {noDia}
                 </button>
                 <details className={s.copiar}>
                   <summary>Copiar {nomeDia.toLowerCase()} para outro dia</summary>

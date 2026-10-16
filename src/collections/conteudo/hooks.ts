@@ -48,6 +48,7 @@ export const ENDERECOS_RESERVADOS = new Set<string>([
   'next',
   'login',
   'painel',
+  'previa',
 ])
 
 /** Endereço de página livre fora dos reservados: "noticias" vira "noticias-pagina". */

@@ -6,6 +6,7 @@ import type {
   PayloadRequest,
 } from 'payload'
 import { editores, ninguem } from '../../access'
+import { gravouSoRascunho } from '../../lib/previa/rascunho'
 
 /** Registro de quem fez o quê no painel (pedido da especificação: histórico de alterações). */
 export const Atividades: CollectionConfig = {
@@ -42,7 +43,7 @@ export const Atividades: CollectionConfig = {
   ],
 }
 
-type Registro = { acao: 'criou' | 'alterou' | 'publicou' | 'excluiu'; onde: string; colecao: string; documento?: string; resumo: string }
+export type Registro = { acao: 'criou' | 'alterou' | 'publicou' | 'excluiu'; onde: string; colecao: string; documento?: string; resumo: string }
 
 const tituloDe = (doc: Record<string, unknown> | undefined) => {
   if (!doc) return ''
@@ -53,31 +54,36 @@ const tituloDe = (doc: Record<string, unknown> | undefined) => {
   return doc.id !== undefined ? `#${String(doc.id)}` : ''
 }
 
-async function registrar(req: PayloadRequest, registro: Registro) {
-  if (!req.user || req.context?.semRegistro) return
+/**
+ * Grava uma linha no registro, mesmo quando a operação em volta pediu `semRegistro` (uso direto:
+ * pré-visualização registra "descartou" por conta própria). Sem `context` aqui: o Payload guarda o
+ * contexto na própria requisição e ele valeria para as operações seguintes. A coleção de atividades
+ * não tem hooks de revalidação/registro (payload.config), então não precisa dele.
+ */
+export async function registrarAtividade(req: PayloadRequest, registro: Registro) {
+  if (!req.user) return
   try {
     await req.payload.create({
       collection: 'atividades',
       data: { ...registro, usuario: req.user.id },
       overrideAccess: true,
       req,
-      context: { semRegistro: true, semRevalidar: true },
     })
   } catch (erro) {
     req.payload.logger.warn({ msg: 'Não foi possível registrar a atividade', erro })
   }
 }
 
-const autosalvamento = (req: PayloadRequest) => {
-  const valor = (req.query as Record<string, unknown> | undefined)?.autosave
-  return valor === true || valor === 'true'
+async function registrar(req: PayloadRequest, registro: Registro) {
+  if (req.context?.semRegistro) return
+  await registrarAtividade(req, registro)
 }
 
-/** Hook de coleção: registra criação, alteração e publicação (ignora o autosalvamento de rascunho). */
+/** Hook de coleção: registra criação, alteração e publicação. Salvar rascunho (e o autosalvamento) não entra. */
 export const registrarMudanca =
   (onde: string): CollectionAfterChangeHook =>
   async ({ doc, previousDoc, operation, req, collection }) => {
-    if (autosalvamento(req)) return doc
+    if (await gravouSoRascunho({ doc, previousDoc, req, colecao: collection.slug })) return doc
     const publicou = doc?._status === 'published' && previousDoc?._status !== 'published'
     await registrar(req, {
       acao: publicou ? 'publicou' : operation === 'create' ? 'criou' : 'alterou',
@@ -98,7 +104,9 @@ export const registrarExclusao =
 
 export const registrarGlobal =
   (onde: string): GlobalAfterChangeHook =>
-  async ({ doc, req, global }) => {
-    await registrar(req, { acao: 'alterou', onde, colecao: global.slug, resumo: onde })
+  async ({ doc, previousDoc, req, global }) => {
+    if (await gravouSoRascunho({ doc, previousDoc, req, global: global.slug })) return doc
+    const publicou = doc?._status === 'published' && previousDoc?._status !== 'published'
+    await registrar(req, { acao: publicou ? 'publicou' : 'alterou', onde, colecao: global.slug, resumo: onde })
     return doc
   }

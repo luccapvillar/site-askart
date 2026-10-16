@@ -1,16 +1,16 @@
 import type { GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { editorPadrao } from '../collections/conteudo/editores'
-import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 /** Página "Sobre a ASKART": quem é, história, diretoria e documentos institucionais. */
 export const Institucional: GlobalConfig = comAcessoRestrito(
   {
     slug: 'institucional',
     label: 'Sobre a ASKART',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: { group: GRUPO_SITE, description: 'Textos institucionais da página "Sobre".' },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       {
         type: 'tabs',

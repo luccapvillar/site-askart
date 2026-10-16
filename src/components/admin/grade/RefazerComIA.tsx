@@ -16,6 +16,8 @@ type Props = {
   desligado: boolean
   /** Aplica a proposta no editor (sem gravar) e diz o que entrou e o que ficou de fora. */
   aplicarProposta: (operacoes: Operacao[], refs: Map<string, string>) => { aplicadas: string[]; ignoradas: string[] }
+  /** A grade ainda está como a IA deixou (dá para desfazer de uma vez). */
+  podeDesfazer: boolean
   onDesfazer: () => void
 }
 
@@ -26,7 +28,7 @@ const MAX_MENSAGENS = 24
  * "Refazer com IA": o pedido vai ao assistente com a grade do editor; a proposta volta como mudança no
  * editor, para conferir na pré-visualização antes de salvar.
  */
-export function RefazerComIA({ linhas, tipos, categorias, desligado, aplicarProposta, onDesfazer }: Props) {
+export function RefazerComIA({ linhas, tipos, categorias, desligado, aplicarProposta, podeDesfazer, onDesfazer }: Props) {
   const [texto, setTexto] = useState('')
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [ocupado, setOcupado] = useState(false)
@@ -154,7 +156,7 @@ export function RefazerComIA({ linhas, tipos, categorias, desligado, aplicarProp
                 </ul>
               </>
             )}
-            {resultado.aplicadas.length > 0 && (
+            {resultado.aplicadas.length > 0 && podeDesfazer && (
               <button type="button" className={s.botaoMiudo} onClick={onDesfazer}>
                 Desfazer o que a IA mudou
               </button>

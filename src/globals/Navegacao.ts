@@ -1,7 +1,7 @@
 import type { GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { campoLink } from '../fields/link'
-import { GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 const rota = (r: string) => ({ link: { tipo: 'rota', rota: r } })
 
@@ -10,12 +10,12 @@ export const Navegacao: GlobalConfig = comAcessoRestrito(
   {
     slug: 'navegacao',
     label: 'Menu e rodapé',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: {
       group: GRUPO_SITE,
       description: 'Abas do menu do topo e links do rodapé. Arraste para reordenar.',
     },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       {
         name: 'menu',
