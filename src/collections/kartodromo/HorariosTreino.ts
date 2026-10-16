@@ -12,6 +12,7 @@ import {
   campoTitulo,
   ninguemEscreve,
 } from './campos'
+import { endpointSalvarGrade } from './endpoints'
 import { bloquearExclusaoComVinculos, prepararHorario } from './hooks'
 
 /**
@@ -33,6 +34,8 @@ export const HorariosTreino: CollectionConfig = comAcessoRestrito({
       'Horários que se repetem toda semana. Para mudar só um dia (cancelar, bloquear, lotar ou trocar o horário), use "Treinos e exceções". ' +
       'Para mudar de vez a partir de uma data, preencha "Válido até" neste horário e crie outro com "Válido a partir de": assim o histórico fica certo.',
   },
+  // POST /api/horarios-treino/salvar-grade (editor da grade, /admin/grade-treinos)
+  endpoints: [endpointSalvarGrade],
   access: {
     read: lerVisivel,
     create: editores,

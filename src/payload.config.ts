@@ -20,6 +20,8 @@ import { env } from './env'
 import { blobPorOidc } from './lib/armazenamento'
 import { globais } from './globals'
 import { endpointsAssistente } from './lib/assistente/endpoints'
+import { livePreviewConfig } from './lib/previa/config'
+import { endpointsPrevia } from './lib/previa/endpoints'
 import { revalidarAposExcluir, revalidarAposGravar, revalidarGlobal } from './lib/revalidar'
 
 const filename = fileURLToPath(import.meta.url)
@@ -77,16 +79,35 @@ export default buildConfig({
     components: {
       beforeDashboard: ['/components/admin/PainelInicial#PainelInicial'],
       graphics: { Logo: '/components/admin/Marca#Logo', Icon: '/components/admin/Marca#Icone' },
-      beforeNavLinks: ['/components/admin/assistente/LinkAssistente#LinkAssistente'],
+      beforeNavLinks: ['/components/admin/LinksPainel#LinksPainel'],
       views: {
         assistente: {
           Component: '/components/admin/assistente/VisaoAssistente#VisaoAssistente',
           path: '/assistente',
         },
+        editor: { Component: '/components/admin/editor/VisaoEditor#VisaoEditor', path: '/editor' },
+        gradeTreinos: { Component: '/components/admin/grade/VisaoGrade#VisaoGrade', path: '/grade-treinos' },
+      },
+    },
+    // Ver a edição no site antes de lançar (rascunho com salvamento automático)
+    livePreview: livePreviewConfig,
+  },
+  i18n: {
+    supportedLanguages: { pt },
+    fallbackLanguage: 'pt',
+    // Nomes pedidos pelo cliente para lançar ou cancelar uma edição
+    translations: {
+      pt: {
+        version: {
+          publish: 'Salvar edição',
+          publishChanges: 'Salvar edição',
+          revertToPublished: 'Descartar edição',
+          aboutToRevertToPublished: 'A edição será descartada e o conteúdo volta a ser o que está no site. Continuar?',
+          saveDraft: 'Salvar sem lançar',
+        },
       },
     },
   },
-  i18n: { supportedLanguages: { pt }, fallbackLanguage: 'pt' },
   collections: [
     ...colecoesCompeticao,
     ...colecoesKartodromo,
@@ -94,7 +115,7 @@ export default buildConfig({
     ...colecoesAdmin,
   ].map(comEfeitos),
   globals: globais.map(globalComEfeitos),
-  endpoints: endpointsAssistente,
+  endpoints: [...endpointsAssistente, ...endpointsPrevia],
   editor: lexicalEditor(),
   secret: env.PAYLOAD_SECRET,
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

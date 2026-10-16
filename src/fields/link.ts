@@ -40,7 +40,7 @@ export const ROTAS_FIXAS = {
   pilotos: { rotulo: 'Pilotos', caminho: '/pilotos' },
   categorias: { rotulo: 'Categorias', caminho: '/categorias' },
   noticias: { rotulo: 'Notícias', caminho: '/noticias' },
-  comunicados: { rotulo: 'Comunicados', caminho: '/comunicados' },
+  comunicados: { rotulo: 'Avisos', caminho: '/avisos' },
   eventos: { rotulo: 'Eventos', caminho: '/eventos' },
   galeria: { rotulo: 'Galeria de fotos', caminho: '/galeria' },
   documentos: { rotulo: 'Documentos e regulamentos', caminho: '/documentos' },

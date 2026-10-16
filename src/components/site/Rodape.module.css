@@ -109,6 +109,30 @@
 
 .base a {
   color: inherit;
+  text-underline-offset: 3px;
+}
+
+.base a:hover {
+  color: var(--texto-claro);
+}
+
+/* Crédito + acesso ao painel: discretos, mas legíveis (mesmo tom AA do restante da base) */
+.credito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  margin: 0;
+}
+
+/* Área de toque de pelo menos 24 px de altura */
+.credito a {
+  display: inline-block;
+  padding-block: 4px;
+}
+
+.separador {
+  opacity: 0.7;
 }
 
 /* Textos secundários legíveis sobre o fundo escuro (contraste AA) */

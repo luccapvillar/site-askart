@@ -30,8 +30,10 @@ import { RotuloCanal as RotuloCanal_171176381e23a3b1d03f55f2a461b70d } from '../
 import { Icone as Icone_537198a1497cc84b83ad7a2ad3cc48bd } from '../../../components/admin/Marca'
 import { Logo as Logo_537198a1497cc84b83ad7a2ad3cc48bd } from '../../../components/admin/Marca'
 import { PainelInicial as PainelInicial_a364ff7c79e0f68309db69c40baa8de1 } from '../../../components/admin/PainelInicial'
-import { LinkAssistente as LinkAssistente_8a50801cd8a80110e25307489e85f114 } from '../../../components/admin/assistente/LinkAssistente'
+import { LinksPainel as LinksPainel_75f5f5e0a05a9995538fc3c06ef11bd6 } from '../../../components/admin/LinksPainel'
 import { VisaoAssistente as VisaoAssistente_7e338fe29a8ac31f49161468b4d05666 } from '../../../components/admin/assistente/VisaoAssistente'
+import { VisaoEditor as VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9 } from '../../../components/admin/editor/VisaoEditor'
+import { VisaoGrade as VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3 } from '../../../components/admin/grade/VisaoGrade'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
@@ -69,8 +71,10 @@ export const importMap = {
   "/components/admin/Marca#Icone": Icone_537198a1497cc84b83ad7a2ad3cc48bd,
   "/components/admin/Marca#Logo": Logo_537198a1497cc84b83ad7a2ad3cc48bd,
   "/components/admin/PainelInicial#PainelInicial": PainelInicial_a364ff7c79e0f68309db69c40baa8de1,
-  "/components/admin/assistente/LinkAssistente#LinkAssistente": LinkAssistente_8a50801cd8a80110e25307489e85f114,
+  "/components/admin/LinksPainel#LinksPainel": LinksPainel_75f5f5e0a05a9995538fc3c06ef11bd6,
   "/components/admin/assistente/VisaoAssistente#VisaoAssistente": VisaoAssistente_7e338fe29a8ac31f49161468b4d05666,
+  "/components/admin/editor/VisaoEditor#VisaoEditor": VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9,
+  "/components/admin/grade/VisaoGrade#VisaoGrade": VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }

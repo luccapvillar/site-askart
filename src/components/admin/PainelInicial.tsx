@@ -1,20 +1,28 @@
 import type { Payload, TypedUser } from 'payload'
+import { ehEditorOuAdmin } from '@/access'
 import { formatarDataExtenso, formatarDataHora } from '@/lib/datas'
 import { valorDaTaxa, VALOR_A_CONFIRMAR } from '@/lib/taxas'
+import { AvisoPendentes } from './editor/AvisoPendentes'
+import d from './editor/Destaques.module.css'
 import s from './PainelInicial.module.css'
 
 type Props = { payload: Payload; user?: TypedUser | null }
 
 type Pendencia = { texto: string; href: string; acao: string; grave?: boolean }
 
+/** As três ferramentas principais do moderador, em destaque no alto. */
+const DESTAQUES = [
+  { icone: '✎', rotulo: 'Editar o site', href: '/admin/editor', desc: 'Veja o site como vai ficar e mude com a IA ou à mão antes de publicar.' },
+  { icone: '▦', rotulo: 'Grade de treinos', href: '/admin/grade-treinos', desc: 'Dias e horários de treino de cada categoria, no quadro da semana.' },
+  { icone: '✦', rotulo: 'Assistente com IA', href: '/admin/assistente', desc: 'Peça em texto: resultados, treinos, notícias, avisos e taxas.' },
+]
+
 const ATALHOS = [
-  { rotulo: '✦ Assistente com IA', href: '/admin/assistente', desc: 'Peça em texto: resultados, treinos, notícias' },
   { rotulo: 'Lançar resultado', href: '/admin/collections/corridas', desc: 'Corridas e resultados de cada etapa' },
   { rotulo: 'Nova notícia', href: '/admin/collections/noticias/create', desc: 'Notícia ou anúncio no site' },
   { rotulo: 'Novo comunicado', href: '/admin/collections/avisos/create', desc: 'Aviso oficial no topo do site' },
   { rotulo: 'Etapas e calendário', href: '/admin/collections/etapas', desc: 'Datas, local, mapa e IZY Pass' },
   { rotulo: 'Classificações', href: '/admin/collections/temporada-categorias', desc: 'Tabela de liderança por categoria' },
-  { rotulo: 'Grade de treinos', href: '/admin/collections/horarios-treino', desc: 'Dias e horários de cada categoria' },
   { rotulo: 'Mudar um treino', href: '/admin/collections/treinos/create', desc: 'Horário extra, pista fechada, lotação' },
   { rotulo: 'Pilotos e inscrições', href: '/admin/collections/inscricoes', desc: 'Quem corre em cada categoria' },
   { rotulo: 'Kartódromo e taxas', href: '/admin/globals/kartodromo', desc: 'Taxas, como treinar, história' },
@@ -27,6 +35,7 @@ export async function PainelInicial({ payload, user }: Props) {
   const nome = (user as { nome?: string } | undefined)?.nome?.split(' ')[0] ?? ''
   const papel = (user as { papel?: string } | undefined)?.papel
   const rotuloPapel = papel === 'administrador' ? 'Administrador' : papel === 'editor' ? 'Moderador' : 'Colaborador'
+  const podeEditarSite = ehEditorOuAdmin(user)
 
   const [config, contato, kartodromo, etapasPassadas, proximas, rascunhos, naoPublicadas, atividades] = await Promise.all([
     payload.findGlobal({ slug: 'configuracoes', depth: 0 }),
@@ -85,12 +94,36 @@ export async function PainelInicial({ payload, user }: Props) {
         <div>
           <p className={s.rotulo}>{rotuloPapel}</p>
           <h1 className={s.titulo}>{nome ? `Olá, ${nome}` : 'Painel da ASKART'}</h1>
-          <p className={s.sub}>Tudo o que aparece no site é atualizado por aqui. As mudanças entram no ar assim que você salva ou publica.</p>
+          <p className={s.sub}>
+            Tudo o que aparece no site é atualizado por aqui.{' '}
+            {podeEditarSite ? 'Em “Editar o site” você vê como fica antes de publicar.' : 'As mudanças entram no ar quando um moderador publica.'}
+          </p>
         </div>
         <a className={s.verSite} href="/" target="_blank" rel="noopener noreferrer">
           Ver o site ↗
         </a>
       </header>
+
+      {podeEditarSite && (
+        <>
+          <AvisoPendentes />
+          <nav aria-label="Ferramentas principais">
+            <ul className={d.destaques}>
+              {DESTAQUES.map((a) => (
+                <li key={a.href}>
+                  <a href={a.href}>
+                    <span className={d.icone} aria-hidden="true">
+                      {a.icone}
+                    </span>
+                    <strong>{a.rotulo}</strong>
+                    <span>{a.desc}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </>
+      )}
 
       <div className={s.grade}>
         <section className={s.cartao} aria-labelledby="proxima">

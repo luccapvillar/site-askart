@@ -1,7 +1,7 @@
 import type { GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { editorPadrao, editorSimples } from '../collections/conteudo/editores'
-import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 export { VALOR_A_CONFIRMAR, valorDaTaxa } from '../lib/taxas'
 
@@ -13,13 +13,13 @@ export const Kartodromo: GlobalConfig = comAcessoRestrito(
   {
     slug: 'kartodromo',
     label: 'Kartódromo',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: {
       group: GRUPO_SITE,
       description:
         'Textos da aba Kartódromo. Endereço e contatos ficam em "Contato e redes sociais"; horários de treino, em "Grade semanal de treinos" e "Treinos e exceções".',
     },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       {
         type: 'tabs',

@@ -58,6 +58,17 @@ export const filtroJanela = (): Where => ({
 })
 
 export const lerVisivel: Access = ({ req }) => (ehMembro(req.user) ? true : filtroVisivel())
+
+/** Coleções com rascunho e visibilidade (perguntas): público vê só o publicado e visível. */
+export const lerVisivelPublicado: Access = ({ req }) =>
+  ehMembro(req.user) ? true : { and: [filtroVisivel(), { _status: { equals: 'published' } }] }
+
+/**
+ * Globais com rascunho: o público (e a API sem login, mesmo com `?draft=true`) vê só a versão publicada.
+ * A prévia do site lê os rascunhos por src/lib/publico.ts, só para quem está logado no painel.
+ */
+export const lerGlobalPublicado: Access = ({ req }) => (ehMembro(req.user) ? true : { _status: { equals: 'published' } })
+
 export const lerPublicado: Access = ({ req }) => (ehMembro(req.user) ? true : filtroPublicado())
 export const lerPublicadoNaJanela: Access = ({ req }) =>
   ehMembro(req.user) ? true : { and: [filtroPublicado(), filtroJanela()] }

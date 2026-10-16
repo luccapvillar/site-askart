@@ -10,7 +10,7 @@
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
-import { contexto, DEMO, emBrasilia, fotosOficiais, type Id } from './comum'
+import { contexto, DEMO, emBrasilia, fotosOficiais, type Id, publicarPorPadrao } from './comum'
 
 const d = (texto: string) => `${DEMO} ${texto}`
 const ANO = 2026
@@ -247,22 +247,7 @@ export async function semearDemonstracao(payload: Payload) {
     })
   }
 
-  await payload.create({
-    collection: 'avisos',
-    context: contexto,
-    draft: false,
-    data: {
-      titulo: d('Exemplo de comunicado oficial'),
-      tipo: 'comunicado-oficial',
-      nivel: 'informativo',
-      destaque: true,
-      texto: textoParaLexical(`${DEMO} Comunicados aparecem no topo do site enquanto estiverem válidos.`) as never,
-      etapa: etapas[4],
-      visibilidade: 'visivel',
-      exibirAte: emBrasilia('2026-11-08', '18:00'),
-      _status: 'published',
-    },
-  })
+  // Avisos: nenhum de exemplo (o cliente quer a aba vazia até o moderador publicar)
 
   payload.logger.info('Textos de exemplo e contato provisório…')
   await payload.updateGlobal({ slug: 'configuracoes', context: contexto, data: { faixaDemonstracao: true } })
@@ -299,7 +284,7 @@ async function principal() {
   if (process.env.NODE_ENV === 'production' && process.env.PERMITIR_DEMO !== '1') {
     throw new Error('Dados de demonstração não entram em produção. Para uma prévia, defina PERMITIR_DEMO=1.')
   }
-  const payload = await getPayload({ config })
+  const payload = publicarPorPadrao(await getPayload({ config }))
   await semearDemonstracao(payload)
   process.exit(0)
 }

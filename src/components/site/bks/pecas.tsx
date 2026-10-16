@@ -37,7 +37,9 @@ export function LinkMapa({ href, rotulo = 'Ver no mapa' }: { href: string | null
   )
 }
 
-export function SeloEtapa({ status }: { status: string }) {
+/** Selo do status. Etapa cuja data já passou (ainda sem resultado oficial) aparece como "Já aconteceu". */
+export function SeloEtapa({ status, jaOcorreu = false }: { status: string; jaOcorreu?: boolean }) {
+  if (jaOcorreu && status !== 'realizada' && status !== 'cancelada') return <Selo tom="neutro">Já aconteceu</Selo>
   const [rotulo, tom] = STATUS_ETAPA[status] ?? [status, 'neutro']
   return <Selo tom={tom}>{rotulo}</Selo>
 }

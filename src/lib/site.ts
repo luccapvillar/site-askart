@@ -4,7 +4,7 @@
  */
 import type { Configuracoe, Contato, Etapa, Navegacao } from '@/payload-types'
 import { ROTAS_FIXAS, atributosDoLink, rotuloDoLink, type ValorLink } from '@/fields/link'
-import { formatarHora, partes } from './datas'
+import { chaveDia, diaDaSemana, formatarHora, instanteDeChave, minutosEntre, partes, somarDias } from './datas'
 
 export type ItemMenu = { rotulo: string; href: string; externo?: boolean; subitens?: ItemMenu[] }
 
@@ -12,6 +12,7 @@ const MENU_PADRAO: ItemMenu[] = [
   { rotulo: 'BKS', href: ROTAS_FIXAS.bks.caminho },
   { rotulo: 'Kartódromo', href: ROTAS_FIXAS.kartodromo.caminho },
   { rotulo: 'Notícias', href: ROTAS_FIXAS.noticias.caminho },
+  { rotulo: 'Avisos', href: ROTAS_FIXAS.comunicados.caminho },
   { rotulo: 'Contato', href: ROTAS_FIXAS.contato.caminho },
 ]
 
@@ -186,14 +187,171 @@ export function dataDaEtapa(etapa: Pick<Etapa, 'inicio'>) {
 export const mapaDaEtapa = (etapa: Pick<Etapa, 'localMapa'>, contato: Contato | null | undefined) =>
   etapa.localMapa || contato?.endereco?.linkMapa || null
 
-/** Link de compra da IZY Pass: o da etapa ou, na falta, o geral (Configurações). */
+/**
+ * Link de compra da IZY Pass: o da etapa ou, na falta, o geral (Configurações). Só para chamadas gerais
+ * (ex.: bloco "Ingressos" da página inicial); a página e o cartão da etapa usam só o link da própria etapa.
+ */
 export const ingressosDaEtapa = (etapa: Pick<Etapa, 'linkIngressos'> | null, config: Configuracoe | null | undefined) =>
   etapa?.linkIngressos || config?.izyPass || null
 
-export const etapaFutura = (etapa: Pick<Etapa, 'inicio' | 'status'>, agora = new Date()) =>
-  etapa.status !== 'realizada' && etapa.status !== 'cancelada' && (!etapa.inicio || new Date(etapa.inicio) >= new Date(agora.getTime() - 12 * 3600e3))
+type DatasEtapa = Pick<Etapa, 'inicio' | 'status'> & Partial<Pick<Etapa, 'fim'>>
 
-/** Próxima etapa (a primeira ainda não realizada, a partir de hoje). */
-export function proximaEtapa<T extends Pick<Etapa, 'inicio' | 'status'>>(etapas: T[], agora = new Date()): T | null {
+/** Último instante (23:59:59,999 de Brasília) do dia da data informada, em milissegundos. */
+export function fimDoDiaEmBrasilia(v: string | Date): number {
+  return instanteDeChave(somarDias(chaveDia(v), 1)).getTime() - 1
+}
+
+/**
+ * A etapa já aconteceu? Sim se estiver "Realizada" ou se o fim (ou o início, quando não há fim) já
+ * passou, contando até o fim daquele dia em Brasília. Etapa cancelada não aconteceu.
+ */
+export function etapaJaOcorreu(etapa: DatasEtapa, agora: Date = new Date()): boolean {
+  if (etapa.status === 'realizada') return true
+  if (etapa.status === 'cancelada') return false
+  const referencia = etapa.fim || etapa.inicio
+  if (!referencia || !Number.isFinite(new Date(referencia).getTime())) return false
+  return agora.getTime() > fimDoDiaEmBrasilia(referencia)
+}
+
+export const etapaFutura = (etapa: DatasEtapa, agora = new Date()) =>
+  etapa.status !== 'realizada' && etapa.status !== 'cancelada' && !etapaJaOcorreu(etapa, agora)
+
+/** Próxima etapa (a primeira que ainda não aconteceu nem foi cancelada). */
+export function proximaEtapa<T extends DatasEtapa>(etapas: T[], agora = new Date()): T | null {
   return etapas.find((e) => etapaFutura(e, agora)) ?? null
+}
+
+/* ─────────────────── etapas: compra, treinos livres e transmissão ─────────────────── */
+
+/** Mensagens pedidas pelo cliente (texto exato). */
+export const MENSAGENS_ETAPA = {
+  semCompra: 'O link para comprar esta etapa ainda não foi disponibilizado.',
+  semLinkTreinos: 'Compra dos treinos livres para essa etapa ainda não está disponível',
+  semGradeTreinos: 'A grade horária para os treinos livres dessa etapa ainda não está disponível',
+  semTransmissao: 'O link da transmissão ao vivo ainda não está disponível',
+} as const
+
+/** "1º" no primeiro dia do mês, como se escreve no Brasil. */
+const diaDoMes = (dia: number) => (dia === 1 ? '1º' : String(dia))
+
+const MESES_EXTENSO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+/** "17 de outubro de 2026"; dois dias: "17 e 18 de outubro de 2026"; mais: "de 16 a 18 de outubro de 2026". */
+export function periodoPorExtenso(etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>): string | null {
+  const a = etapa.inicio || etapa.fim
+  if (!a) return null
+  const ini = partes(a)
+  const fim = etapa.fim && etapa.inicio ? partes(etapa.fim) : null
+  const extenso = (p: typeof ini, comAno = true) => `${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}${comAno ? ` de ${p.ano}` : ''}`
+  if (!fim || chaveDia(etapa.fim!) <= chaveDia(a)) return extenso(ini)
+  const dias = Math.round((Date.UTC(fim.ano, fim.mes - 1, fim.dia) - Date.UTC(ini.ano, ini.mes - 1, ini.dia)) / 864e5)
+  const mesmoMes = ini.mes === fim.mes && ini.ano === fim.ano
+  if (dias === 1) return mesmoMes ? `${diaDoMes(ini.dia)} e ${extenso(fim)}` : `${extenso(ini, ini.ano !== fim.ano)} e ${extenso(fim)}`
+  return mesmoMes ? `de ${diaDoMes(ini.dia)} a ${extenso(fim)}` : `de ${extenso(ini, ini.ano !== fim.ano)} a ${extenso(fim)}`
+}
+
+/** "Esta etapa já ocorreu em 17 de outubro de 2026. Não é mais possível realizar a compra." */
+export function mensagemJaOcorreu(etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>): string {
+  const periodo = periodoPorExtenso(etapa)
+  const fim = 'Não é mais possível realizar a compra.'
+  if (!periodo) return `Esta etapa já ocorreu. ${fim}`
+  return `Esta etapa já ocorreu ${periodo.startsWith('de ') ? periodo : `em ${periodo}`}. ${fim}`
+}
+
+/** Só links http(s) (o painel já valida; aqui é a garantia de nunca montar um link quebrado). */
+export const linkExterno = (v: unknown): string | null => {
+  const t = typeof v === 'string' ? v.trim() : ''
+  return /^https?:\/\/\S+$/i.test(t) ? t : null
+}
+
+export type Transmissao = { tipo: 'profissional' | 'indoor'; rotulo: string; href: string | null }
+
+export type CamposEtapaSite = DatasEtapa &
+  Partial<
+    Pick<
+      Etapa,
+      'linkIngressos' | 'linkTreinosLivres' | 'gradeTreinosLivres' | 'imagemGradeTreinosLivres' | 'transmissaoProfissional' | 'transmissaoIndoor'
+    >
+  >
+
+export type SituacaoEtapa = {
+  cancelada: boolean
+  jaOcorreu: boolean
+  /** Antes da etapa e não cancelada: mostra compra, treinos livres e grade. */
+  antes: boolean
+  linkCompra: string | null
+  linkTreinosLivres: string | null
+  temGradeTreinos: boolean
+  transmissoes: Transmissao[]
+  temTransmissao: boolean
+}
+
+/**
+ * O que o site mostra de uma etapa. Depois dela, a compra, o link e a grade dos treinos livres saem
+ * sozinhos (as páginas se atualizam a cada minuto); a transmissão continua, para quem quiser rever.
+ */
+export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date()): SituacaoEtapa {
+  const cancelada = etapa.status === 'cancelada'
+  const jaOcorreu = etapaJaOcorreu(etapa, agora)
+  const antes = !cancelada && !jaOcorreu
+  const transmissoes: Transmissao[] = [
+    { tipo: 'profissional', rotulo: 'Profissional', href: linkExterno(etapa.transmissaoProfissional) },
+    { tipo: 'indoor', rotulo: 'Indoor', href: linkExterno(etapa.transmissaoIndoor) },
+  ]
+  return {
+    cancelada,
+    jaOcorreu,
+    antes,
+    linkCompra: antes ? linkExterno(etapa.linkIngressos) : null,
+    linkTreinosLivres: antes ? linkExterno(etapa.linkTreinosLivres) : null,
+    temGradeTreinos: antes && (Boolean(etapa.gradeTreinosLivres?.length) || Boolean(etapa.imagemGradeTreinosLivres)),
+    transmissoes,
+    temTransmissao: transmissoes.some((t) => t.href),
+  }
+}
+
+export type CategoriaTreino = { nome: string; cor: string | null }
+export type HorarioTreinoLivre = { inicio: string; fim: string | null; categorias: CategoriaTreino[]; observacao: string | null }
+export type DiaTreinosLivres = { chave: string; titulo: string; horarios: HorarioTreinoLivre[] }
+
+const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+
+/** Grade dos treinos livres agrupada por dia (em ordem de dia e de horário). Título: "Sexta-feira, 16 de outubro". */
+export function gradeTreinosPorDia(grade: Etapa['gradeTreinosLivres'] | null | undefined): DiaTreinosLivres[] {
+  const dias = new Map<string, DiaTreinosLivres>()
+  for (const linha of grade ?? []) {
+    if (!linha?.dia || !linha.inicio || !Number.isFinite(new Date(linha.dia).getTime())) continue
+    const chave = chaveDia(linha.dia)
+    const p = partes(linha.dia)
+    const dia = dias.get(chave) ?? { chave, titulo: `${maiuscula(diaDaSemana(linha.dia))}, ${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}`, horarios: [] }
+    dia.horarios.push({
+      inicio: linha.inicio,
+      fim: linha.fim || null,
+      categorias: (linha.categorias ?? [])
+        .filter((c): c is Exclude<typeof c, number> => typeof c === 'object' && c !== null)
+        .map((c) => ({ nome: c.nome, cor: c.cor ?? null })),
+      observacao: linha.observacao?.trim() || null,
+    })
+    dias.set(chave, dia)
+  }
+  return [...dias.values()]
+    .sort((a, b) => a.chave.localeCompare(b.chave))
+    .map((d) => ({ ...d, horarios: d.horarios.sort((x, y) => minutosEntre(y.inicio, x.inicio)) }))
+}
+
+/* ─────────────────── etapas: evento aberto ao público ─────────────────── */
+
+export const TEXTO_EVENTO_PUBLICO_PADRAO = 'O evento é aberto ao público, com entrada gratuita.'
+export const ITENS_EVENTO_PUBLICO_PADRAO = ['Food trucks', 'Telão', 'Mesas e cadeiras', 'Narrador']
+
+/** Texto e itens do bloco "Aberto ao público" (Configurações), com o padrão pedido pelo cliente. Null = desligado. */
+export function eventoPublico(
+  config: Pick<Configuracoe, 'exibirEventoPublico' | 'textoEventoPublico' | 'itensEventoPublico'> | null | undefined,
+): { texto: string; itens: string[] } | null {
+  if (config?.exibirEventoPublico === false) return null
+  const itens = (config?.itensEventoPublico ?? []).map((i) => i?.texto?.trim()).filter((t): t is string => Boolean(t))
+  return {
+    texto: config?.textoEventoPublico?.trim() || TEXTO_EVENTO_PUBLICO_PADRAO,
+    itens: itens.length ? itens : ITENS_EVENTO_PUBLICO_PADRAO,
+  }
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Implantação (Vercel roda "npm run vercel-build" sozinho):
 # 1. aplica as migrações do banco; 2. cria o primeiro administrador (ADMIN_EMAIL/ADMIN_SENHA), se ainda
-# não houver usuários; 3. carrega os dados oficiais (grade, taxas, endereço) uma única vez; 4. só na prévia (DADOS_DEMONSTRACAO=1), carrega os dados de demonstração;
-# 5. gera o site.
+# não houver usuários; 3. carrega os dados oficiais (grade, taxas, endereço) uma única vez; 4. aplica as atualizações
+# pendentes do site já publicado (scripts/atualizacoes.ts); 5. só na prévia (DADOS_DEMONSTRACAO=1), carrega os dados de
+# demonstração; 6. gera o site.
 set -euo pipefail
 
 # Aceita as variáveis também com prefixo (a Vercel às vezes cria, por exemplo, STORAGE_DATABASE_URL)
@@ -42,6 +43,8 @@ fi
 npm run migrate -- --force-accept-warning
 npm run criar-admin
 npm run dados:oficiais
+# Atualizações do site já publicado (cada uma roda uma vez só; ex.: aba Avisos no menu)
+npm run payload -- run scripts/atualizacoes.ts
 if [ "${DADOS_DEMONSTRACAO:-0}" = "1" ]; then
   PERMITIR_DEMO=1 npm run seed:demo
 fi

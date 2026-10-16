@@ -4,10 +4,11 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Cabecalho } from '@/components/site/Cabecalho'
 import { Rodape } from '@/components/site/Rodape'
 import { fontesDaFoto } from '@/components/site/Foto'
+import { FaixaPrevia } from '@/components/site/previa/FaixaPrevia'
 import { semDemo } from '@/components/site/TextoDemo'
 import type { Midia } from '@/payload-types'
 import { env } from '@/env'
-import { lerAvisos, lerConfiguracoes, lerContato, lerKartodromo, lerNavegacao } from '@/lib/publico'
+import { emPrevia, lerAvisos, lerConfiguracoes, lerContato, lerKartodromo, lerNavegacao } from '@/lib/publico'
 import { canaisDoContato, itemDoLink, menuDoSite, NOMES_REDES, variaveisDeCor } from '@/lib/site'
 import type { ValorLink } from '@/fields/link'
 import './globals.css'
@@ -43,12 +44,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LayoutSite({ children }: { children: ReactNode }) {
-  const [config, navegacao, contato, kartodromo, avisos] = await Promise.all([
+  const [config, navegacao, contato, kartodromo, avisos, previa] = await Promise.all([
     lerConfiguracoes(),
     lerNavegacao(),
     lerContato(),
     lerKartodromo(),
     lerAvisos(10),
+    // Só pela rota /previa (painel); na geração estática vem desligado e a página segue em cache
+    emPrevia(),
   ])
   const sigla = config.sigla || 'ASKART'
   const nome = config.nome || 'Associação de Pilotos de Kart de Brasília'
@@ -101,7 +104,7 @@ export default async function LayoutSite({ children }: { children: ReactNode }) 
             { rotulo: 'Contato', href: '/contato' },
           ]}
           destaque={destaqueMenu}
-          aviso={destaque ? { titulo: semDemo(destaque.titulo), href: `/comunicados/${destaque.id}`, nivel: destaque.nivel } : null}
+          aviso={destaque ? { titulo: semDemo(destaque.titulo), href: `/avisos/${destaque.id}`, nivel: destaque.nivel } : null}
         />
         <main id="conteudo" tabIndex={-1}>
           {children}
@@ -116,6 +119,7 @@ export default async function LayoutSite({ children }: { children: ReactNode }) 
           redes={redes}
           ano={new Date().getFullYear()}
         />
+        {previa && <FaixaPrevia />}
       </body>
     </html>
   )

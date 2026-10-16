@@ -4,6 +4,7 @@
  */
 import { getPayload, type CollectionSlug, type Payload, type Where } from 'payload'
 import config from '../src/payload.config'
+import { publicarPorPadrao } from './comum'
 
 const DEMO = '[DEMONSTRAÇÃO]'
 const contexto = { semRevalidar: true, semRegistro: true }
@@ -28,7 +29,7 @@ async function apagar(payload: Payload, collection: CollectionSlug, where: Where
 }
 
 async function principal() {
-  const payload = await getPayload({ config })
+  const payload = publicarPorPadrao(await getPayload({ config }))
   const temporadas = await ids(payload, 'temporadas', tem('nome'))
   const etapas = temporadas.length ? await ids(payload, 'etapas', { temporada: { in: temporadas } }) : []
 

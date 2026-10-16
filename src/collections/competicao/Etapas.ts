@@ -1,5 +1,6 @@
-import type { CollectionConfig, FilterOptions } from 'payload'
-import { comAcessoRestrito, editores, lerVisivel } from '../../access'
+import type { Access, CollectionConfig, Field, FilterOptions, SelectFieldSingleValidation } from 'payload'
+import { select as validarSelectPadrao } from 'payload/shared'
+import { comAcessoRestrito, editores, lerVisivel, membros } from '../../access'
 import { campoVisibilidade } from '../../fields/visibilidade'
 import { COLECOES } from '../../hooks/competicao/api'
 import { carregarTemporada, temporadaPadrao } from '../../hooks/competicao/consultas'
@@ -16,7 +17,8 @@ import {
 } from '../../hooks/competicao/etapas'
 import { idsDe } from '../../hooks/competicao/util'
 import { validarFator, validarInteiro } from '../../hooks/competicao/validacoes'
-import { campoLink, campoTextoBusca, campoTitulo, FORMATO_DATA_HORA, REL } from './campos'
+import { HORARIOS_5MIN, minutosEntre } from '../../lib/datas'
+import { campoLink, campoTextoBusca, campoTitulo, FORMATO_DATA, FORMATO_DATA_HORA, REL } from './campos'
 
 /**
  * Campo de notícias e galerias que aponta para a etapa (frente Conteúdo). Se lá o nome for outro,
@@ -32,6 +34,32 @@ const categoriasDaTemporada: FilterOptions = async ({ data, req }) => {
 }
 
 /**
+ * Público (sem login): só etapas publicadas e visíveis. Rascunhos ficam no painel e na pré-visualização.
+ * Usuários do painel continuam vendo tudo (regra de lerVisivel).
+ */
+const lerEtapaPublicada: Access = async (args) => {
+  const regra = await lerVisivel(args)
+  if (typeof regra === 'boolean') return regra
+  return { and: [regra, { _status: { equals: 'published' } }] }
+}
+
+const OPCOES_HORARIO = HORARIOS_5MIN.map((h) => ({ label: h, value: h }))
+
+/** Treino livre: o fim (opcional) precisa ser depois do início. */
+const validarFimTreino: SelectFieldSingleValidation = (valor, args) => {
+  const padrao = validarSelectPadrao(valor, args)
+  if (padrao !== true) return padrao
+  const inicio = (args.siblingData as { inicio?: unknown } | undefined)?.inicio
+  if (typeof valor === 'string' && valor && typeof inicio === 'string' && inicio && minutosEntre(inicio, valor) <= 0) {
+    return `O fim precisa ser depois do início (${inicio}).`
+  }
+  return true
+}
+
+/** Link com largura na linha do formulário. */
+const naLinha = (campo: Field, largura: string): Field => ({ ...campo, admin: { ...(campo as { admin?: object }).admin, width: largura } }) as Field
+
+/**
  * Etapas do calendário. A data mora só aqui: calendário, página inicial, contagem regressiva e página
  * da etapa leem daqui. Cada etapa tem suas corridas (por categoria), com os resultados.
  */
@@ -42,16 +70,19 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
   admin: {
     group: 'Competição',
     useAsTitle: 'titulo',
-    defaultColumns: ['titulo', 'local', 'status', 'visibilidade'],
+    defaultColumns: ['titulo', 'local', 'status', 'visibilidade', '_status'],
     listSearchableFields: ['titulo', 'local', 'textoBusca'],
     description:
-      'Calendário das temporadas. Mudou a data ou o local? Edite aqui e o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.',
+      'Calendário das temporadas. Mudou a data, o local ou um link? Edite aqui, confira na pré-visualização e publique: o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.',
   },
+  // Rascunho: o moderador confere na pré-visualização antes de publicar
+  versions: { drafts: { autosave: { interval: 2000 } }, maxPerDoc: 30 },
   access: {
-    read: lerVisivel,
+    read: lerEtapaPublicada,
     create: editores,
     update: editores,
     delete: editores,
+    readVersions: membros,
   },
   indexes: [{ fields: ['temporada', 'numero'], unique: true }],
   endpoints: [endpointGerarCorridas],
@@ -173,7 +204,7 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
           ],
         },
         {
-          label: 'Local e ingressos',
+          label: 'Local',
           fields: [
             {
               name: 'local',
@@ -187,11 +218,110 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
               'Link do mapa do local',
               'Opcional. Link do Google Maps. Vazio = mapa do kartódromo (cadastrado em Contato).',
             ),
+          ],
+        },
+        {
+          label: 'Compra, treinos livres e transmissão',
+          description:
+            'Na página da etapa, nesta ordem: comprar a etapa, treinos livres (link e grade) e transmissão. Campo vazio = o site avisa que ainda não está disponível. Depois da etapa, a compra, os treinos livres e a grade saem do site sozinhos; a transmissão continua (para quem quiser rever).',
+          fields: [
             campoLink(
               'linkIngressos',
-              'Link de ingressos (IZY Pass)',
-              'Opcional. Link da IZY Pass para comprar treinos livres e corridas desta etapa.',
+              'Link para comprar esta etapa (IZY Pass)',
+              'Link da IZY Pass desta etapa específica. Vazio = "O link para comprar esta etapa ainda não foi disponibilizado."',
             ),
+            campoLink(
+              'linkTreinosLivres',
+              'Link para comprar os treinos livres desta etapa',
+              'Link para os treinos livres desta etapa. Vazio = "Compra dos treinos livres para essa etapa ainda não está disponível"',
+            ),
+            {
+              name: 'gradeTreinosLivres',
+              label: 'Grade dos treinos livres',
+              labels: { singular: 'Horário', plural: 'Horários' },
+              type: 'array',
+              admin: {
+                description:
+                  'Um item por horário. O site agrupa por dia e põe em ordem. Vazia (e sem imagem) = "A grade horária para os treinos livres dessa etapa ainda não está disponível."',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'dia',
+                      label: 'Dia',
+                      type: 'date',
+                      required: true,
+                      admin: { width: '34%', date: FORMATO_DATA },
+                    },
+                    {
+                      name: 'inicio',
+                      label: 'Início',
+                      type: 'select',
+                      required: true,
+                      options: OPCOES_HORARIO,
+                      admin: { width: '33%', description: 'Hora de Brasília (digite para buscar, ex.: 08:00).' },
+                    },
+                    {
+                      name: 'fim',
+                      label: 'Fim',
+                      type: 'select',
+                      options: OPCOES_HORARIO,
+                      validate: validarFimTreino,
+                      admin: { width: '33%', isClearable: true, description: 'Opcional.' },
+                    },
+                  ],
+                },
+                {
+                  name: 'categorias',
+                  label: 'Categorias',
+                  type: 'relationship',
+                  relationTo: REL.categorias,
+                  hasMany: true,
+                  filterOptions: categoriasDaTemporada,
+                  admin: { description: 'Opcional. Deixe vazio se o horário não for de uma categoria específica.' },
+                },
+                {
+                  name: 'observacao',
+                  label: 'Observação',
+                  type: 'text',
+                  maxLength: 120,
+                  admin: { description: 'Opcional. Texto curto que aparece ao lado do horário.' },
+                },
+              ],
+            },
+            {
+              name: 'imagemGradeTreinosLivres',
+              label: 'Grade dos treinos livres em imagem',
+              type: 'upload',
+              relationTo: REL.midia,
+              admin: {
+                description:
+                  'Opcional. Para quem prefere publicar a grade como imagem (a arte divulgada nas redes, por exemplo). Aparece abaixo da grade preenchida, se houver.',
+              },
+            },
+            {
+              type: 'row',
+              fields: [
+                naLinha(
+                  campoLink(
+                    'transmissaoProfissional',
+                    'Transmissão ao vivo: Profissional',
+                    'Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.',
+                  ),
+                  '50%',
+                ),
+                naLinha(
+                  campoLink(
+                    'transmissaoIndoor',
+                    'Transmissão ao vivo: Indoor',
+                    'Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.',
+                  ),
+                  '50%',
+                ),
+              ],
+            },
           ],
         },
         {
@@ -253,6 +383,14 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
     },
     campoVisibilidade(),
     campoTextoBusca(),
+    // Situação de publicação do rascunho (o Payload completa o campo). Nome próprio no banco: o padrão
+    // (enum_etapas_status) colidiria com o do campo "Status" da etapa (agendada, confirmada…).
+    {
+      name: '_status',
+      label: 'Publicação',
+      type: 'select',
+      enumName: ({ tableName }: { tableName: string }) => `enum_${tableName}_publicacao`,
+    } as unknown as Field,
   ],
   hooks: {
     beforeValidate: [prepararEtapa],

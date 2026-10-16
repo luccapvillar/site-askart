@@ -1,0 +1,371 @@
+/* Blocos da etapa: compra, treinos livres, transmissão, aberto ao público e etapa já realizada.
+   As cores vêm do campeonato (aba BKS) e, fora dela, da marca. */
+
+/* ---------- Botões ---------- */
+.botao {
+  --etapa-p: var(--camp-p, var(--marca-primaria));
+  --etapa-sobre-p: var(--camp-sobre-p, var(--sobre-primaria, #fff));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 2px solid var(--etapa-p);
+  border-radius: var(--raio);
+  background: var(--etapa-p);
+  color: var(--etapa-sobre-p);
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: filter 0.2s;
+}
+
+.botao:hover {
+  filter: brightness(1.08);
+}
+
+.botao:focus-visible {
+  outline: 3px solid var(--texto);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--amarelo);
+}
+
+.botaoContorno {
+  background: transparent;
+  color: var(--texto);
+  border-color: currentColor;
+}
+
+.botaoContorno:hover {
+  filter: none;
+  background: color-mix(in oklab, var(--etapa-p) 8%, transparent);
+}
+
+.botaoPequeno {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 0.9375rem;
+}
+
+/* ---------- "Ainda não está disponível" ---------- */
+.indisponivel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 52ch;
+  padding: 10px 12px;
+  border: 1px dashed color-mix(in oklab, var(--texto-2) 55%, transparent);
+  border-radius: var(--raio);
+  background: var(--papel);
+  color: var(--texto-2);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.indisponivel strong {
+  color: var(--texto);
+  font-weight: 650;
+}
+
+.indisponivelIcone {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------- Cartões (compra, treinos livres, transmissão) ---------- */
+.duas {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .duas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cartao {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 14px;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
+.cartaoCabeca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cartaoIcone {
+  --etapa-p: var(--camp-p, var(--marca-primaria));
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--etapa-p) 12%, white);
+  color: var(--etapa-p);
+}
+
+.cartaoTitulo {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+/* ---------- Grade dos treinos livres ---------- */
+.blocoGrade {
+  display: grid;
+  gap: 16px;
+  margin-top: clamp(24px, 4vw, 36px);
+  scroll-margin-top: calc(var(--cabecalho) + 60px);
+}
+
+.cabecaGrade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dias {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .dias {
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    align-items: start;
+  }
+}
+
+.tabelaTreinos {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  font-size: 0.9375rem;
+  overflow: hidden;
+}
+
+.tabelaTreinos caption {
+  padding: 0 0 8px;
+  font-weight: 750;
+  text-align: left;
+}
+
+.tabelaTreinos thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.tabelaTreinos th,
+.tabelaTreinos td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabelaTreinos tr:last-child th,
+.tabelaTreinos tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabelaTreinos tbody th {
+  width: 1%;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.corCategoria {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.observacao {
+  display: block;
+  margin-top: 2px;
+  color: var(--texto-2);
+}
+
+.imagemGrade {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+  margin: 0;
+}
+
+.imagemGrade img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
+.imagemGrade figcaption a {
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
+
+/* ---------- Aberto ao público ---------- */
+.publico {
+  display: grid;
+  gap: 18px;
+}
+
+.publicoTexto {
+  max-width: 46ch;
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 16px 6px 6px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--branco);
+  font-weight: 650;
+}
+
+/* Placa amarela (identidade da ASKART) com o ícone */
+.chipIcone {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--amarelo);
+  color: #111;
+}
+
+/* ---------- Etapa já realizada ---------- */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in oklab, var(--ok) 35%, transparent);
+  border-left: 5px solid var(--ok);
+  border-radius: var(--raio);
+  background: color-mix(in oklab, var(--ok) 9%, white);
+  color: var(--texto);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.aviso svg {
+  flex: none;
+  margin-top: 1px;
+  color: color-mix(in oklab, var(--ok) 80%, black);
+}
+
+.avisoTexto {
+  display: grid;
+  gap: 4px;
+}
+
+.avisoTexto a {
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
+
+.faixaAviso {
+  padding-block: clamp(20px, 4vw, 32px);
+}
+
+/* ---------- Versão compacta (cartão do calendário e página inicial) ---------- */
+.resumo {
+  display: grid;
+  gap: 18px;
+}
+
+.resumoGrupo {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.resumo .indisponivel,
+.compacto.indisponivel {
+  padding: 8px 10px;
+  font-size: 0.875rem;
+}
+
+.resumo .aviso {
+  padding: 12px 14px;
+  font-size: 0.9375rem;
+}
+
+.linkInterno {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
+
+.publicoCompacto {
+  display: grid;
+  gap: 8px;
+  font-size: 0.9375rem;
+}
+
+.itensCompactos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--texto-2);
+}
+
+.itensCompactos li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .botao {
+    transition: none;
+  }
+}

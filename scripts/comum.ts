@@ -58,4 +58,32 @@ export async function fotosOficiais(payload: Payload) {
   }
 }
 
+/** Subcategorias informadas pelo cliente (só os nomes, como aparecem na inscrição do BKS). */
+export const SUBCATEGORIAS: Record<string, string[]> = {
+  F400: ['Novatos', 'Junior', 'Graduados', 'Sênior', 'GSS/60+'],
+  '125cc': ['Novatos', 'Junior', 'Graduados', 'Sênior'],
+}
+
+/**
+ * Nos scripts, toda gravação sai PUBLICADA: globais e coleções com rascunho nasceriam como rascunho
+ * (o padrão do Payload) e ficariam invisíveis no site. Quem quiser rascunho passa draft: true.
+ */
+export function publicarPorPadrao(payload: Payload) {
+  const comRascunho = (versions: unknown) => Boolean(versions && typeof versions === 'object' && (versions as { drafts?: unknown }).drafts)
+  const globais = new Set(payload.config.globals.filter((g) => comRascunho(g.versions)).map((g) => g.slug))
+  const colecoes = new Set(payload.config.collections.filter((c) => comRascunho(c.versions)).map((c) => c.slug))
+  const publicar = <A extends { draft?: boolean; data?: unknown }>(args: A): A =>
+    args.draft ? args : { ...args, draft: false, data: { _status: 'published', ...(args.data as object) } }
+  const updateGlobal = payload.updateGlobal.bind(payload)
+  const create = payload.create.bind(payload)
+  const update = payload.update.bind(payload)
+  payload.updateGlobal = ((args: Parameters<typeof updateGlobal>[0]) =>
+    updateGlobal(globais.has(args.slug) ? publicar(args) : args)) as typeof payload.updateGlobal
+  payload.create = ((args: Parameters<typeof create>[0]) =>
+    create(colecoes.has(args.collection) ? publicar(args) : args)) as typeof payload.create
+  payload.update = ((args: Parameters<typeof update>[0]) =>
+    update(colecoes.has(args.collection) ? publicar(args) : args)) as typeof payload.update
+  return payload
+}
+
 export type Fotos = Awaited<ReturnType<typeof fotosOficiais>>

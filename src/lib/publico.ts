@@ -2,9 +2,15 @@
  * Única porta de leitura do site público (docs/ARQUITETURA.md §5): sempre como visitante anônimo
  * (`overrideAccess: false`), sem rascunhos, com profundidade explícita. As páginas são geradas e
  * guardadas (ISR, 60 s) e refeitas na hora quando algo muda no painel (src/lib/revalidar.ts).
+ *
+ * Pré-visualização: com o modo de prévia do Next ligado (só pela rota /previa, para administrador ou
+ * editor logado no painel), as coleções e globais com rascunho são lidos na última versão, com os
+ * mesmos filtros do público (visibilidade, agendamento, janela, lixeira) — src/lib/previa/filtros.ts.
+ * Ler `draftMode()` não torna a página dinâmica: na geração estática ele vem desligado, e o ISR segue.
  */
 import config from '@payload-config'
-import { getPayload, type Where } from 'payload'
+import { draftMode } from 'next/headers'
+import { getPayload, type CollectionSlug, type Where } from 'payload'
 import { cache } from 'react'
 import type {
   Campeonato,
@@ -26,10 +32,39 @@ import type {
 import { carregarAgenda, paraAgendaSite } from './agenda'
 import { classificacoesDaTemporada, resultadosDaEtapa } from './carregar-competicao'
 import { chaveDia, somarDias } from './datas'
+import { filtroDoPublicoSemStatus } from './previa/filtros'
 
 export const payloadSite = cache(() => getPayload({ config }))
 
 const PUBLICO = { overrideAccess: false, draft: false } as const
+
+/** Modo de prévia ligado nesta requisição. Fora de uma requisição do Next (scripts, testes), desligado. */
+export const emPrevia = cache(async (): Promise<boolean> => {
+  try {
+    return (await draftMode()).isEnabled
+  } catch {
+    return false
+  }
+})
+
+const filtroPrevia = cache(async (colecao: CollectionSlug) => filtroDoPublicoSemStatus(await payloadSite(), colecao))
+
+/**
+ * Opções de leitura de uma coleção: público (sempre) ou, na prévia, últimas versões com os filtros do
+ * público reproduzidos (a regra de acesso esconderia os rascunhos). Coleção sem rascunho: igual ao público.
+ */
+async function leitura(colecao: CollectionSlug, where?: Where): Promise<{ where?: Where; overrideAccess: boolean; draft: boolean }> {
+  if (!(await emPrevia())) return { where, ...PUBLICO }
+  const payload = await payloadSite()
+  if (!payload.collections[colecao]?.config.versions?.drafts) return { where, ...PUBLICO }
+  const regra = await filtroPrevia(colecao)
+  if (regra === false) return { where, ...PUBLICO }
+  const filtro = regra === true ? where : where ? { and: [where, regra] } : regra
+  return { where: filtro, overrideAccess: true, draft: true }
+}
+
+/** Globais com rascunho: na prévia, a última versão (o público lê sem filtro além do "publicado"). */
+const leituraGlobal = async () => ((await emPrevia()) ? ({ overrideAccess: true, draft: true } as const) : PUBLICO)
 
 /** Leitura que nunca derruba a página: em erro, registra e devolve o padrão. */
 async function seguro<T>(rotulo: string, padrao: T, fn: () => Promise<T>): Promise<T> {
@@ -54,25 +89,25 @@ export const lerConfiguracoes = cache(() =>
   ),
 )
 export const lerContato = cache(() =>
-  seguro('contato', {} as Contato, async () => (await payloadSite()).findGlobal({ slug: 'contato', depth: 1, ...PUBLICO })),
+  seguro('contato', {} as Contato, async () => (await payloadSite()).findGlobal({ slug: 'contato', depth: 1, ...(await leituraGlobal()) })),
 )
 export const lerNavegacao = cache(() =>
-  seguro('navegação', {} as Navegacao, async () => (await payloadSite()).findGlobal({ slug: 'navegacao', depth: 1, ...PUBLICO })),
+  seguro('navegação', {} as Navegacao, async () => (await payloadSite()).findGlobal({ slug: 'navegacao', depth: 1, ...(await leituraGlobal()) })),
 )
 export const lerKartodromo = cache(() =>
-  seguro('kartódromo', {} as Kartodromo, async () => (await payloadSite()).findGlobal({ slug: 'kartodromo', depth: 2, ...PUBLICO })),
+  seguro('kartódromo', {} as Kartodromo, async () => (await payloadSite()).findGlobal({ slug: 'kartodromo', depth: 2, ...(await leituraGlobal()) })),
 )
 export const lerPaginaInicial = cache(() =>
   seguro('página inicial', {} as PaginaInicial, async () =>
-    (await payloadSite()).findGlobal({ slug: 'pagina-inicial', depth: 2, ...PUBLICO }),
+    (await payloadSite()).findGlobal({ slug: 'pagina-inicial', depth: 2, ...(await leituraGlobal()) }),
   ),
 )
 export const lerInstitucional = cache(() =>
-  seguro('institucional', null, async () => (await payloadSite()).findGlobal({ slug: 'institucional', depth: 2, ...PUBLICO })),
+  seguro('institucional', null, async () => (await payloadSite()).findGlobal({ slug: 'institucional', depth: 2, ...(await leituraGlobal()) })),
 )
 export const lerTextosPaginas = cache(() =>
   seguro('textos das seções', {} as TextosPagina, async () =>
-    (await payloadSite()).findGlobal({ slug: 'textos-paginas', depth: 1, ...PUBLICO }),
+    (await payloadSite()).findGlobal({ slug: 'textos-paginas', depth: 1, ...(await leituraGlobal()) }),
   ),
 )
 
@@ -115,7 +150,6 @@ export const lerEtapas = cache((temporada: number) =>
     const payload = await payloadSite()
     const { docs } = await payload.find({
       collection: 'etapas',
-      where: { and: [{ temporada: { equals: temporada } }, { visibilidade: { in: ['visivel', 'arquivado'] } }] },
       sort: 'numero',
       depth: 1,
       limit: 100,
@@ -130,11 +164,16 @@ export const lerEtapas = cache((temporada: number) =>
         local: true,
         localMapa: true,
         linkIngressos: true,
+        linkTreinosLivres: true,
+        gradeTreinosLivres: true,
+        imagemGradeTreinosLivres: true,
+        transmissaoProfissional: true,
+        transmissaoIndoor: true,
         imagem: true,
         temporada: true,
       },
       populate: { categorias: { nome: true, sigla: true, slug: true, cor: true }, temporadas: { nome: true, ano: true } },
-      ...PUBLICO,
+      ...(await leitura('etapas', { and: [{ temporada: { equals: temporada } }, { visibilidade: { in: ['visivel', 'arquivado'] } }] })),
     })
     return docs as Etapa[]
   }),
@@ -143,7 +182,7 @@ export const lerEtapas = cache((temporada: number) =>
 export const lerEtapa = cache((id: number) =>
   seguro('etapa', null as Etapa | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'etapas', where: { id: { equals: id } }, depth: 2, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'etapas', depth: 2, limit: 1, ...(await leitura('etapas', { id: { equals: id } })) })
     return docs[0] ?? null
   }),
 )
@@ -197,14 +236,13 @@ export const lerNoticias = cache((limite: number, pagina = 1, filtro?: Where) =>
     const payload = await payloadSite()
     const r = await payload.find({
       collection: 'noticias',
-      where: filtro ? { and: [publicado(), filtro] } : publicado(),
       sort: '-publicarEm',
       depth: 1,
       limit: limite,
       page: pagina,
       select: { titulo: true, subtitulo: true, slug: true, capa: true, categoria: true, publicarEm: true, etapa: true },
       populate: { 'categorias-noticia': { nome: true, slug: true, cor: true } },
-      ...PUBLICO,
+      ...(await leitura('noticias', filtro ? { and: [publicado(), filtro] } : publicado())),
     })
     return { docs: r.docs as Noticia[], totalPages: r.totalPages, page: r.page ?? 1 }
   }),
@@ -213,7 +251,7 @@ export const lerNoticias = cache((limite: number, pagina = 1, filtro?: Where) =>
 export const lerNoticia = cache((slug: string) =>
   seguro('notícia', null as Noticia | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'noticias', where: { and: [{ slug: { equals: slug } }, publicado()] }, depth: 2, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'noticias', depth: 2, limit: 1, ...(await leitura('noticias', { and: [{ slug: { equals: slug } }, publicado()] })) })
     return docs[0] ?? null
   }),
 )
@@ -221,7 +259,7 @@ export const lerNoticia = cache((slug: string) =>
 export const lerAvisos = cache((limite = 5) =>
   seguro('avisos', [] as import('@/payload-types').Aviso[], async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'avisos', sort: '-publicarEm', depth: 1, limit: limite, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'avisos', sort: '-publicarEm', depth: 1, limit: limite, ...(await leitura('avisos')) })
     return docs
   }),
 )
@@ -229,7 +267,7 @@ export const lerAvisos = cache((limite = 5) =>
 export const lerAviso = cache((id: number) =>
   seguro('aviso', null as import('@/payload-types').Aviso | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'avisos', where: { id: { equals: id } }, depth: 1, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'avisos', depth: 1, limit: 1, ...(await leitura('avisos', { id: { equals: id } })) })
     return docs[0] ?? null
   }),
 )
@@ -237,7 +275,7 @@ export const lerAviso = cache((id: number) =>
 export const lerPerguntas = cache((secoes: Array<'bks' | 'kartodromo' | 'geral'>, limite = 50) =>
   seguro('perguntas', [] as Pergunta[], async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'perguntas', where: { secao: { in: secoes } }, sort: '_order', depth: 0, limit: limite, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'perguntas', sort: '_order', depth: 0, limit: limite, ...(await leitura('perguntas', { secao: { in: secoes } })) })
     return docs
   }),
 )
@@ -245,7 +283,7 @@ export const lerPerguntas = cache((secoes: Array<'bks' | 'kartodromo' | 'geral'>
 export const lerGalerias = cache((filtro: Where | undefined, limite = 12) =>
   seguro('galerias', [] as Galeria[], async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'galerias', where: filtro, sort: '-data', depth: 1, limit: limite, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'galerias', sort: '-data', depth: 1, limit: limite, ...(await leitura('galerias', filtro)) })
     return docs
   }),
 )
@@ -253,7 +291,7 @@ export const lerGalerias = cache((filtro: Where | undefined, limite = 12) =>
 export const lerGaleria = cache((slug: string) =>
   seguro('galeria', null as Galeria | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'galerias', where: { slug: { equals: slug } }, depth: 1, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'galerias', depth: 1, limit: 1, ...(await leitura('galerias', { slug: { equals: slug } })) })
     return docs[0] ?? null
   }),
 )
@@ -261,7 +299,7 @@ export const lerGaleria = cache((slug: string) =>
 export const lerPagina = cache((slug: string) =>
   seguro('página', null as import('@/payload-types').Pagina | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'paginas', where: { slug: { equals: slug } }, depth: 2, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'paginas', depth: 2, limit: 1, ...(await leitura('paginas', { slug: { equals: slug } })) })
     return docs[0] ?? null
   }),
 )
@@ -354,7 +392,7 @@ export const lerCampeoes = cache((campeonato: number) =>
 export const lerDocumentos = cache((filtro: Where | undefined, limite = 50) =>
   seguro('documentos', [] as import('@/payload-types').Documento[], async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'documentos', where: filtro, sort: '_order', depth: 1, limit: limite, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'documentos', sort: '_order', depth: 1, limit: limite, ...(await leitura('documentos', filtro)) })
     return docs
   }),
 )
@@ -371,9 +409,13 @@ export const lerPiloto = cache((slug: string) =>
 export const lerConteudoDaEtapa = cache((etapa: number) =>
   seguro('conteúdo da etapa', { noticias: [] as Noticia[], galerias: [] as Galeria[] }, async () => {
     const payload = await payloadSite()
+    const [opcoesNoticias, opcoesGalerias] = await Promise.all([
+      leitura('noticias', { and: [{ etapa: { equals: etapa } }, publicado()] }),
+      leitura('galerias', { etapa: { equals: etapa } }),
+    ])
     const [noticias, galerias] = await Promise.all([
-      payload.find({ collection: 'noticias', where: { and: [{ etapa: { equals: etapa } }, publicado()] }, sort: '-publicarEm', depth: 1, limit: 6, ...PUBLICO }),
-      payload.find({ collection: 'galerias', where: { etapa: { equals: etapa } }, depth: 1, limit: 3, ...PUBLICO }),
+      payload.find({ collection: 'noticias', sort: '-publicarEm', depth: 1, limit: 6, ...opcoesNoticias }),
+      payload.find({ collection: 'galerias', depth: 1, limit: 3, ...opcoesGalerias }),
     ])
     return { noticias: noticias.docs, galerias: galerias.docs }
   }),
@@ -382,7 +424,7 @@ export const lerConteudoDaEtapa = cache((etapa: number) =>
 export const lerDocumento = cache((slug: string) =>
   seguro('documento', null as import('@/payload-types').Documento | null, async () => {
     const payload = await payloadSite()
-    const { docs } = await payload.find({ collection: 'documentos', where: { slug: { equals: slug } }, depth: 0, limit: 1, ...PUBLICO })
+    const { docs } = await payload.find({ collection: 'documentos', depth: 0, limit: 1, ...(await leitura('documentos', { slug: { equals: slug } })) })
     return docs[0] ?? null
   }),
 )

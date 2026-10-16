@@ -86,7 +86,7 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
               campoUrl(
                 'izyPass',
                 'Link da IZY Pass',
-                'Página da IZY Pass para comprar treinos livres e corridas. Cada etapa pode ter um link próprio; sem ele, vale este.',
+                'Página geral da IZY Pass (topo da aba BKS, Kartódromo e bloco de ingressos da página inicial). O link de compra de cada etapa fica na própria etapa, na aba "Compra, treinos livres e transmissão".',
               ),
               {
                 name: 'izyPassTexto',
@@ -94,6 +94,44 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
                 type: 'text',
                 maxLength: 60,
                 defaultValue: 'Comprar na IZY Pass',
+              },
+              {
+                // Grupo sem nome: os campos ficam no primeiro nível (config.textoEventoPublico…)
+                type: 'group',
+                label: 'Etapas do BKS: informações ao público',
+                admin: {
+                  description:
+                    'Aparece na página de cada etapa (bloco "Aberto ao público") e, resumido, no calendário do BKS. Some nas etapas canceladas e nas que já aconteceram.',
+                },
+                fields: [
+                  {
+                    name: 'exibirEventoPublico',
+                    label: 'Mostrar o bloco "Aberto ao público" nas etapas',
+                    type: 'checkbox',
+                    defaultValue: true,
+                  },
+                  {
+                    name: 'textoEventoPublico',
+                    label: 'Texto',
+                    type: 'textarea',
+                    maxLength: 300,
+                    defaultValue: 'O evento é aberto ao público, com entrada gratuita.',
+                    admin: { description: 'Vazio = "O evento é aberto ao público, com entrada gratuita."' },
+                  },
+                  {
+                    name: 'itensEventoPublico',
+                    label: 'O que o público encontra',
+                    labels: { singular: 'Item', plural: 'Itens' },
+                    type: 'array',
+                    maxRows: 12,
+                    defaultValue: [{ texto: 'Food trucks' }, { texto: 'Telão' }, { texto: 'Mesas e cadeiras' }, { texto: 'Narrador' }],
+                    admin: {
+                      description:
+                        'Cada item vira uma etiqueta com ícone. Lista vazia = Food trucks, Telão, Mesas e cadeiras e Narrador.',
+                    },
+                    fields: [{ name: 'texto', label: 'Texto', type: 'text', required: true, maxLength: 40 }],
+                  },
+                ],
               },
             ],
           },

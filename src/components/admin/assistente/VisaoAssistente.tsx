@@ -2,6 +2,7 @@ import type { AdminViewServerProps } from 'payload'
 import { DefaultTemplate } from '@payloadcms/next/templates'
 import { Gutter } from '@payloadcms/ui'
 import { redirect } from 'next/navigation'
+import { ehEditorOuAdmin } from '@/access'
 import { Chat } from './Chat'
 
 /** Página /admin/assistente, dentro do layout do painel (menu lateral). */
@@ -20,7 +21,7 @@ export function VisaoAssistente({ initPageResult, params, searchParams }: AdminV
       visibleEntities={visibleEntities}
     >
       <Gutter>
-        <Chat />
+        {ehEditorOuAdmin(req.user) ? <Chat modo="completo" /> : <p style={{ margin: '40px 0' }}>Esta página é só para moderadores e administradores.</p>}
       </Gutter>
     </DefaultTemplate>
   )

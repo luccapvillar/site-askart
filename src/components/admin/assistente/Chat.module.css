@@ -1,28 +1,65 @@
 .chat { display: grid; gap: 16px; max-width: 900px; padding-bottom: 40px; }
+.noEditor { max-width: none; gap: 12px; padding-bottom: 0; }
 .cabeca h1 { margin: 0 0 6px; }
 .cabeca p { margin: 0; color: var(--theme-elevation-600); }
-.conversa { display: grid; gap: 12px; min-height: 240px; }
+.dica { margin: 0; color: var(--theme-elevation-650, var(--theme-elevation-600)); font-size: 0.9rem; }
+.conversa { display: grid; gap: 12px; min-height: 240px; align-content: start; }
+.noEditor .conversa { min-height: 120px; }
 .exemplos { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.exemplos button { width: 100%; padding: 12px 14px; border: 1px dashed var(--theme-elevation-250); border-radius: 8px; background: none; text-align: left; cursor: pointer; }
+.exemplos button { width: 100%; padding: 12px 14px; border: 1px dashed var(--theme-elevation-250); border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.exemplos button:hover { border-color: var(--theme-success-500); }
 .linha { max-width: 85%; padding: 12px 14px; border-radius: 10px; }
+.comProposta { width: 100%; max-width: 100%; }
+.noEditor .linha { max-width: 100%; }
 .voce { justify-self: end; background: var(--theme-elevation-100); }
 .ia { justify-self: start; background: var(--theme-elevation-0); border: 1px solid var(--theme-elevation-150); }
 .sistema { justify-self: center; background: var(--theme-error-50); color: var(--theme-error-800); }
-.texto { margin: 0; white-space: pre-wrap; }
-.proposta { margin-top: 10px; padding: 12px; border-radius: 8px; background: var(--theme-elevation-50); }
-.proposta ol { margin: 8px 0; padding-left: 20px; }
+.texto { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.proposta { display: grid; gap: 10px; margin-top: 10px; padding: 12px; border-radius: 8px; background: var(--theme-elevation-50); }
+.proposta ol, .semPrevia ul { margin: 0; padding-left: 20px; }
 .proposta li { margin: 4px 0; }
+.encerrada > strong, .encerrada > ol { color: var(--theme-elevation-600); }
 .etiqueta { display: inline-block; padding: 0 6px; border-radius: 4px; background: var(--theme-elevation-200); font-size: 0.8em; font-weight: 600; }
-.acoes, .botoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.acoes, .botoes, .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .botoes { justify-content: space-between; }
-.acoes button, .botoes button, .anexar { min-height: 40px; padding: 8px 14px; border: 1px solid var(--theme-elevation-250); border-radius: 6px; background: var(--theme-elevation-0); cursor: pointer; font-weight: 600; }
-.confirmar { background: var(--theme-success-500) !important; border-color: var(--theme-success-500) !important; color: #fff; }
-.confirmar:disabled { opacity: 0.5; }
-.resultados { margin: 8px 0 0; padding: 0; list-style: none; }
-.ok { color: var(--theme-success-700); }
+.barra { padding: 10px; border: 1px solid var(--theme-elevation-150); border-radius: 8px; background: var(--theme-elevation-0); }
+.acoes button, .botoes button, .barra button, .semPrevia button, .previaBarra button, .anexar, .botaoLink {
+  min-height: 40px; padding: 8px 14px; border: 1px solid var(--theme-elevation-250); border-radius: 6px;
+  background: var(--theme-elevation-0); color: var(--theme-text); font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+}
+.botaoLink { display: inline-flex; align-items: center; gap: 4px; }
+/* Azul escuro fixo do painel: contraste AA com texto branco no tema claro e no escuro */
+.confirmar { background: var(--color-success-600, #0b6e99) !important; border-color: var(--color-success-600, #0b6e99) !important; color: #fff !important; }
+.acoes button:disabled, .botoes button:disabled, .barra button:disabled, .semPrevia button:disabled, textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+.chat button:focus-visible, .chat a:focus-visible, .chat textarea:focus-visible, .chat select:focus-visible, .anexar:focus-within {
+  outline: 2px solid var(--theme-success-500); outline-offset: 2px;
+}
+.barra:focus, .acoes:focus, .nota:focus { outline: none; }
+.barra:focus-visible, .acoes:focus-visible, .nota:focus-visible { outline: 2px solid var(--theme-success-500); outline-offset: 2px; }
+.editarVarios { display: inline-flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-weight: 600; }
+.editarVarios a { font-weight: 400; }
+.resultados { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.resultados small { color: var(--theme-elevation-600); }
+.ok { color: var(--theme-success-750, var(--theme-success-700)); }
 .falha { color: var(--theme-error-700); }
+.falha small { color: inherit; }
+.semPrevia { display: grid; gap: 8px; padding: 10px 12px; border-left: 4px solid var(--theme-warning-500); border-radius: 4px; background: var(--theme-elevation-0); }
+.semPrevia p { margin: 0; }
+.semPrevia button { justify-self: start; }
+.refazer { display: grid; gap: 6px; }
+.refazer label { font-weight: 600; }
+.nota { margin: 0; font-weight: 600; }
+.verAoLado { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin: 0; }
+.link { padding: 0; border: 0; background: none; color: var(--theme-success-750, var(--theme-success-700)); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.previa { display: grid; gap: 8px; }
+.previaBarra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.previaBarra a { font-weight: 600; }
+.previaPagina { display: inline-flex; gap: 6px; align-items: center; }
+.previaPagina select { min-height: 40px; padding: 6px 8px; border: 1px solid var(--theme-elevation-250); border-radius: 6px; background: var(--theme-elevation-0); color: inherit; font: inherit; }
 .ocupado { color: var(--theme-elevation-600); font-style: italic; }
 .entrada { position: sticky; bottom: 0; display: grid; gap: 8px; padding: 12px 0; background: var(--theme-bg); }
-.entrada textarea { width: 100%; padding: 12px; border: 1px solid var(--theme-elevation-250); border-radius: 8px; font: inherit; resize: vertical; }
+.noEditor .entrada { padding-bottom: 0; background: var(--theme-elevation-0); }
+.entrada textarea, .refazer textarea { width: 100%; padding: 12px; border: 1px solid var(--theme-elevation-250); border-radius: 8px; background: var(--theme-input-bg, var(--theme-elevation-0)); color: inherit; font: inherit; resize: vertical; }
 .anexo { margin: 0; }
-.anexo button { border: 0; background: none; text-decoration: underline; cursor: pointer; }
+.anexo button { border: 0; background: none; color: inherit; text-decoration: underline; cursor: pointer; }
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

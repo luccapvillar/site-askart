@@ -5,12 +5,14 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import type { CollectionSlug, GlobalSlug, PayloadRequest, Where } from 'payload'
 import { textoParaLexical } from '@/collections/conteudo/editores'
+import { rotaDoDoc, urlAdmin } from '@/lib/previa/alvos'
+import { temRascunho } from '@/lib/previa/rascunho'
 
 export const COLECOES = [
   'etapas', 'corridas', 'inscricoes', 'pilotos', 'equipes', 'categorias', 'temporadas', 'temporada-categorias',
   'campeonatos', 'horarios-treino', 'tipos-treino', 'treinos', 'noticias', 'avisos', 'perguntas', 'galerias', 'documentos',
 ] as const
-export const GLOBAIS = ['configuracoes', 'contato', 'kartodromo', 'pagina-inicial', 'institucional', 'navegacao'] as const
+export const GLOBAIS = ['configuracoes', 'contato', 'kartodromo', 'pagina-inicial', 'institucional', 'navegacao', 'textos-paginas'] as const
 
 /** Campos de texto formatado: o assistente manda texto simples e o sistema converte. */
 const TEXTO_RICO: Record<string, string[]> = {
@@ -54,7 +56,8 @@ export const FERRAMENTAS: Anthropic.Tool[] = [
   },
   {
     name: 'ler_global',
-    description: 'Lê uma configuração única do site (contato, kartódromo com taxas e como treinar, página inicial, configurações).',
+    description:
+      'Lê uma configuração única do site (contato, kartódromo com taxas e como treinar, página inicial, sobre, menu e rodapé, textos das seções, configurações).',
     input_schema: { type: 'object', properties: { global: { type: 'string', enum: [...GLOBAIS] } }, required: ['global'] },
   },
   {
@@ -112,6 +115,8 @@ export async function consultar(req: PayloadRequest, entrada: { colecao: string;
     where: condicoes.length ? { and: condicoes } : undefined,
     limit: Math.min(entrada.limite ?? 30, 100),
     depth: 0,
+    // Como no painel: a última versão (inclui rascunho ainda não publicado)
+    draft: temRascunho(req.payload, 'colecao', entrada.colecao),
     overrideAccess: false,
     user: req.user,
     req,
@@ -121,7 +126,16 @@ export async function consultar(req: PayloadRequest, entrada: { colecao: string;
 
 export async function lerGlobal(req: PayloadRequest, global: string) {
   if (!ehGlobal(global)) return { erro: 'Global não permitido.' }
-  return enxuto(await req.payload.findGlobal({ slug: global as GlobalSlug, depth: 0, overrideAccess: false, user: req.user, req }))
+  return enxuto(
+    await req.payload.findGlobal({
+      slug: global as GlobalSlug,
+      depth: 0,
+      draft: temRascunho(req.payload, 'global', global),
+      overrideAccess: false,
+      user: req.user,
+      req,
+    }),
+  )
 }
 
 function prepararDados(alvo: string, dados: Record<string, unknown> = {}) {
@@ -130,26 +144,82 @@ function prepararDados(alvo: string, dados: Record<string, unknown> = {}) {
   return copia
 }
 
-const COM_RASCUNHO = new Set(['noticias', 'avisos', 'galerias', 'documentos', 'paginas'])
+export type ResultadoOperacao = { descricao: string; ok: boolean; mensagem: string; rascunho?: boolean }
+export type RascunhoGravado = { tipo: 'colecao' | 'global'; slug: string; id?: number; rota: string | null; urlAdmin: string }
 
-/** Executa as operações confirmadas, uma a uma, com as permissões do moderador. */
-export async function aplicar(req: PayloadRequest, operacoes: Operacao[]) {
-  const resultados: { descricao: string; ok: boolean; mensagem: string }[] = []
+/** Mensagem fixa para o que não tem pré-visualização (o painel oferece "Confirmar e publicar"). */
+export const SEM_PREVIA = 'Sem pré-visualização: confirme direto.'
+
+/**
+ * Executa as operações confirmadas, uma a uma, com as permissões do moderador.
+ *
+ * - Sem `rascunho`: grava e publica na hora (comportamento de sempre). Em coleções/globais com rascunho
+ *   o status vai como "publicado" — senão o item novo nasceria escondido e a edição tiraria do ar.
+ * - Com `rascunho: true`: o que tem rascunho é gravado como rascunho (o site não muda; dá para ver na
+ *   pré-visualização e depois publicar ou descartar). O resto NÃO é aplicado e volta com SEM_PREVIA.
+ */
+export async function aplicarOperacoes(req: PayloadRequest, operacoes: Operacao[], opcoes: { rascunho?: boolean } = {}) {
+  const resultados: ResultadoOperacao[] = []
+  const rascunhos: RascunhoGravado[] = []
+  const anotarRascunho = (r: RascunhoGravado) => {
+    if (!rascunhos.some((x) => x.tipo === r.tipo && x.slug === r.slug && x.id === r.id)) rascunhos.push(r)
+  }
   for (const op of operacoes) {
     try {
       const comum = { overrideAccess: false, user: req.user, req } as const
       if (op.tipo === 'atualizar_global') {
         if (!ehGlobal(op.alvo)) throw new Error('Global não permitido.')
-        await req.payload.updateGlobal({ slug: op.alvo as GlobalSlug, data: prepararDados(op.alvo, op.dados) as never, ...comum })
+        const slug = op.alvo as GlobalSlug
+        const dados = prepararDados(op.alvo, op.dados)
+        const comRascunho = temRascunho(req.payload, 'global', op.alvo)
+        if (opcoes.rascunho) {
+          if (!comRascunho) {
+            resultados.push({ descricao: op.descricao, ok: false, mensagem: SEM_PREVIA })
+            continue
+          }
+          delete dados._status
+          await req.payload.updateGlobal({ slug, data: dados as never, draft: true, ...comum })
+          anotarRascunho({ tipo: 'global', slug: op.alvo, rota: rotaDoDoc(op.alvo, {}), urlAdmin: urlAdmin('global', op.alvo) })
+          resultados.push({ descricao: op.descricao, ok: true, mensagem: 'Rascunho salvo.', rascunho: true })
+          continue
+        }
+        if (comRascunho && !('_status' in dados)) dados._status = 'published'
+        await req.payload.updateGlobal({ slug, data: dados as never, draft: false, ...comum })
       } else {
         if (!ehColecao(op.alvo)) throw new Error('Coleção não permitida.')
         const collection = op.alvo as CollectionSlug
         const dados = prepararDados(op.alvo, op.dados)
-        if (COM_RASCUNHO.has(op.alvo) && op.tipo === 'criar' && !('_status' in dados)) dados._status = 'published'
+        const comRascunho = temRascunho(req.payload, 'colecao', op.alvo)
+        if (op.tipo !== 'criar' && !op.id) throw new Error('Falta o id do registro.')
+        if (opcoes.rascunho) {
+          // Exclusão não tem como ser pré-visualizada
+          if (!comRascunho || op.tipo === 'excluir') {
+            resultados.push({ descricao: op.descricao, ok: false, mensagem: SEM_PREVIA })
+            continue
+          }
+          delete dados._status
+          const doc = (
+            op.tipo === 'criar'
+              ? await req.payload.create({ collection, data: dados as never, draft: true, ...comum })
+              : await req.payload.update({ collection, id: op.id as number, data: dados as never, draft: true, ...comum })
+          ) as { id?: number | string; slug?: string | null; secao?: string | null }
+          const id = doc?.id !== undefined ? Number(doc.id) : op.id
+          anotarRascunho({ tipo: 'colecao', slug: op.alvo, id, rota: rotaDoDoc(op.alvo, { ...doc, id }), urlAdmin: urlAdmin('colecao', op.alvo, id) })
+          resultados.push({ descricao: op.descricao, ok: true, mensagem: 'Rascunho salvo.', rascunho: true })
+          continue
+        }
+        if (comRascunho && !('_status' in dados)) {
+          // Criar: já no ar. Atualizar: mantém no ar o que está no ar (o Payload completaria com o status
+          // da última versão — um rascunho pendente tiraria o item do ar); o que está fora do ar segue fora.
+          if (op.tipo === 'criar') dados._status = 'published'
+          else if (op.tipo === 'atualizar') {
+            const principal = (await req.payload.db.findOne({ collection, where: { id: { equals: op.id } }, req })) as { _status?: string } | null
+            if (principal?._status === 'published') dados._status = 'published'
+          }
+        }
         if (op.tipo === 'criar') await req.payload.create({ collection, data: dados as never, draft: false, ...comum })
-        else if (!op.id) throw new Error('Falta o id do registro.')
-        else if (op.tipo === 'atualizar') await req.payload.update({ collection, id: op.id, data: dados as never, draft: false, ...comum })
-        else await req.payload.delete({ collection, id: op.id, ...comum })
+        else if (op.tipo === 'atualizar') await req.payload.update({ collection, id: op.id as number, data: dados as never, draft: false, ...comum })
+        else await req.payload.delete({ collection, id: op.id as number, ...comum })
       }
       resultados.push({ descricao: op.descricao, ok: true, mensagem: 'Feito.' })
     } catch (erro) {
@@ -158,5 +228,10 @@ export async function aplicar(req: PayloadRequest, operacoes: Operacao[]) {
       resultados.push({ descricao: op.descricao, ok: false, mensagem: detalhes || e.message || 'Erro ao gravar.' })
     }
   }
-  return resultados
+  return { resultados, rascunhos }
+}
+
+/** Atalho do comportamento de sempre (publica direto) — devolve só os resultados. */
+export async function aplicar(req: PayloadRequest, operacoes: Operacao[]) {
+  return (await aplicarOperacoes(req, operacoes)).resultados
 }

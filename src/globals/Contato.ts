@@ -1,6 +1,6 @@
 import type { Field, GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
-import { campoImagem, campoUrl, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
+import { campoImagem, campoUrl, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 /**
  * Único número fictício autorizado para a versão de demonstração (pedido do cliente). Fica marcado
@@ -118,12 +118,12 @@ export const Contato: GlobalConfig = comAcessoRestrito(
   {
     slug: 'contato',
     label: 'Contato e redes sociais',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: {
       group: GRUPO_SITE,
       description: 'Telefones, WhatsApp, e-mails, endereço, horário de atendimento, mapa e redes sociais.',
     },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       canais,
       {

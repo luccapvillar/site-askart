@@ -52,6 +52,14 @@ export const Categorias: CollectionConfig = comAcessoRestrito({
     },
     campoSlug('nome'),
     {
+      name: 'subcategorias',
+      label: 'Subcategorias',
+      type: 'array',
+      labels: { singular: 'Subcategoria', plural: 'Subcategorias' },
+      admin: { description: 'Opcional. Só o nome de cada uma, na ordem em que aparecem no site (ex.: Novatos, Junior).' },
+      fields: [{ name: 'nome', label: 'Nome', type: 'text', required: true, maxLength: 40 }],
+    },
+    {
       name: 'descricao',
       label: 'Descrição',
       type: 'richText',

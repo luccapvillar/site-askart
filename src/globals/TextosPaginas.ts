@@ -1,7 +1,7 @@
 import type { GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { ROTAS_FIXAS } from '../fields/link'
-import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 const OPCOES_ROTA = Object.entries(ROTAS_FIXAS)
   .filter(([chave]) => chave !== 'inicio')
@@ -12,13 +12,13 @@ export const TextosPaginas: GlobalConfig = comAcessoRestrito(
   {
     slug: 'textos-paginas',
     label: 'Textos das seções',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: {
       group: GRUPO_SITE,
       description:
         'Personalize o topo de cada seção fixa do site (BKS, Kartódromo, Notícias, Contato…). Seção sem linha aqui usa os textos padrão.',
     },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       {
         name: 'paginas',

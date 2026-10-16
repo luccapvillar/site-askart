@@ -38,12 +38,14 @@ export const MIDIA_UPLOAD = 'midia' as UploadCollectionSlug
 
 /**
  * Rascunho nativo do Payload: editar algo publicado não muda o site até "Publicar alterações".
- * Autosalvamento moderado (a cada 5 s de pausa) e o botão "Salvar rascunho" sempre visível —
- * sem ele o colaborador, que não publica, não teria como salvar um item novo.
+ * Autosalvamento a cada 2 s de pausa (alimenta a pré-visualização ao vivo) e o botão "Salvar rascunho"
+ * sempre visível — sem ele o colaborador, que não publica, não teria como salvar um item novo.
+ * O autosalvamento atualiza a mesma versão de rascunho (não enche o histórico) e não atualiza o site
+ * nem entra no registro de atividades (src/lib/previa/rascunho.ts).
  * Coleções de arquivo (documentos) ficam sem autosalvamento: o envio do arquivo é feito no salvamento.
  */
 export const versoesEditoriais = (autosalvar = true): CollectionConfig['versions'] => ({
-  drafts: autosalvar ? { autosave: { interval: 5000, showSaveDraftButton: true } } : true,
+  drafts: autosalvar ? { autosave: { interval: 2000, showSaveDraftButton: true } } : true,
   maxPerDoc: 50,
 })
 

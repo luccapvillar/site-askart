@@ -1,9 +1,12 @@
-/** Rotas do assistente: /api/assistente, /api/assistente/aplicar, /api/assistente/arquivo. Só moderador e administrador. */
+/**
+ * Rotas do assistente: /api/assistente, /api/assistente/aplicar, /api/assistente/arquivo. Só moderador e administrador.
+ * /api/assistente/aplicar: body { operacoes, rascunho? } -> { resultados, rascunhos } (ver aplicarOperacoes).
+ */
 import Anthropic, { toFile } from '@anthropic-ai/sdk'
 import type { Endpoint, PayloadRequest } from 'payload'
 import { ehEditorOuAdmin } from '@/access'
 import { conversar } from './agente'
-import { aplicar, type Operacao } from './ferramentas'
+import { aplicarOperacoes, type Operacao } from './ferramentas'
 
 const json = (dados: unknown, status = 200) => Response.json(dados, { status })
 
@@ -37,9 +40,10 @@ export const endpointsAssistente: Endpoint[] = [
     handler: async (req) => {
       const bloqueio = barrar(req, false)
       if (bloqueio) return bloqueio
-      const corpo = (await req.json?.()) as { operacoes?: Operacao[] }
+      const corpo = (await req.json?.()) as { operacoes?: Operacao[]; rascunho?: boolean }
       if (!Array.isArray(corpo?.operacoes) || !corpo.operacoes.length) return json({ erro: 'Nada para aplicar.' }, 400)
-      return json({ resultados: await aplicar(req, corpo.operacoes.slice(0, 200)) })
+      // rascunho=true: grava como rascunho o que tem pré-visualização (o resto volta "confirme direto")
+      return json(await aplicarOperacoes(req, corpo.operacoes.slice(0, 200), { rascunho: corpo.rascunho === true }))
     },
   },
   {

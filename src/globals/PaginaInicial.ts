@@ -1,7 +1,7 @@
 import type { Block, Field, GlobalConfig } from 'payload'
-import { comAcessoRestrito, editores, membros, todos } from '../access'
+import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { campoLink } from '../fields/link'
-import { campoImagem, GRUPO_SITE, HISTORICO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 import { ORDEM_PADRAO_INICIO } from './ordem-inicio'
 
 export { ORDEM_PADRAO_INICIO }
@@ -80,12 +80,12 @@ export const PaginaInicial: GlobalConfig = comAcessoRestrito(
   {
     slug: 'pagina-inicial',
     label: 'Página inicial',
-    versions: HISTORICO_GLOBAL,
+    versions: RASCUNHO_GLOBAL,
     admin: {
       group: GRUPO_SITE,
       description: 'Topo da página inicial e as seções abaixo dele. Arraste as seções para mudar a ordem; desmarque para esconder.',
     },
-    access: { read: todos, update: editores, readVersions: membros },
+    access: { read: lerGlobalPublicado, update: editores, readVersions: membros },
     fields: [
       {
         name: 'topo',

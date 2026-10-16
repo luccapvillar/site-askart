@@ -4,7 +4,9 @@
  *   do kartódromo, categorias = as da temporada;
  * - conferências: categorias da temporada, fim depois do início, número único na temporada;
  * - status "realizada" automático (quando todas as corridas que contam estão oficiais);
- * - temporada encerrada congelada; exclusão só sem resultados (corridas vazias saem junto).
+ * - temporada encerrada congelada; exclusão só sem resultados (corridas vazias saem junto);
+ * - rascunho (pré-visualização): pode ficar incompleto e não mexe em nada fora da própria etapa;
+ *   as conferências e os efeitos (títulos das corridas etc.) valem ao publicar.
  */
 import type {
   CollectionAfterChangeHook,
@@ -13,7 +15,7 @@ import type {
   CollectionBeforeValidateHook,
   PayloadRequest,
 } from 'payload'
-import { atualizar, buscar, buscarPorId, buscarPrimeiro, COLECOES, excluir, type ContextoCompeticao } from './api'
+import { buscar, buscarPorId, buscarPrimeiro, COLECOES, excluir, type ContextoCompeticao } from './api'
 import {
   carregarCategorias,
   carregarTemporada,
@@ -33,8 +35,26 @@ import type { ID } from './util'
 import { contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
 import { statusEtapaAutomatico } from './validacoes'
 
-/** Campos que continuam editáveis com a temporada encerrada (apresentação e visibilidade). */
-const LIVRES_ENCERRADA = ['descricao', 'imagem', 'visibilidade', 'localMapa', 'linkIngressos']
+/** Campos que continuam editáveis com a temporada encerrada (apresentação, links e visibilidade). */
+const LIVRES_ENCERRADA = [
+  '_status',
+  'descricao',
+  'imagem',
+  'visibilidade',
+  'localMapa',
+  'linkIngressos',
+  'linkTreinosLivres',
+  'gradeTreinosLivres',
+  'imagemGradeTreinosLivres',
+  'transmissaoProfissional',
+  'transmissaoIndoor',
+]
+
+/**
+ * Gravação de rascunho (autosalvamento ou "salvar rascunho"): o Payload marca `_status: 'draft'` nos
+ * dados antes dos hooks (beforeValidate/beforeChange) e devolve a versão-rascunho no afterChange.
+ */
+export const ehRascunho = (doc: unknown) => (doc as { _status?: unknown } | null | undefined)?._status === 'draft'
 
 type Erro = { caminho: string; mensagem: string }
 
@@ -76,6 +96,7 @@ export const prepararEtapa: CollectionBeforeValidateHook = async ({ data, origin
   if (!data) return data
   const anterior = docAnterior<EtapaDoc>(originalDoc)
   const contexto = context as ContextoCompeticao
+  const rascunho = ehRascunho(data)
   const temporadaId = idDe(data.temporada)
   if (temporadaId === null) return data
   const temporada = await carregarTemporada(req, temporadaId)
@@ -156,7 +177,10 @@ export const prepararEtapa: CollectionBeforeValidateHook = async ({ data, origin
     }
   }
 
-  if (erros.length) falharNoCampo(req, COLECOES.etapas, erros)
+  // Rascunho pode ficar incompleto: as conferências barram ao publicar. Só o número repetido barra já
+  // na criação (o rascunho novo ocupa o número no banco).
+  const bloqueantes = rascunho ? erros.filter((e) => operation === 'create' && e.caminho === 'numero') : erros
+  if (bloqueantes.length) falharNoCampo(req, COLECOES.etapas, bloqueantes)
   return data
 }
 
@@ -179,12 +203,94 @@ export const regrasDaEtapa: CollectionBeforeChangeHook = async ({ data, original
   return data
 }
 
-/** Etapa renomeada, renumerada ou com nova data: atualiza os títulos das corridas. */
+/**
+ * Etapa renomeada, renumerada ou com nova data: atualiza os títulos das corridas.
+ * Só a versão publicada mexe nas corridas; rascunho não. Ao publicar um rascunho, o "anterior" é o
+ * próprio rascunho, então recalcula sempre (só grava o que de fato mudou).
+ */
 export const aposSalvarEtapa: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req }) => {
-  if (operation === 'update' && mudouAlgum(doc, previousDoc, ['nome', 'numero', 'inicio', 'temporada'])) {
+  if (ehRascunho(doc)) return doc
+  const publicandoRascunho = ehRascunho(previousDoc)
+  if (operation === 'update' && (publicandoRascunho || mudouAlgum(doc, previousDoc, ['nome', 'numero', 'inicio', 'temporada']))) {
     await atualizarDerivados(req, COLECOES.corridas, { etapa: { equals: doc.id } })
   }
   return doc
+}
+
+/* ----------------------------------------------------------------------------------------------
+ * Atualizações automáticas sem publicar o rascunho do moderador
+ * -------------------------------------------------------------------------------------------- */
+
+type Dados = Record<string, unknown>
+type Mudanca = Dados | ((versao: Dados) => Dados)
+
+/** Campos que não se copiam de uma versão para outra (sistema, calculados e listas de outras coleções). */
+const FORA_DA_COPIA = new Set(['id', 'createdAt', 'updatedAt', '_status', 'titulo', 'textoBusca', 'corridas', 'noticias', 'galerias'])
+
+/** Todos os campos da versão (os ausentes viram vazio, para nada "vazar" da outra versão). */
+function copiaDaVersao(versao: Dados, campos: Iterable<string>): Dados {
+  const dados: Dados = {}
+  for (const campo of campos) if (!FORA_DA_COPIA.has(campo)) dados[campo] = versao[campo] ?? null
+  return dados
+}
+
+const aplicar = (mudanca: Mudanca, versao: Dados) => (typeof mudanca === 'function' ? mudanca(versao) : mudanca)
+
+async function gravarEtapa(req: PayloadRequest, id: ID, data: Dados, rascunho: boolean, contexto?: ContextoCompeticao) {
+  const anterior = req.context
+  try {
+    await req.payload.update({
+      collection: COLECOES.etapas as 'etapas',
+      id,
+      data: data as never,
+      draft: rascunho,
+      depth: 0,
+      overrideAccess: true,
+      context: contexto,
+      req,
+    })
+  } finally {
+    req.context = anterior
+  }
+}
+
+/**
+ * Atualiza uma etapa por dentro do sistema (status automático, categorias da temporada…).
+ * Uma gravação comum do Payload numa coleção com rascunho parte da ÚLTIMA versão: publicaria o rascunho
+ * que o moderador ainda está revisando (ou gravaria a etapa como rascunho, sumindo do site). Aqui:
+ * - etapa nunca publicada: a mudança vai para o rascunho;
+ * - publicada sem rascunho pendente: grava publicada;
+ * - publicada com rascunho pendente: grava a mudança na versão publicada e refaz o rascunho por cima,
+ *   com a mesma mudança (o moderador continua de onde parou).
+ * `mudanca` pode ser uma função da versão (ex.: tirar uma categoria da lista de cada versão).
+ */
+export async function atualizarEtapaPublicada(req: PayloadRequest, etapaId: unknown, mudanca: Mudanca, contexto?: ContextoCompeticao) {
+  const id = idDe(etapaId)
+  if (id === null) return
+  // Sem `draft`, a leitura vem da tabela principal: a versão publicada (ou o rascunho de etapa nova)
+  const publicada = await buscarPorId<Dados>(req, COLECOES.etapas, id)
+  if (!publicada) return
+  // Com `draft: true`, a última versão (o rascunho pendente, se houver)
+  const ultima = (await req.payload.findByID({
+    collection: COLECOES.etapas as 'etapas',
+    id,
+    draft: true,
+    depth: 0,
+    overrideAccess: true,
+    disableErrors: true,
+    req,
+  })) as unknown as Dados | null
+  if (ehRascunho(publicada)) {
+    await gravarEtapa(req, id, aplicar(mudanca, ultima ?? publicada), true, contexto)
+    return
+  }
+  if (!ultima || !ehRascunho(ultima)) {
+    await gravarEtapa(req, id, { ...aplicar(mudanca, publicada), _status: 'published' }, false, contexto)
+    return
+  }
+  const campos = new Set([...Object.keys(publicada), ...Object.keys(ultima)])
+  await gravarEtapa(req, id, { ...copiaDaVersao(publicada, campos), ...aplicar(mudanca, publicada), _status: 'published' }, false, contexto)
+  await gravarEtapa(req, id, { ...copiaDaVersao(ultima, campos), ...aplicar(mudanca, ultima) }, true, contexto)
 }
 
 /**
@@ -198,7 +304,7 @@ export async function sincronizarStatusEtapa(req: PayloadRequest, etapaId: unkno
   if (!etapa) return
   const corridas = await buscar<CorridaDoc>(req, COLECOES.corridas, { where: { etapa: { equals: id } } })
   const novo = statusEtapaAutomatico(etapa.status, corridas)
-  if (novo) await atualizar(req, COLECOES.etapas, id, { status: novo }, { statusAutomaticoEtapa: id })
+  if (novo) await atualizarEtapaPublicada(req, id, { status: novo }, { statusAutomaticoEtapa: id })
 }
 
 /* ----------------------------------------------------------------------------------------------
