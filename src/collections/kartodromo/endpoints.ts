@@ -4,7 +4,7 @@
  *   POST /api/treinos/bloquear-periodo
  *   { "data": "2026-10-18", "das": "08:00", "ate": "12:00", "motivo": "Etapa do campeonato", "categorias": [1, 2] }
  *
- * - `data`: "AAAA-MM-DD" (ou "DD/MM/AAAA"). `das`/`ate`: "HH:mm" de 15 em 15 min; vazios = o dia inteiro.
+ * - `data`: "AAAA-MM-DD" (ou "DD/MM/AAAA"). `das`/`ate`: "HH:mm" de 5 em 5 min; vazios = o dia inteiro.
  * - `categorias`: opcional; vazio = todas.
  * - Só editor (moderador) ou administrador. Cria o registro de bloqueio em "Treinos e exceções" passando
  *   pelas mesmas regras e hooks da tela, numa transação, e devolve os horários da agenda que ficaram bloqueados.
@@ -77,8 +77,8 @@ const bloquearPeriodo: PayloadHandler = async (req) => {
 
   const das = textoOuVazio(corpo.das) || '00:00'
   const ate = textoOuVazio(corpo.ate) || '24:00'
-  if (!HORARIOS_INICIO.includes(das)) falhar(`Horário inicial inválido ("${das}"): use HH:mm de 15 em 15 minutos, ex.: 08:00.`)
-  if (!HORARIOS_FIM.includes(ate)) falhar(`Horário final inválido ("${ate}"): use HH:mm de 15 em 15 minutos, ex.: 12:00 (24:00 = fim do dia).`)
+  if (!HORARIOS_INICIO.includes(das)) falhar(`Horário inicial inválido ("${das}"): use HH:mm de 5 em 5 minutos, ex.: 08:00.`)
+  if (!HORARIOS_FIM.includes(ate)) falhar(`Horário final inválido ("${ate}"): use HH:mm de 5 em 5 minutos, ex.: 12:00 (24:00 = fim do dia).`)
   if (!intervaloValido(das, ate)) falhar('O fim do bloqueio precisa ser depois do início.')
 
   const motivo = textoOuVazio(corpo.motivo)

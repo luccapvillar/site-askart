@@ -81,7 +81,7 @@ export const statusAcontece = (status: StatusTreino) => ACONTECE.has(status)
 
 export type Visibilidade = 'visivel' | 'oculto' | 'arquivado'
 
-/** Horários "HH:mm" de 15 em 15 minutos: início 00:00…23:45; fim 00:15…24:00 (24:00 = meia-noite, fim do dia). */
+/** Horários "HH:mm" de 5 em 5 minutos: início 00:00…23:55; fim 00:05…24:00 (24:00 = meia-noite, fim do dia). */
 export const HORARIOS_INICIO: readonly string[] = HORARIOS_15MIN
 export const HORARIOS_FIM: readonly string[] = [...HORARIOS_15MIN.slice(1), '24:00']
 

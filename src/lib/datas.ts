@@ -98,12 +98,14 @@ export function minutosEntre(inicio: string, fim: string) {
   return h2 * 60 + m2 - (h1 * 60 + m1)
 }
 
-/** Opções "HH:mm" de 15 em 15 minutos (00:00 … 23:45), para selects de horário sem fuso. */
-export const HORARIOS_15MIN = Array.from({ length: 96 }, (_, i) => {
-  const h = String(Math.floor(i / 4)).padStart(2, '0')
-  const m = String((i % 4) * 15).padStart(2, '0')
-  return `${h}:${m}`
+/** Horários de 5 em 5 minutos (a grade oficial do kartódromo usa 15:20, 17:10…). */
+export const HORARIOS_5MIN = Array.from({ length: 288 }, (_, i) => {
+  const h = Math.floor(i / 12)
+  const m = (i % 12) * 5
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 })
+/** Nome antigo, mantido para quem já importa. */
+export const HORARIOS_15MIN = HORARIOS_5MIN
 
 /** Número ordinal feminino/masculino em português: 3 → "3ª" (etapa) / "3º" (lugar). */
 export const ordinal = (n: number, genero: 'f' | 'm' = 'm') => `${n}${genero === 'f' ? 'ª' : 'º'}`

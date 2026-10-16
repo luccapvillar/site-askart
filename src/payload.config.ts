@@ -85,7 +85,10 @@ export default buildConfig({
       // Fotos são públicas: o endereço aponta direto para o Blob (mais rápido). Documentos passam pelo controle de acesso.
       collections: { midia: { disablePayloadAccessControl: true }, documentos: true },
       token: env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: true,
+      // Mesmos campos no banco com e sem Blob (sem isto a migração local não cria `_object_key` e tudo quebra na Vercel)
+      alwaysInsertFields: true,
+      // Com sufixo aleatório o adaptador troca o nome do original pelo da última variação gravada
+      addRandomSuffix: false,
       clientUploads: true,
     }),
   ],

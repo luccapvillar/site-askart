@@ -130,6 +130,20 @@ export const Configuracoes: GlobalConfig = comAcessoRestrito(
             label: 'Prévia',
             fields: [
               {
+                // Marca de que os dados oficiais iniciais (grade, taxas, endereço) já foram carregados uma vez
+                name: 'dadosOficiaisEm',
+                type: 'date',
+                access: { create: () => false, update: () => false },
+                admin: { hidden: true },
+              },
+              {
+                // Marca de que os exemplos já foram carregados uma vez: a implantação nunca os recarrega
+                name: 'demonstracaoCarregadaEm',
+                type: 'date',
+                access: { create: () => false, update: () => false },
+                admin: { hidden: true },
+              },
+              {
                 name: 'faixaDemonstracao',
                 label: 'Mostrar a faixa "Versão de demonstração"',
                 type: 'checkbox',

@@ -9,12 +9,16 @@ import config from '../src/payload.config'
 async function principal() {
   const email = process.env.ADMIN_EMAIL?.trim()
   const senha = process.env.ADMIN_SENHA
+  const payload = await getPayload({ config })
+  const { totalDocs } = await payload.count({ collection: 'usuarios' })
   if (!email || !senha) {
+    if (totalDocs === 0 && process.env.VERCEL === '1') {
+      // Sem administrador, a tela "criar primeiro usuário" ficaria aberta para qualquer visitante
+      throw new Error('Defina ADMIN_EMAIL e ADMIN_SENHA nas variáveis de ambiente da Vercel e faça Redeploy.')
+    }
     console.log('ADMIN_EMAIL e ADMIN_SENHA não definidos: nenhum administrador criado.')
     return
   }
-  const payload = await getPayload({ config })
-  const { totalDocs } = await payload.count({ collection: 'usuarios' })
   if (totalDocs > 0) {
     payload.logger.info('Já existem usuários: nada a fazer.')
     return

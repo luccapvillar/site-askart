@@ -62,7 +62,7 @@ const validarHoraFim: SelectFieldSingleValidation = (valor, opcoes) => {
 }
 
 /**
- * Início e fim como texto "HH:mm" (de 15 em 15 minutos), sem fuso: o que se escolhe é exatamente o que o
+ * Início e fim como texto "HH:mm" (de 5 em 5 minutos), sem fuso: o que se escolhe é exatamente o que o
  * site mostra. `opcionaisComSubstitui`: nos treinos, ficam vazios quando a exceção herda do horário fixo.
  */
 export function camposHorario(opcoes: { opcionaisComSubstitui?: boolean } = {}): Field[] {

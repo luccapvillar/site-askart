@@ -21,7 +21,8 @@
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-demo.ts",
     "seed:limpar": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/seed-limpar.ts",
     "criar-admin": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/criar-admin.ts",
-    "vercel-build": "bash scripts/vercel-build.sh"
+    "vercel-build": "bash scripts/vercel-build.sh",
+    "dados:oficiais": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/dados-oficiais.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",

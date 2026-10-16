@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { AgendaTreinos } from '@/components/site/AgendaTreinos'
 import { BotaoIzy, LinkMapa } from '@/components/site/bks/pecas'
 import { Canais } from '@/components/site/Canais'
 import { CartaoNoticia, GradeCartoes } from '@/components/site/Cartoes'
@@ -26,7 +25,9 @@ import {
   textosDaSecao,
 } from '@/lib/publico'
 import { canaisDoContato, NOMES_REDES } from '@/lib/site'
-import type { Categoria, CategoriasNoticia, Galeria as TipoGaleria, HorariosTreino, Midia } from '@/payload-types'
+import { montarGrade } from '@/lib/grade'
+import { GradeTreinos } from '@/components/site/treinos/GradeTreinos'
+import type { CategoriasNoticia, Galeria as TipoGaleria, Midia } from '@/payload-types'
 
 export const revalidate = 60
 
@@ -36,31 +37,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: textos?.seoTitulo || k.nome || 'Kartódromo',
     description: textos?.seoDescricao || k.resumo || 'Kartódromo Ayrton Senna do Guará: localização, taxas, horários de treino por categoria e como treinar.',
   }
-}
-
-const DIAS = [
-  ['segunda', 'Seg'],
-  ['terca', 'Ter'],
-  ['quarta', 'Qua'],
-  ['quinta', 'Qui'],
-  ['sexta', 'Sex'],
-  ['sabado', 'Sáb'],
-  ['domingo', 'Dom'],
-] as const
-
-/** Tabela "dias e horários de treino de cada categoria", a partir da grade semanal. */
-function tabelaPorCategoria(grade: HorariosTreino[]) {
-  const linhas = new Map<string, { nome: string; cor: string | null; dias: Record<string, string[]> }>()
-  for (const h of grade) {
-    const cats = (h.categorias ?? []).filter((c): c is Categoria => typeof c === 'object')
-    const alvos = cats.length ? cats.map((c) => ({ nome: semDemo(c.nome), cor: c.cor ?? null })) : [{ nome: 'Todas as categorias', cor: null }]
-    for (const alvo of alvos) {
-      const linha = linhas.get(alvo.nome) ?? { nome: alvo.nome, cor: alvo.cor, dias: {} }
-      ;(linha.dias[h.diaSemana] ??= []).push(`${h.horaInicio}–${h.horaFim}`)
-      linhas.set(alvo.nome, linha)
-    }
-  }
-  return [...linhas.values()].sort((a, b) => (a.nome === 'Todas as categorias' ? -1 : b.nome === 'Todas as categorias' ? 1 : a.nome.localeCompare(b.nome, 'pt-BR')))
 }
 
 export default async function PaginaKartodromo() {
@@ -77,7 +53,9 @@ export default async function PaginaKartodromo() {
   const nome = k.nome || 'Kartódromo Ayrton Senna do Guará'
   const canais = canaisDoContato(contato, 'kartodromo')
   const redes = contato.redes ?? []
-  const tabela = tabelaPorCategoria(grade)
+  const quadro = montarGrade(grade)
+  // Mudanças da semana (pista fechada, horário extra, lotação, cancelamento) — exceções à grade
+  const mudancas = agenda.flatMap((d) => d.horarios.filter((h) => h.status !== 'liberado').map((h) => ({ ...h, dia: d.nome, data: d.data })))
   const galerias = (k.galerias ?? []).map((g) => comoDoc<TipoGaleria>(g)).filter((g): g is TipoGaleria => g !== null)
   const temHistoria = Boolean((k.historia as { root?: { children?: unknown[] } } | null)?.root?.children?.length)
 
@@ -145,52 +123,37 @@ export default async function PaginaKartodromo() {
         </div>
       </Secao>
 
-      <Secao id="treinos" rotulo="Agenda" titulo="Dias e horários de treino" branca>
-        {tabela.length ? (
-          <div className="rolagem-x">
-            <table className={s.gradeTreinos}>
-              <caption className="visualmente-oculto">Horários de treino de cada categoria por dia da semana</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Categoria</th>
-                  {DIAS.map(([, curto]) => (
-                    <th key={curto} scope="col">
-                      {curto}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tabela.map((linha) => (
-                  <tr key={linha.nome}>
-                    <th scope="row">
-                      {linha.cor && <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: linha.cor, marginRight: 8 }} aria-hidden="true" />}
-                      {linha.nome}
-                    </th>
-                    {DIAS.map(([dia]) => (
-                      <td key={dia}>
-                        {linha.dias[dia]?.length ? linha.dias[dia].map((h) => <span key={h} className="mono">{h}</span>) : <span className={s.vazioCel} aria-label="sem treino">—</span>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EstadoVazio texto="A tabela de treinos será publicada em breve." />
-        )}
-        <h3 className="h3" style={{ margin: '40px 0 16px' }}>
-          Próximos 7 dias
-        </h3>
-        <p className="texto-2" style={{ marginBottom: 16 }}>
-          Já com as mudanças da semana (horários extras, pista fechada, lotação).
+      <Secao id="treinos" rotulo="Treino quase todos os dias" titulo="Grade de treinos" branca>
+        <p className="texto-2" style={{ maxWidth: '70ch', marginBottom: 20 }}>
+          Cronograma oficial de pista do Kartódromo do Guará. Os horários são definidos pela Administração do Kartódromo e não há tolerância para
+          antecipar ou atrasar o início ou o fim de cada treino.
         </p>
-        <AgendaTreinos
-          dias={agenda.map((d) => ({ ...d, horarios: d.horarios.map((h) => ({ ...h, tipo: semDemo(h.tipo), observacao: semDemo(h.observacao) || null, categorias: h.categorias.map(semDemo) })) }))}
-          semana
-          textoSemHorario="Sem treino."
-        />
+        {mudancas.length > 0 && (
+          <div className={s.cartao} style={{ marginBottom: 20 }} role="status">
+            <h3 className="h3" style={{ marginBottom: 8 }}>
+              Mudanças nos próximos dias
+            </h3>
+            <ul className={s.lista}>
+              {mudancas.map((m) => (
+                <li key={m.id}>
+                  <span>
+                    <strong>
+                      {m.dia}, {m.data}
+                    </strong>{' '}
+                    · {m.inicio}–{m.fim} · {semDemo(m.tipo)}
+                    {m.observacao ? ` — ${semDemo(m.observacao)}` : ''}
+                  </span>
+                  <strong>{{ bloqueado: 'Pista fechada', cancelado: 'Cancelado', lotado: 'Lotado', extra: 'Horário extra' }[m.status as string] ?? m.status}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {quadro.dias.some((d) => d.horarios.length) ? (
+          <GradeTreinos dias={quadro.dias} categorias={quadro.categorias} legenda={quadro.legenda} />
+        ) : (
+          <EstadoVazio texto="A grade de treinos será publicada em breve." />
+        )}
       </Secao>
 
       <Secao id="como-treinar" rotulo="Passo a passo" titulo="Como treinar no kartódromo">
