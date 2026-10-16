@@ -14,20 +14,28 @@ achar() {
   done
 }
 export DATABASE_URL="${DATABASE_URL:-$(achar DATABASE_URL POSTGRES_URL)}"
+# O token das fotos é reconhecido também pelo valor (começa com vercel_blob_rw_), seja qual for o nome
+pelo_valor() {
+  for n in $(compgen -e); do case "${!n}" in "$1"*) echo "${!n}"; return 0 ;; esac; done
+}
 export BLOB_READ_WRITE_TOKEN="${BLOB_READ_WRITE_TOKEN:-$(achar BLOB_READ_WRITE_TOKEN)}"
+export BLOB_READ_WRITE_TOKEN="${BLOB_READ_WRITE_TOKEN:-$(pelo_valor vercel_blob_rw_)}"
+# Nomes (nunca os valores) das variáveis de armazenamento que o deploy recebeu, para o diagnóstico
+nomes() { for n in $(compgen -e | grep -iE 'database|postgres|^pg|neon|blob|storage|token' || true); do [ -n "${!n}" ] && printf '%s ' "$n"; done; true; }
 
 if [ -z "$DATABASE_URL" ]; then
   echo ""
   echo "Falta o banco de dados. Na Vercel: aba Storage → Create Database → Neon (Postgres) → conecte a este projeto"
   echo "(marque Production, Preview e Development). Se já conectou, confira em Settings → Environment Variables."
   echo "Depois, em Storage → Create → Blob, conecte também o armazenamento de fotos. Em seguida: Deployments → Redeploy."
-  echo "Variáveis de banco/fotos que este deploy recebeu (só os nomes): $(for n in $(compgen -e | grep -iE 'database|postgres|^pg|neon|blob' || true); do [ -n "${!n}" ] && printf '%s ' "$n"; done; true)"
+  echo "Variáveis de banco/fotos que este deploy recebeu (só os nomes): $(nomes)"
   echo ""
   exit 1
 fi
 if [ -z "$BLOB_READ_WRITE_TOKEN" ] && [ "${VERCEL:-}" = "1" ]; then
   echo ""
   echo "Falta o armazenamento de fotos. Na Vercel: aba Storage → Create → Blob → conecte a este projeto e faça Redeploy."
+  echo "Variáveis de banco/fotos que este deploy recebeu (só os nomes): $(nomes)"
   echo ""
   exit 1
 fi

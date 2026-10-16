@@ -46,6 +46,7 @@ export const env = {
   URLS_EXTRAS: [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
     .filter((u): u is string => Boolean(u))
     .map((u) => `https://${u}`),
-  BLOB_READ_WRITE_TOKEN: ler('BLOB_READ_WRITE_TOKEN') || '',
+  BLOB_READ_WRITE_TOKEN:
+    ler('BLOB_READ_WRITE_TOKEN') || Object.values(process.env).find((v) => v?.startsWith('vercel_blob_rw_')) || '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
 } as const
