@@ -5,14 +5,26 @@
 # 5. gera o site.
 set -euo pipefail
 
-if [ -z "${DATABASE_URL:-}" ] && [ -z "${POSTGRES_URL:-}" ]; then
+# Aceita as variáveis também com prefixo (a Vercel às vezes cria, por exemplo, STORAGE_DATABASE_URL)
+achar() {
+  for s in "$@"; do
+    for n in $(compgen -e | grep -E "(^|_)${s}$" || true); do
+      if [ -n "${!n}" ]; then echo "${!n}"; return 0; fi
+    done
+  done
+}
+export DATABASE_URL="${DATABASE_URL:-$(achar DATABASE_URL POSTGRES_URL)}"
+export BLOB_READ_WRITE_TOKEN="${BLOB_READ_WRITE_TOKEN:-$(achar BLOB_READ_WRITE_TOKEN)}"
+
+if [ -z "$DATABASE_URL" ]; then
   echo ""
-  echo "Falta o banco de dados. Na Vercel: aba Storage → Create Database → Neon (Postgres) → conecte a este projeto."
+  echo "Falta o banco de dados. Na Vercel: aba Storage → Create Database → Neon (Postgres) → conecte a este projeto"
+  echo "(marque Production, Preview e Development). Se já conectou, confira em Settings → Environment Variables."
   echo "Depois, em Storage → Create → Blob, conecte também o armazenamento de fotos. Em seguida: Deployments → Redeploy."
   echo ""
   exit 1
 fi
-if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ] && [ "${VERCEL:-}" = "1" ]; then
+if [ -z "$BLOB_READ_WRITE_TOKEN" ] && [ "${VERCEL:-}" = "1" ]; then
   echo ""
   echo "Falta o armazenamento de fotos. Na Vercel: aba Storage → Create → Blob → conecte a este projeto e faça Redeploy."
   echo ""

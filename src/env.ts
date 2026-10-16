@@ -12,6 +12,14 @@ function exigir(nome: string, valor: string | undefined, regra?: (v: string) => 
   return valor
 }
 
+/** Lê a variável pelo nome ou com prefixo (a Vercel às vezes cria, por exemplo, STORAGE_DATABASE_URL). */
+const ler = (...nomes: string[]) => {
+  for (const nome of nomes) {
+    const chave = Object.keys(process.env).find((k) => (k === nome || k.endsWith(`_${nome}`)) && process.env[k])
+    if (chave) return process.env[chave]
+  }
+}
+
 const urlDoServidor = () => {
   const explicita = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '')
   if (explicita) return explicita
@@ -23,7 +31,7 @@ const urlDoServidor = () => {
 export const env = {
   producao,
   emBuild: fase === 'phase-production-build',
-  DATABASE_URL: exigir('DATABASE_URL', process.env.DATABASE_URL || process.env.POSTGRES_URL),
+  DATABASE_URL: exigir('DATABASE_URL', ler('DATABASE_URL', 'POSTGRES_URL')),
   PAYLOAD_SECRET: exigir('PAYLOAD_SECRET', process.env.PAYLOAD_SECRET, (v) =>
     producao && v.length < 32 ? 'use um segredo com pelo menos 32 caracteres (ex.: openssl rand -hex 32).' : null,
   ),
@@ -38,6 +46,6 @@ export const env = {
   URLS_EXTRAS: [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
     .filter((u): u is string => Boolean(u))
     .map((u) => `https://${u}`),
-  BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN || '',
+  BLOB_READ_WRITE_TOKEN: ler('BLOB_READ_WRITE_TOKEN') || '',
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
 } as const
