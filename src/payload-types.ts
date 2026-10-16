@@ -1340,6 +1340,15 @@ export interface Categoria {
    */
   slug?: string | null;
   /**
+   * Opcional. Só o nome de cada uma, na ordem em que aparecem no site (ex.: Novatos, Junior).
+   */
+  subcategorias?:
+    | {
+        nome: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Opcional. Ex.: faixa de idade, motor, peso mínimo — conforme o regulamento.
    */
   descricao?: {
@@ -4290,6 +4299,12 @@ export interface CategoriasSelect<T extends boolean = true> {
   nome?: T;
   sigla?: T;
   slug?: T;
+  subcategorias?:
+    | T
+    | {
+        nome?: T;
+        id?: T;
+      };
   descricao?: T;
   imagem?: T;
   cor?: T;

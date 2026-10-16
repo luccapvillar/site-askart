@@ -31,7 +31,7 @@ export const HorariosTreino: CollectionConfig = comAcessoRestrito({
     defaultColumns: ['titulo', 'tipo', 'duracao', 'validoAte', 'visibilidade'],
     listSearchableFields: ['titulo', 'observacao'],
     description:
-      'Para mudar só um dia (cancelar, bloquear, lotar ou trocar o horário), use "Treinos e exceções". ' +
+      'Horários que se repetem toda semana. Para mudar só um dia (cancelar, bloquear, lotar ou trocar o horário), use "Treinos e exceções". ' +
       'Para mudar de vez a partir de uma data, preencha "Válido até" neste horário e crie outro com "Válido a partir de": assim o histórico fica certo.',
   },
   // POST /api/horarios-treino/salvar-grade (editor da grade, /admin/grade-treinos)
