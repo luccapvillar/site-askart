@@ -172,6 +172,28 @@ export const copiaDaLinha = (l: LinhaGrade, dia: DiaSemana = l.diaSemana): Linha
   vinculos: 0,
 })
 
+/** Copia todos os horários de um dia para outro (opcionalmente trocando os que já existem lá). */
+export function copiarDia(
+  linhas: LinhaGrade[],
+  de: LinhaGrade['diaSemana'],
+  para: LinhaGrade['diaSemana'],
+  substituir: boolean,
+): { linhas: LinhaGrade[]; copiados: number; tiradosDoSite: number } {
+  const copias = linhas.filter((l) => l.diaSemana === de).map((l) => copiaDaLinha(l, para))
+  let tiradosDoSite = 0
+  const mantidas = substituir
+    ? linhas.flatMap((l) => {
+        if (l.diaSemana !== para) return [l]
+        if (l.vinculos > 0) {
+          tiradosDoSite++
+          return [{ ...l, visivel: false }]
+        }
+        return []
+      })
+    : linhas
+  return { linhas: [...mantidas, ...copias], copiados: copias.length, tiradosDoSite }
+}
+
 const texto = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 const dataOuNulo = (v: unknown) => chaveDaData(v) ?? null
 
