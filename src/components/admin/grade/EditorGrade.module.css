@@ -1,0 +1,648 @@
+/* Editor da grade de treinos (/admin/grade-treinos). Cores do painel (--theme-*): funciona no tema claro e no escuro. */
+
+.editor {
+  display: grid;
+  gap: 20px;
+  padding-bottom: 8px;
+}
+
+.editor :is(button, select, input, textarea, summary, a):focus-visible {
+  outline: 2px solid var(--theme-success-500);
+  outline-offset: 2px;
+}
+
+.cabeca h1 {
+  margin: 0 0 6px;
+}
+
+.cabeca p {
+  max-width: 75ch;
+  margin: 0 0 6px;
+  color: var(--theme-elevation-700);
+}
+
+.subtitulo {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.dica {
+  margin: 4px 0;
+  font-size: 0.875rem;
+  color: var(--theme-elevation-650);
+}
+
+.visualmenteOculto {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ colunas */
+
+.colunas {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+.colunaEditor {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.previa {
+  min-width: 0;
+  scroll-margin-top: 16px;
+}
+
+@media (min-width: 1200px) {
+  .colunas {
+    grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  }
+
+  .previa {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .soCelular {
+    display: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ botões */
+
+.botaoPrincipal,
+.botaoSecundario,
+.botaoMiudo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.botaoPrincipal,
+.botaoSecundario {
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.botaoPrincipal {
+  border: 1px solid var(--theme-success-600);
+  background: var(--theme-success-600);
+  color: #fff;
+}
+
+.botaoSecundario {
+  border: 1px solid var(--theme-elevation-250);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+}
+
+.botaoMiudo {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--theme-elevation-250);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  font-size: 0.875rem;
+}
+
+.botaoPerigo {
+  border-color: var(--theme-error-300);
+  color: var(--theme-error-750);
+}
+
+.botaoLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.editor button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (hover: hover) {
+  .botaoSecundario:not(:disabled):hover,
+  .botaoMiudo:not(:disabled):hover {
+    background: var(--theme-elevation-50);
+  }
+
+  .botaoPrincipal:not(:disabled):hover {
+    background: var(--theme-success-700);
+  }
+}
+
+/* ------------------------------------------------------------------ campos */
+
+.campos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+
+.campo {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.campo label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--theme-elevation-800);
+}
+
+.campo select,
+.campo input,
+.iaForm textarea {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 6px;
+  background: var(--theme-input-bg, var(--theme-elevation-0));
+  color: var(--theme-text);
+  font: inherit;
+}
+
+.campo select[aria-invalid='true'] {
+  border-color: var(--theme-error-500);
+}
+
+.campoTurma {
+  flex: 1 1 200px;
+}
+
+.campoTurma select {
+  width: 100%;
+}
+
+.campoObs {
+  flex: 1 1 240px;
+}
+
+.campoObs input {
+  width: 100%;
+}
+
+.duracao {
+  margin: 0 0 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotuloMiudo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--theme-elevation-650);
+}
+
+.marcar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.marcar input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--theme-success-600);
+}
+
+/* ------------------------------------------------------------------ IA */
+
+.ia {
+  padding: 16px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-50);
+}
+
+.iaCabeca {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.iaForm {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.iaForm textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+@media (min-width: 640px) {
+  .iaForm {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.iaSaida:not(:empty) {
+  margin-top: 10px;
+}
+
+.iaResultado {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.iaResultado p {
+  margin: 0;
+}
+
+.iaResposta {
+  white-space: pre-wrap;
+}
+
+.listaIA {
+  margin: 0;
+  padding-left: 4px;
+  list-style: none;
+}
+
+.listaIA li {
+  margin: 2px 0;
+}
+
+/* ------------------------------------------------------------------ dias (abas) */
+
+.semana {
+  display: grid;
+  gap: 10px;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--theme-elevation-150);
+}
+
+.aba {
+  position: relative;
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: none;
+  color: var(--theme-elevation-700);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aba[aria-selected='true'] {
+  border-color: var(--theme-elevation-150);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  box-shadow: inset 0 3px 0 var(--theme-success-500);
+}
+
+.contagem {
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--theme-elevation-100);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.pontoMudou {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--theme-warning-500);
+}
+
+.marcaProblema {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--theme-error-500);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.painelDia {
+  display: grid;
+  gap: 12px;
+}
+
+.painelCabeca {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.nomeDia {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.vazio {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--theme-elevation-250);
+  border-radius: 8px;
+  color: var(--theme-elevation-700);
+}
+
+/* ------------------------------------------------------------------ horários */
+
+.lista {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha {
+  border: 1px solid var(--theme-elevation-150);
+  border-left: 4px solid var(--theme-elevation-250);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+}
+
+.linha[data-estado='novo'] {
+  border-left-color: var(--theme-success-500);
+}
+
+.linha[data-estado='alterado'] {
+  border-left-color: var(--theme-warning-500);
+}
+
+.linha[data-oculto] {
+  border-style: dashed;
+  border-left-style: solid;
+  background: var(--theme-elevation-50);
+}
+
+.linha[data-erro] {
+  border-color: var(--theme-error-400);
+  border-left-color: var(--theme-error-500);
+}
+
+.conjunto {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px 14px;
+  border: 0;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 0;
+  float: left; /* a legenda entra no fluxo do grid (sem o recorte padrão da borda do fieldset) */
+  width: 100%;
+}
+
+.numero {
+  font-weight: 700;
+}
+
+.selo {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.seloNovo {
+  background: var(--theme-success-100);
+  color: var(--theme-success-800);
+}
+
+.seloAlterado {
+  background: var(--theme-warning-100);
+  color: var(--theme-warning-800);
+}
+
+.seloOculto {
+  background: var(--theme-elevation-150);
+  color: var(--theme-elevation-800);
+}
+
+.validade {
+  font-size: 0.8125rem;
+  color: var(--theme-elevation-700);
+}
+
+.categorias,
+.mais,
+.copiar {
+  min-width: 0;
+}
+
+.categorias {
+  flex: 1 1 220px;
+}
+
+.categorias summary,
+.mais summary,
+.copiar summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.categorias summary {
+  padding: 8px 10px;
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 6px;
+}
+
+.caixaCategorias,
+.caixaMais,
+.caixaCopiar {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 6px;
+  background: var(--theme-elevation-50);
+}
+
+.listaCategorias {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: 0 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rodapeLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 16px;
+}
+
+.mais {
+  flex: 1 1 200px;
+}
+
+.botoesLinha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.erros {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  border-radius: 6px;
+  background: var(--theme-error-50);
+  color: var(--theme-error-800);
+  font-size: 0.875rem;
+}
+
+.erros li + li {
+  margin-top: 4px;
+}
+
+.acoesDia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 16px;
+}
+
+.copiar summary {
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ------------------------------------------------------------------ barra de ações */
+
+.barra {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+  margin: 0 calc(-1 * var(--gutter-h, 0px));
+  padding: 12px var(--gutter-h, 0px);
+  border-top: 1px solid var(--theme-elevation-150);
+  background: var(--theme-bg);
+}
+
+.barraTexto {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.barraTexto p {
+  margin: 0;
+}
+
+.contador {
+  font-weight: 700;
+}
+
+.problemas {
+  color: var(--theme-error-750);
+}
+
+.barraBotoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.barraBotoes > * {
+  flex: 1 1 auto;
+}
+
+@media (min-width: 900px) {
+  .barra {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .barraBotoes > * {
+    flex: 0 0 auto;
+  }
+}
+
+.aviso {
+  padding: 8px 12px;
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 6px;
+  background: var(--theme-elevation-50);
+}
+
+.avisoOk {
+  border-color: var(--theme-success-300);
+  background: var(--theme-success-50);
+  color: var(--theme-success-850);
+}
+
+.avisoErro {
+  border-color: var(--theme-error-300);
+  background: var(--theme-error-50);
+  color: var(--theme-error-800);
+}

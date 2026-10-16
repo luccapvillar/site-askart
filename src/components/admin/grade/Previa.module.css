@@ -1,0 +1,80 @@
+/*
+ * "Palco" da pré-visualização: as variáveis e o básico do site público (src/app/(frontend)/globals.css)
+ * para o quadro GradeTreinos aparecer no painel como aparece no site, também com o painel no tema escuro.
+ * As cores da marca (Configurações) chegam por style (variaveisDeCor).
+ */
+.palco {
+  --marca-primaria: #3a7f41;
+  --marca-secundaria: #edd357;
+  --marca-escuro: #111111;
+  --sobre-primaria: #ffffff;
+  --verde-escuro: color-mix(in oklab, var(--marca-primaria) 70%, black);
+  --amarelo: var(--marca-secundaria);
+  --branco: #ffffff;
+  --texto: #141714;
+  --texto-2: #50564f;
+  --linha: rgb(20 23 20 / 0.12);
+  --fonte-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --raio-g: 12px;
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+
+  color-scheme: light;
+  padding: 16px;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 10px;
+  background: #f5f6f2;
+  color: var(--texto);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Base do site com especificidade baixa (as classes do componente continuam valendo) */
+.palco :where(ul, ol) {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.palco :where(h3, p) {
+  margin: 0;
+}
+
+.palco :where(button) {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.palco :where(table) {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.palco :where(:focus-visible) {
+  outline: 3px solid var(--amarelo);
+  outline-offset: 2px;
+}
+
+.palco :global(.mono) {
+  font-family: var(--fonte-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.palco :global(.visualmente-oculto) {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.vazio {
+  padding: 24px 8px;
+  color: var(--texto-2);
+  text-align: center;
+}
