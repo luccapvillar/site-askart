@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 /**
  * Variáveis de ambiente, conferidas na inicialização. Uma falta aqui derruba o servidor com uma
  * mensagem clara, em vez de um erro confuso no meio do uso.
@@ -20,6 +22,15 @@ const ler = (...nomes: string[]) => {
   }
 }
 
+/**
+ * Sem PAYLOAD_SECRET definido, usa um segredo fixo tirado do endereço do banco (que já carrega a senha dele):
+ * a prévia sobe sem mais um passo na Vercel. Definir PAYLOAD_SECRET continua sendo o recomendado.
+ */
+const segredoDerivado = () => {
+  const banco = ler('DATABASE_URL', 'POSTGRES_URL')
+  return banco ? createHash('sha256').update(`askart-payload:${banco}`).digest('hex') : undefined
+}
+
 const urlDoServidor = () => {
   const explicita = process.env.NEXT_PUBLIC_SERVER_URL?.replace(/\/$/, '')
   if (explicita) return explicita
@@ -32,7 +43,7 @@ export const env = {
   producao,
   emBuild: fase === 'phase-production-build',
   DATABASE_URL: exigir('DATABASE_URL', ler('DATABASE_URL', 'POSTGRES_URL')),
-  PAYLOAD_SECRET: exigir('PAYLOAD_SECRET', process.env.PAYLOAD_SECRET, (v) =>
+  PAYLOAD_SECRET: exigir('PAYLOAD_SECRET', process.env.PAYLOAD_SECRET || segredoDerivado(), (v) =>
     producao && v.length < 32 ? 'use um segredo com pelo menos 32 caracteres (ex.: openssl rand -hex 32).' : null,
   ),
   SERVER_URL: urlDoServidor(),

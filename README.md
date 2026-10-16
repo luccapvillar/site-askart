@@ -22,7 +22,7 @@ Site da **ASKART — Associação de Pilotos de Kart de Brasília**, do **Kartó
 
 1. Na Vercel: **Add New → Project** → importe o repositório `site-askart`.
 2. Antes de clicar em Deploy, abra **Environment Variables** e crie:
-   - `PAYLOAD_SECRET` — um texto aleatório com 32 caracteres ou mais (ex.: o resultado de `openssl rand -hex 32`).
+   - `PAYLOAD_SECRET` — um texto aleatório com 32 caracteres ou mais (ex.: o resultado de `openssl rand -hex 32`). Opcional na prévia: sem ele, o sistema usa um segredo tirado do endereço do banco.
    - `ADMIN_EMAIL` e `ADMIN_SENHA` — o primeiro acesso ao painel (senha com 10+ caracteres, letras e números). `ADMIN_NOME` é opcional.
    - `DADOS_DEMONSTRACAO` = `1` — só na prévia, para o site aparecer preenchido com exemplos.
    - `ANTHROPIC_API_KEY` — chave da API da Anthropic (console.anthropic.com) para o **Assistente com IA** do painel. Sem ela, o resto funciona e o assistente avisa que está desligado.
