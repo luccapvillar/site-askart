@@ -162,7 +162,7 @@ export interface UsuarioAuthOperations {
   };
 }
 /**
- * Calendário das temporadas. Mudou a data ou o local? Edite aqui e o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.
+ * Calendário das temporadas. Mudou a data, o local ou um link? Edite aqui, confira na pré-visualização e publique: o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "etapas".

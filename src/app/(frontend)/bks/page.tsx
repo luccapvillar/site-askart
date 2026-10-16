@@ -64,7 +64,7 @@ export default async function CalendarioBks() {
                           {proxima?.id === etapa.id && <span className={s.proxima}>Próxima</span>}
                         </span>
                         <span className={s.etapaMeta}>
-                          <SeloEtapa status={etapa.status} />
+                          <SeloEtapa status={etapa.status} jaOcorreu={situacao.jaOcorreu} />
                           <span>{dataPorExtenso(etapa)}</span>
                           {etapa.local && <span>{etapa.local}</span>}
                         </span>

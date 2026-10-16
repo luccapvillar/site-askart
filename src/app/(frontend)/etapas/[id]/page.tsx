@@ -77,7 +77,7 @@ export default async function PaginaEtapa({ params }: Props) {
         titulo={<NomeEtapa etapa={etapa} />}
         intro={
           <span style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', alignItems: 'center' }}>
-            <SeloEtapa status={etapa.status} /> {dataPorExtenso(etapa)}
+            <SeloEtapa status={etapa.status} jaOcorreu={situacao.jaOcorreu} /> {dataPorExtenso(etapa)}
             {etapa.inicio && ` · ${formatarHora(etapa.inicio)}`}
             {etapa.local && ` · ${etapa.local}`}
           </span>

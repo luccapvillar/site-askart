@@ -70,10 +70,10 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
   admin: {
     group: 'Competição',
     useAsTitle: 'titulo',
-    defaultColumns: ['titulo', 'local', 'status', 'visibilidade'],
+    defaultColumns: ['titulo', 'local', 'status', 'visibilidade', '_status'],
     listSearchableFields: ['titulo', 'local', 'textoBusca'],
     description:
-      'Calendário das temporadas. Mudou a data ou o local? Edite aqui e o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.',
+      'Calendário das temporadas. Mudou a data, o local ou um link? Edite aqui, confira na pré-visualização e publique: o site inteiro se atualiza. As corridas de cada etapa são criadas pelo botão "Gerar corridas" a partir do formato da temporada.',
   },
   // Rascunho: o moderador confere na pré-visualização antes de publicar
   versions: { drafts: { autosave: { interval: 2000 } }, maxPerDoc: 30 },
@@ -383,6 +383,14 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
     },
     campoVisibilidade(),
     campoTextoBusca(),
+    // Situação de publicação do rascunho (o Payload completa o campo). Nome próprio no banco: o padrão
+    // (enum_etapas_status) colidiria com o do campo "Status" da etapa (agendada, confirmada…).
+    {
+      name: '_status',
+      label: 'Publicação',
+      type: 'select',
+      enumName: ({ tableName }: { tableName: string }) => `enum_${tableName}_publicacao`,
+    } as unknown as Field,
   ],
   hooks: {
     beforeValidate: [prepararEtapa],

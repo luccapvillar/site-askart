@@ -37,7 +37,8 @@ import {
   lerPerguntas,
   lerProgramacao,
 } from '@/lib/publico'
-import { canaisDoContato, ingressosDaEtapa, mapaDaEtapa, proximaEtapa } from '@/lib/site'
+import { canaisDoContato, ingressosDaEtapa, mapaDaEtapa, proximaEtapa, situacaoDaEtapa } from '@/lib/site'
+import { BotaoExterno, CompraDaEtapa } from '@/components/site/etapa/BlocosEtapa'
 import type { CategoriasNoticia, Galeria as TipoGaleria, Midia, PaginaInicial, Piloto } from '@/payload-types'
 
 export const revalidate = 60
@@ -74,6 +75,7 @@ export default async function Inicio() {
   const etapas = temporada ? await lerEtapas(temporada.id) : []
   const proxima = proximaEtapa(etapas)
   const programacaoProxima = proxima ? await lerProgramacao([proxima.id]) : []
+  const situacaoProxima = proxima ? situacaoDaEtapa(proxima) : null
 
   // Seções na ordem do painel (ou a padrão, enquanto ninguém configurou)
   const blocos: Bloco[] = inicio.secoes?.length
@@ -147,7 +149,7 @@ export default async function Inicio() {
           {blocoProxima && (
             <aside className={s.proxima} aria-labelledby="proxima-etapa">
               <p className="rotulo">Próxima etapa</p>
-              {proxima ? (
+              {proxima && situacaoProxima ? (
                 <>
                   <div className={s.proximaCabeca}>
                     <DataEtapa etapa={proxima} grande />
@@ -169,7 +171,16 @@ export default async function Inicio() {
                     <Programacao corridas={programacaoProxima} />
                   </details>
                   <div className={s.proximaAcoes}>
-                    <BotaoIzy href={ingressosDaEtapa(proxima, config)} texto={semDemo(config.izyPassTexto)} />
+                    {/* Só o link da própria etapa; some sozinho depois dela */}
+                    <CompraDaEtapa situacao={situacaoProxima} compacto />
+                    {situacaoProxima.transmissoes.map(
+                      (t) =>
+                        t.href && (
+                          <BotaoExterno key={t.tipo} href={t.href} contexto={`transmissão ${t.rotulo}`} contorno pequeno>
+                            Transmissão: {t.rotulo}
+                          </BotaoExterno>
+                        ),
+                    )}
                     <LinkMapa href={mapaDaEtapa(proxima, contato)} />
                   </div>
                 </>

@@ -58,4 +58,10 @@ export async function fotosOficiais(payload: Payload) {
   }
 }
 
+/** Subcategorias informadas pelo cliente (só os nomes, como aparecem na inscrição do BKS). */
+export const SUBCATEGORIAS: Record<string, string[]> = {
+  F400: ['Novatos', 'Junior', 'Graduados', 'Sênior', 'GSS/60+'],
+  '125cc': ['Novatos', 'Junior', 'Graduados', 'Sênior'],
+}
+
 export type Fotos = Awaited<ReturnType<typeof fotosOficiais>>

@@ -11,7 +11,7 @@
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { resolverLink, type ValorLink } from '../src/fields/link'
-import { contexto } from './comum'
+import { contexto, SUBCATEGORIAS } from './comum'
 
 type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
 
@@ -115,10 +115,30 @@ async function adicionarAbaAvisos(payload: Payload): Promise<string> {
   return `aba "Avisos" adicionada ao menu (${posicao}ª aba)${rascunho ? '; o rascunho em edição foi mantido' : ''}`
 }
 
+/** Subcategorias do F400 e da 125cc (só os nomes). Não mexe em categoria que já tenha subcategorias. */
+async function preencherSubcategorias(payload: Payload): Promise<string> {
+  const feitas: string[] = []
+  for (const [nome, subs] of Object.entries(SUBCATEGORIAS)) {
+    const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0 })
+    const cat = docs[0] as { id: number; subcategorias?: unknown[] | null } | undefined
+    if (!cat || cat.subcategorias?.length) continue
+    await payload.update({
+      collection: 'categorias',
+      id: cat.id,
+      data: { subcategorias: subs.map((s) => ({ nome: s })) } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+    feitas.push(nome)
+  }
+  return feitas.length ? `subcategorias preenchidas em ${feitas.join(' e ')}` : 'nada a preencher'
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
   { chave: 'atualizacao:2026-10-aba-avisos-no-menu', descricao: 'Aba "Avisos" no menu', aplicar: adicionarAbaAvisos },
+  { chave: 'atualizacao:2026-10-subcategorias', descricao: 'Subcategorias do F400 e da 125cc', aplicar: preencherSubcategorias },
 ]
 
 async function principal() {

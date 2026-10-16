@@ -230,6 +230,9 @@ export const MENSAGENS_ETAPA = {
   semTransmissao: 'O link da transmissão ao vivo ainda não está disponível.',
 } as const
 
+/** "1º" no primeiro dia do mês, como se escreve no Brasil. */
+const diaDoMes = (dia: number) => (dia === 1 ? '1º' : String(dia))
+
 const MESES_EXTENSO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 /** "17 de outubro de 2026"; dois dias: "17 e 18 de outubro de 2026"; mais: "de 16 a 18 de outubro de 2026". */
@@ -238,12 +241,12 @@ export function periodoPorExtenso(etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Et
   if (!a) return null
   const ini = partes(a)
   const fim = etapa.fim && etapa.inicio ? partes(etapa.fim) : null
-  const extenso = (p: typeof ini, comAno = true) => `${p.dia} de ${MESES_EXTENSO[p.mes - 1]}${comAno ? ` de ${p.ano}` : ''}`
+  const extenso = (p: typeof ini, comAno = true) => `${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}${comAno ? ` de ${p.ano}` : ''}`
   if (!fim || chaveDia(etapa.fim!) <= chaveDia(a)) return extenso(ini)
   const dias = Math.round((Date.UTC(fim.ano, fim.mes - 1, fim.dia) - Date.UTC(ini.ano, ini.mes - 1, ini.dia)) / 864e5)
   const mesmoMes = ini.mes === fim.mes && ini.ano === fim.ano
-  if (dias === 1) return mesmoMes ? `${ini.dia} e ${extenso(fim)}` : `${extenso(ini, ini.ano !== fim.ano)} e ${extenso(fim)}`
-  return mesmoMes ? `de ${ini.dia} a ${extenso(fim)}` : `de ${extenso(ini, ini.ano !== fim.ano)} a ${extenso(fim)}`
+  if (dias === 1) return mesmoMes ? `${diaDoMes(ini.dia)} e ${extenso(fim)}` : `${extenso(ini, ini.ano !== fim.ano)} e ${extenso(fim)}`
+  return mesmoMes ? `de ${diaDoMes(ini.dia)} a ${extenso(fim)}` : `de ${extenso(ini, ini.ano !== fim.ano)} a ${extenso(fim)}`
 }
 
 /** "Esta etapa já aconteceu em 17 de outubro de 2026." */
@@ -318,7 +321,7 @@ export function gradeTreinosPorDia(grade: Etapa['gradeTreinosLivres'] | null | u
     if (!linha?.dia || !linha.inicio || !Number.isFinite(new Date(linha.dia).getTime())) continue
     const chave = chaveDia(linha.dia)
     const p = partes(linha.dia)
-    const dia = dias.get(chave) ?? { chave, titulo: `${maiuscula(diaDaSemana(linha.dia))}, ${p.dia} de ${MESES_EXTENSO[p.mes - 1]}`, horarios: [] }
+    const dia = dias.get(chave) ?? { chave, titulo: `${maiuscula(diaDaSemana(linha.dia))}, ${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}`, horarios: [] }
     dia.horarios.push({
       inicio: linha.inicio,
       fim: linha.fim || null,

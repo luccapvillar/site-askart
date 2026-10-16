@@ -12,7 +12,7 @@
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
-import { contexto, fotosOficiais, type Id } from './comum'
+import { contexto, fotosOficiais, type Id, SUBCATEGORIAS } from './comum'
 
 type Dia = 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo'
 
@@ -183,7 +183,8 @@ export async function carregarDadosOficiais(payload: Payload) {
   const categorias = new Map<string, Id>()
   const CORES_CATEGORIA: Record<string, string> = { Mirim: '#2E9E4F', Cadete: '#1E88E5', '125cc': '#F2D100', F400: '#E0261B', Moto: '#8C8C8C' }
   for (const nome of ['Mirim', 'Cadete', '125cc', 'F400', 'Moto']) {
-    categorias.set(nome, await buscarOuCriar(payload, 'categorias', nome, { cor: CORES_CATEGORIA[nome], visibilidade: 'visivel' }))
+    const subcategorias = (SUBCATEGORIAS[nome] ?? []).map((s) => ({ nome: s }))
+    categorias.set(nome, await buscarOuCriar(payload, 'categorias', nome, { cor: CORES_CATEGORIA[nome], visibilidade: 'visivel', subcategorias }))
   }
   const turmas = new Map<Turma, Id>()
   for (const [chave, t] of Object.entries(TURMAS) as [Turma, (typeof TURMAS)[Turma]][]) {
