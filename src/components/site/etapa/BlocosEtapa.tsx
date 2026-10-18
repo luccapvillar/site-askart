@@ -1,8 +1,9 @@
 /**
- * Blocos da etapa no site: comprar a etapa, treinos livres (link e grade), transmissão ao vivo,
- * "Aberto ao público" e o aviso de etapa já realizada. A regra (o que aparece e quando) está em
- * situacaoDaEtapa (src/lib/site.ts); aqui só a apresentação. Sem link cadastrado, o site mostra a
- * mensagem pedida pelo cliente (nunca um link inventado).
+ * Blocos da etapa no site: comprar a etapa, treinos livres (link e grade), "Aberto ao público", o resumo
+ * do calendário e o aviso de etapa já realizada. A transmissão da página da etapa (com o player do
+ * YouTube) fica em TransmissaoEtapa.tsx, para o JavaScript do player só ir para a página da etapa.
+ * A regra (o que aparece e quando) está em situacaoDaEtapa (src/lib/site.ts); aqui só a apresentação.
+ * Sem link cadastrado, o site mostra a mensagem pedida pelo cliente (nunca um link inventado).
  */
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -11,6 +12,9 @@ import {
   MENSAGENS_ETAPA,
   mensagemJaOcorreu,
   type CamposEtapaSite,
+  type InfoEventoPublico,
+  type ItemEventoPublico,
+  type Modalidade,
   type SituacaoEtapa,
   type Transmissao,
 } from '@/lib/site'
@@ -21,7 +25,6 @@ import { Icone, iconeDoItem, type NomeIcone } from './Icones'
 import s from './Etapa.module.css'
 
 type EtapaSite = CamposEtapaSite & Pick<Etapa, 'id'> & Partial<Pick<Etapa, 'fim'>>
-type InfoPublico = { texto: string; itens: string[] }
 
 /* ───────────────────────────── peças ───────────────────────────── */
 
@@ -118,7 +121,7 @@ export function CompraETreinos({ etapa, situacao }: { etapa: EtapaSite; situacao
   )
 }
 
-function CabecaCartao({ icone, titulo }: { icone: NomeIcone; titulo: string }) {
+export function CabecaCartao({ icone, titulo }: { icone: NomeIcone; titulo: string }) {
   return (
     <div className={s.cartaoCabeca}>
       <span className={s.cartaoIcone}>
@@ -196,49 +199,35 @@ export function GradeTreinosLivres({ etapa }: { etapa: EtapaSite }) {
   )
 }
 
-const textoBotaoTransmissao = (situacao: SituacaoEtapa) => (situacao.jaOcorreu ? 'Assistir à transmissão' : 'Assistir ao vivo')
-
 /** Transmissões que aparecem: antes da etapa, as duas (com a mensagem quando falta link); depois, só as que têm link. */
-export const transmissoesVisiveis = (situacao: SituacaoEtapa): Transmissao[] =>
-  situacao.antes ? situacao.transmissoes : situacao.transmissoes.filter((t) => t.href)
+export const transmissoesVisiveis = (situacao: SituacaoEtapa, modalidade?: Modalidade): Transmissao[] =>
+  (situacao.antes ? situacao.transmissoes : situacao.transmissoes.filter((t) => t.href)).filter((t) => !modalidade || t.tipo === modalidade)
 
-/** Transmissão ao vivo: Profissional e Indoor lado a lado. Depois da etapa o link continua (para rever). */
-export function Transmissoes({ situacao }: { situacao: SituacaoEtapa }) {
-  const lista = transmissoesVisiveis(situacao)
-  if (!lista.length) return null
+/** O que o público encontra (food trucks, telão…): ícone na placa amarela, nome e a explicação. */
+export function ItensEventoPublico({ itens }: { itens: ItemEventoPublico[] }) {
   return (
-    <ul className={s.duas}>
-      {lista.map((t) => (
-        <li key={t.tipo} className={s.cartao}>
-          <CabecaCartao icone="transmissao" titulo={t.rotulo} />
-          {t.href ? (
-            <BotaoExterno href={t.href} contexto={`transmissão ${t.rotulo}`}>
-              {textoBotaoTransmissao(situacao)}
-            </BotaoExterno>
-          ) : (
-            <Indisponivel texto={MENSAGENS_ETAPA.semTransmissao} />
-          )}
+    <ul className={s.itensPublico}>
+      {itens.map((item, i) => (
+        <li key={i} className={s.itemPublico}>
+          <span className={s.chipIcone}>
+            <Icone nome={iconeDoItem(`${item.titulo} ${item.descricao ?? ''}`)} tamanho={20} />
+          </span>
+          <span className={s.itemPublicoTexto}>
+            <strong>{item.titulo}</strong>
+            {item.descricao && <span>{item.descricao}</span>}
+          </span>
         </li>
       ))}
     </ul>
   )
 }
 
-/** Bloco "Aberto ao público": o texto e os itens (food trucks, telão…) com ícones simples. */
-export function EventoPublico({ info }: { info: InfoPublico }) {
+/** Bloco "Aberto ao público" (página da etapa): o texto e os itens. */
+export function EventoPublico({ info }: { info: InfoEventoPublico }) {
   return (
     <div className={s.publico}>
       <p className={s.publicoTexto}>{info.texto}</p>
-      <ul className={s.chips}>
-        {info.itens.map((item, i) => (
-          <li key={i} className={s.chip}>
-            <span className={s.chipIcone}>
-              <Icone nome={iconeDoItem(item)} tamanho={18} />
-            </span>
-            {item}
-          </li>
-        ))}
-      </ul>
+      <ItensEventoPublico itens={info.itens} />
     </div>
   )
 }
@@ -270,10 +259,21 @@ export function FaixaJaOcorreu({ etapa, children }: { etapa: Pick<Etapa, 'inicio
 /**
  * Resumo da etapa no cartão do calendário do BKS: a mesma lógica da página da etapa, em pouco espaço.
  * Antes: comprar, treinos livres, grade, transmissões e "Aberto ao público". Depois: o aviso e a transmissão.
+ * Na área de uma modalidade (karts profissionais ou indoor), só a transmissão dela.
  */
-export function ResumoEtapa({ etapa, situacao, publico }: { etapa: EtapaSite; situacao: SituacaoEtapa; publico: InfoPublico | null }) {
-  const transmissoes = transmissoesVisiveis(situacao)
-  const nenhumaTransmissao = situacao.antes && !situacao.temTransmissao
+export function ResumoEtapa({
+  etapa,
+  situacao,
+  publico,
+  modalidade,
+}: {
+  etapa: EtapaSite
+  situacao: SituacaoEtapa
+  publico: InfoEventoPublico | null
+  modalidade?: Modalidade
+}) {
+  const transmissoes = transmissoesVisiveis(situacao, modalidade)
+  const nenhumaTransmissao = situacao.antes && !transmissoes.some((t) => t.href)
   return (
     <div className={s.resumo}>
       {situacao.jaOcorreu && <AvisoJaOcorreu etapa={etapa} />}
@@ -301,8 +301,8 @@ export function ResumoEtapa({ etapa, situacao, publico }: { etapa: EtapaSite; si
           ) : (
             transmissoes.map((t) =>
               t.href ? (
-                <BotaoExterno key={t.tipo} href={t.href} contexto={`transmissão ${t.rotulo}`} contorno pequeno>
-                  {textoBotaoTransmissao(situacao)}: {t.rotulo}
+                <BotaoExterno key={t.tipo} href={t.href} contexto={`transmissão — ${t.rotulo}`} contorno pequeno>
+                  {modalidade ? 'Assistir à transmissão' : `Assistir à transmissão: ${t.rotulo}`}
                 </BotaoExterno>
               ) : (
                 <Indisponivel key={t.tipo} rotulo={t.rotulo} texto={MENSAGENS_ETAPA.semTransmissao} compacto />
@@ -320,8 +320,8 @@ export function ResumoEtapa({ etapa, situacao, publico }: { etapa: EtapaSite; si
             <ul className={s.itensCompactos}>
               {publico.itens.map((item, i) => (
                 <li key={i}>
-                  <Icone nome={iconeDoItem(item)} tamanho={16} />
-                  {item}
+                  <Icone nome={iconeDoItem(item.titulo)} tamanho={16} />
+                  {item.titulo}
                 </li>
               ))}
             </ul>

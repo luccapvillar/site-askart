@@ -57,7 +57,7 @@ import {
   type TipoCorrida,
   type UnidadeDescarte,
 } from './classificacao'
-import { resultadoDaEtapa, type ClassificacaoDaTemporada } from './estatisticas'
+import { resultadoSomadoDaEtapa, type ClassificacaoDaTemporada, type LinhaResultadoDaEtapa } from './estatisticas'
 
 /** Slugs das coleções (iguais aos da ARQUITETURA §4). */
 export const SLUGS = {
@@ -158,7 +158,7 @@ const unicos = (ids: Id[]) => [...new Map(ids.map((i) => [String(i), i] as const
 
 const STATUS_ETAPA = ['agendada', 'confirmada', 'adiada', 'cancelada', 'realizada'] as const
 const STATUS_CORRIDA = ['rascunho', 'oficial', 'cancelada'] as const
-const TIPOS_CORRIDA = ['tomada-de-tempo', 'classificatoria', 'bateria', 'pre-final', 'final'] as const
+const TIPOS_CORRIDA = ['warm-up', 'tomada-de-tempo', 'classificatoria', 'bateria', 'pre-final', 'final'] as const
 const STATUS_RESULTADO = ['classificado', 'nao-classificado', 'abandono', 'desclassificado', 'nao-largou'] as const
 const TIPOS_PENALIDADE = ['tempo', 'posicoes', 'pontos', 'advertencia'] as const
 const CONDICOES = ['titular', 'convidado'] as const
@@ -809,6 +809,10 @@ export async function classificacoesParaEstatisticas(opcoes: {
 
 // ───────────────────────────── resultados de uma etapa ─────────────────────────────
 
+/**
+ * Linha de uma corrida no site: posição na categoria (`posicaoCategoria`), status, pontos, número e nome do
+ * piloto, `melhorVolta` (ms, quando lançada) e `voltaMaisRapida` (a oficial, que pontua) vêm do motor.
+ */
 export type LinhaCorridaExibida = LinhaResultadoCalculada & { pilotoSlug: string | null; equipeNome: string | null }
 
 export interface CorridaComResultado {
@@ -816,7 +820,9 @@ export interface CorridaComResultado {
   nome: string | null
   tipo: TipoCorrida
   inicio: string | null
-  /** Conta para a classificação (dá pontos). */
+  /** Ordem da sessão na etapa, para esta categoria (1 = primeira): pelo horário; sem horário, pelo tipo e nome. */
+  ordem: number
+  /** Conta para a classificação (dá pontos). Warm-up nunca conta. */
   conta: boolean
   /** Linhas na ordem oficial (posicionados primeiro), só da categoria. */
   linhas: LinhaCorridaExibida[]
@@ -828,9 +834,14 @@ export interface ResultadoCategoriaNaEtapa {
   categoria: Id
   categoriaNome: string | null
   categoriaSlug: string | null
+  /** Sessões oficiais da categoria na etapa (warm-up, tomada de tempo, corridas), em ordem (`ordem`). */
   corridas: CorridaComResultado[]
-  /** Resultado da etapa (corridas + pole, pela regra da categoria), na ordem da etapa. Sem convidados. */
-  etapa: ReturnType<typeof resultadoDaEtapa>
+  /**
+   * Resultado somado da etapa (corridas + pole, pela regra da categoria; warm-up nunca entra), com o mesmo
+   * desempate do campeonato: total, critérios da regra, ordem alfabética. Sem convidados. Quem correu mas
+   * não tem posição oficial em nenhuma corrida que conta vem no fim, com `posicao` nula.
+   */
+  etapa: LinhaResultadoDaEtapa[]
   /** A categoria ainda não tem regra de pontuação: posições aparecem, pontos ficam zerados. */
   semRegra: boolean
 }
@@ -841,6 +852,35 @@ export interface ResultadosDaEtapa {
   /** Etapa ainda não realizada: só as corridas já oficiais (o resultado da etapa é parcial). */
   parcial: boolean
   categorias: ResultadoCategoriaNaEtapa[]
+}
+
+const ORDEM_TIPO: Record<TipoCorrida, number> = {
+  'warm-up': 0,
+  'tomada-de-tempo': 1,
+  classificatoria: 2,
+  bateria: 3,
+  'pre-final': 4,
+  final: 5,
+}
+
+const instante = (v: unknown): number | null => {
+  const t = typeof v === 'string' || v instanceof Date ? new Date(v).getTime() : NaN
+  return Number.isFinite(t) ? t : null
+}
+
+/**
+ * Sessões de uma etapa em ordem: pelo horário quando todas têm horário; senão pelo tipo (warm-up, tomada de
+ * tempo, classificatória, bateria, pré-final, final) e pelo nome ("Corrida 2" antes de "Corrida 10").
+ */
+export function ordenarSessoes<T extends Pick<Corrida, 'inicio' | 'tipo' | 'nome'>>(corridas: T[]): T[] {
+  const todasComHorario = corridas.every((c) => instante(c.inicio) !== null)
+  const porTipoENome = (a: T, b: T) =>
+    ORDEM_TIPO[a.tipo ?? 'bateria'] - ORDEM_TIPO[b.tipo ?? 'bateria'] ||
+    (a.nome ?? '').localeCompare(b.nome ?? '', 'pt-BR', { sensitivity: 'base', numeric: true })
+  return corridas
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => (todasComHorario ? (instante(a.c.inicio) as number) - (instante(b.c.inicio) as number) : 0) || porTipoENome(a.c, b.c) || a.i - b.i)
+    .map((x) => x.c)
 }
 
 /**
@@ -909,18 +949,19 @@ export async function resultadosDaEtapa(opcoes: {
 
   for (const categoria of idsCategorias) {
     const chave = String(categoria)
-    const corridasCat = corridas.filter((c) => categoriasDaCorrida(c).includes(chave))
+    const corridasCat = ordenarSessoes(corridas.filter((c) => categoriasDaCorrida(c).includes(chave)))
     if (!corridasCat.length) continue
     const idRegra = idDe(classificacaoDa.get(chave)?.regra) ?? idDe(temporada.regra)
     const doc = idRegra === null ? undefined : regraDoc.get(String(idRegra))
     const regra = paraRegra(doc)
-    const corridasExibidas: CorridaComResultado[] = corridasCat.map((c) => {
+    const corridasExibidas: CorridaComResultado[] = corridasCat.map((c, i) => {
       const r = calcularResultadoCorrida(c, regra, { inscricoes: mapaIns, categorias: [categoria], fatorEtapa: etapa.fatorPontuacao })
       return {
         id: c.id,
         nome: c.nome ?? null,
         tipo: c.tipo ?? 'bateria',
         inicio: typeof c.inicio === 'string' ? c.inicio : null,
+        ordem: i + 1,
         conta: r.conta,
         voltaMaisRapida: r.voltaMaisRapida,
         linhas: r.linhas.map((l) => {
@@ -929,7 +970,8 @@ export async function resultadosDaEtapa(opcoes: {
         }),
       }
     })
-    // Resultado somado da etapa: o motor com só esta etapa (tratada como realizada, sem descartes nem ajustes).
+    // Resultado somado da etapa: o motor com só esta etapa (tratada como realizada, sem descartes nem ajustes);
+    // a ordem das linhas é a do campeonato (mesmo desempate). Warm-up é ignorado pelo motor.
     const soma = calcularClassificacao({
       regra: { ...regra, descartes: null },
       categoria,
@@ -945,7 +987,7 @@ export async function resultadosDaEtapa(opcoes: {
       categoriaNome: texto(cat?.nome) ?? texto(cat?.sigla),
       categoriaSlug: texto(cat?.slug),
       corridas: corridasExibidas,
-      etapa: resultadoDaEtapa(soma, etapa.id),
+      etapa: resultadoSomadoDaEtapa(soma, etapa.id),
       semRegra: !doc,
     })
   }

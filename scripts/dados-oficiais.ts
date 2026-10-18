@@ -5,13 +5,16 @@
  * cliente em 16/10/2026); informações publicadas pela equipe Pro Kart Racing (uso autorizado pelo cliente):
  * taxa de ambulância de R$ 50,00 por piloto por dia de treino, endereço, turmas de iniciantes por idade e regra
  * de horários; informações do cliente: o kartódromo é só para treinos e corridas (sem aluguel de kart), há treino
- * quase todos os dias, BKS = Brasília Kart Series, taxa de pista (valor ainda não informado: "R$ X").
+ * quase todos os dias, BKS = Brasília Kart Series, taxa de pista (valor ainda não informado: "R$ X"); categorias
+ * de kart indoor (só os nomes) e o texto do evento aberto ao público (food trucks, telão, mesas e cadeiras, narrador).
  *
  * Roda uma vez só (marca em Configurações): depois disso, o moderador é dono dos dados e nada é sobrescrito.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
+import { CATEGORIAS_INDOOR_OFICIAIS } from '../src/collections/competicao/Categorias'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
+import { ITENS_EVENTO_PUBLICO_PADRAO, TEXTO_EVENTO_PUBLICO_PADRAO } from '../src/globals/Configuracoes'
 import { contexto, fotosOficiais, type Id, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Dia = 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo'
@@ -184,7 +187,14 @@ export async function carregarDadosOficiais(payload: Payload) {
   const CORES_CATEGORIA: Record<string, string> = { Mirim: '#2E9E4F', Cadete: '#1E88E5', '125cc': '#F2D100', F400: '#E0261B', Moto: '#8C8C8C' }
   for (const nome of ['Mirim', 'Cadete', '125cc', 'F400', 'Moto']) {
     const subcategorias = (SUBCATEGORIAS[nome] ?? []).map((s) => ({ nome: s }))
-    categorias.set(nome, await buscarOuCriar(payload, 'categorias', nome, { cor: CORES_CATEGORIA[nome], visibilidade: 'visivel', subcategorias }))
+    categorias.set(
+      nome,
+      await buscarOuCriar(payload, 'categorias', nome, { cor: CORES_CATEGORIA[nome], visibilidade: 'visivel', subcategorias, modalidade: 'profissional' }),
+    )
+  }
+  // Kart indoor: só os nomes (sem cor nem subcategorias, não informadas)
+  for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
+    await buscarOuCriar(payload, 'categorias', nome, { visibilidade: 'visivel', modalidade: 'indoor' })
   }
   const turmas = new Map<Turma, Id>()
   for (const [chave, t] of Object.entries(TURMAS) as [Turma, (typeof TURMAS)[Turma]][]) {
@@ -260,6 +270,8 @@ export async function carregarDadosOficiais(payload: Payload) {
       imagemCompartilhamento: fotos.pelotao,
       descricao:
         'ASKART — associação responsável pela administração do Kartódromo Ayrton Senna do Guará e pela organização dos campeonatos de kart de Brasília.',
+      textoEventoPublico: TEXTO_EVENTO_PUBLICO_PADRAO,
+      itensEventoPublico: ITENS_EVENTO_PUBLICO_PADRAO.map((i) => ({ ...i })),
     },
   })
   const contato = await payload.findGlobal({ slug: 'contato', depth: 0 })

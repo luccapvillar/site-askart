@@ -77,7 +77,7 @@ export function ClassificacaoCategoria({
   )
 }
 
-/** Resultado de uma categoria numa etapa: corridas oficiais e resultado somado. */
+/** Resultado de uma categoria numa etapa: cada sessão oficial (as que não valem pontos, como o warm-up, sem a coluna de pontos). */
 export function ResultadoCategoria({ resultado, cor }: { resultado: ResultadoCategoriaNaEtapa; cor?: string | null }) {
   const nomeCat = separarDemo(resultado.categoriaNome).texto || 'Categoria'
   if (!resultado.corridas.length) return null
@@ -89,14 +89,15 @@ export function ResultadoCategoria({ resultado, cor }: { resultado: ResultadoCat
         <div key={String(corrida.id)} className="rolagem-x">
           <table className={s.resultado}>
             <caption>
-              {corrida.nome}
+              {separarDemo(corrida.nome).texto}
               <span className="visualmente-oculto"> — {nomeCat}</span>
+              {!corrida.conta && <span className={s.equipe}>Não vale pontos</span>}
             </caption>
             <thead>
               <tr>
                 <th scope="col">Pos.</th>
                 <th scope="col">Piloto</th>
-                <th scope="col" className={s.num}>Pontos</th>
+                {corrida.conta && <th scope="col" className={s.num}>Pontos</th>}
               </tr>
             </thead>
             <tbody>
@@ -118,7 +119,7 @@ export function ResultadoCategoria({ resultado, cor }: { resultado: ResultadoCat
                         </span>
                       </span>
                     </td>
-                    <td className={`${s.num} ${s.pontosCel}`}>{fmt(l.pontos)}</td>
+                    {corrida.conta && <td className={`${s.num} ${s.pontosCel}`}>{fmt(l.pontos)}</td>}
                   </tr>
                 )
               })}

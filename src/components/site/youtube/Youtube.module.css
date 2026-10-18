@@ -1,0 +1,115 @@
+/* Player do YouTube "clique para carregar": quadro 16:9 sem nada externo até o clique */
+.bloco {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--raio-g);
+  background: var(--asfalto);
+}
+
+.quadro {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.fachada {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-bottom: 4px solid var(--camp-p, var(--marca-primaria));
+  background: var(--asfalto);
+  color: var(--texto-claro);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.fachada:focus-visible {
+  outline: 3px solid var(--amarelo);
+  outline-offset: -6px;
+}
+
+.play {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--camp-p, var(--marca-primaria));
+  color: var(--camp-sobre-p, var(--sobre-primaria, #fff));
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.14);
+}
+
+.play svg {
+  margin-left: 3px;
+}
+
+.fachada:hover .play {
+  box-shadow: 0 0 0 6px rgb(255 255 255 / 0.24);
+}
+
+.chamada {
+  font-size: 1.0625rem;
+  font-weight: 750;
+}
+
+.nota {
+  max-width: 34ch;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--texto-claro-2);
+}
+
+.link {
+  justify-self: start;
+  font-weight: 650;
+  color: var(--verde-escuro);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .play {
+    transition: box-shadow 0.2s var(--curva);
+  }
+}
+
+/* Celular estreito: o quadro fica baixo, então o botão encolhe */
+@media (max-width: 420px) {
+  .fachada {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .play {
+    width: 48px;
+    height: 48px;
+  }
+
+  .play svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .chamada {
+    font-size: 1rem;
+  }
+
+  .nota {
+    font-size: 0.8125rem;
+  }
+}

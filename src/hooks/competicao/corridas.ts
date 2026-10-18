@@ -102,6 +102,8 @@ const paraMotor = (i: InscricaoDoc): Inscricao => ({
 export const prepararCorrida: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
   const anterior = docAnterior<CorridaDoc>(originalDoc)
+  // Warm-up nunca conta para a classificação (não dá pontos nem pole): a caixa fica sempre desligada.
+  if ((data.tipo ?? anterior?.tipo) === 'warm-up') data.contaParaClassificacao = false
   const { etapa, temporada } = await etapaETemporada(req, data.etapa)
   if (!etapa || !temporada) return data
   const erros: Erro[] = []
@@ -225,7 +227,7 @@ export const regrasDaCorrida: CollectionBeforeChangeHook = async ({ data, origin
 /** Corrida salva: a etapa pode ter virado "realizada" (ou deixado de ser). */
 export const aposSalvarCorrida: CollectionAfterChangeHook = async ({ doc, previousDoc, operation, req, context }) => {
   if ((context as ContextoCompeticao).exclusaoEmCascata !== undefined) return doc
-  if (operation === 'create' || mudouAlgum(doc, previousDoc, ['status', 'contaParaClassificacao', 'etapa'])) {
+  if (operation === 'create' || mudouAlgum(doc, previousDoc, ['status', 'contaParaClassificacao', 'tipo', 'etapa'])) {
     await sincronizarStatusEtapa(req, doc.etapa)
     if (previousDoc && !mesmoId(previousDoc.etapa, doc.etapa)) await sincronizarStatusEtapa(req, previousDoc.etapa)
   }

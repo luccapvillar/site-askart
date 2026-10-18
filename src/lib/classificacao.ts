@@ -9,6 +9,8 @@
  * - Só contam etapas com status `realizada` e corridas com status `oficial`. "Conta para a classificação"
  *   desligado = a corrida não dá pontos de tabela, volta mais rápida nem participação (a tomada de tempo
  *   continua valendo para a pole).
+ * - Warm-up (`warm-up`) nunca conta: não dá pontos, pole, volta mais rápida, participação nem estatísticas,
+ *   seja qual for o "conta para a classificação". Só tem posições (para mostrar o resultado da sessão).
  * - Pontos de tabela = tabela da corrida × fator da etapa × fator da corrida. Pole, volta mais rápida e
  *   participação são bônus fixos (não multiplicam).
  * - Vitórias, pódios, corridas, contagem de posições e voltas mais rápidas são contados POR CORRIDA que conta
@@ -37,7 +39,10 @@ export type Id = string | number
 
 export type StatusEtapa = 'agendada' | 'confirmada' | 'adiada' | 'cancelada' | 'realizada'
 export type StatusCorrida = 'rascunho' | 'oficial' | 'cancelada'
-export type TipoCorrida = 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'
+export type TipoCorrida = 'warm-up' | 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'
+
+/** Warm-up: sessão de aquecimento, só com posições; o motor nunca a usa para pontos, pole ou estatísticas. */
+export const ehWarmUp = (c: { tipo?: TipoCorrida | string | null } | null | undefined) => c?.tipo === 'warm-up'
 export type StatusResultado = 'classificado' | 'nao-classificado' | 'abandono' | 'desclassificado' | 'nao-largou'
 export type TipoPenalidade = 'tempo' | 'posicoes' | 'pontos' | 'advertencia'
 export type CondicaoInscricao = 'titular' | 'convidado'
@@ -445,6 +450,10 @@ export interface LinhaResultadoCalculada {
   /** Status depois das regras (ex.: classificado com poucas voltas vira `nao-classificado`). */
   status: StatusResultado
   posicaoChegada: number | null
+  /** Voltas completadas (como lançado; null = não informado). */
+  voltas: number | null
+  /** Melhor volta em milissegundos (como lançada; null = não informada). */
+  melhorVolta: number | null
   /** Posição oficial geral da corrida (todas as categorias), depois de penalidades. */
   posicaoOficial: number | null
   /** A posição oficial veio de correção manual (com motivo). */
@@ -520,7 +529,8 @@ export function calcularResultadoCorrida(
   const pct = Math.max(0, numeroOu(regra.percentualMinimoVoltas, 0))
   const tipo = corrida.tipo ?? 'bateria'
   const ehTomada = tipo === 'tomada-de-tempo'
-  const conta = corrida.contaParaClassificacao !== false
+  // Warm-up nunca conta (nem com a caixa marcada): só posições.
+  const conta = corrida.contaParaClassificacao !== false && tipo !== 'warm-up'
 
   // 1) Normaliza as linhas (descarta sem inscrição e duplicadas).
   type Interna = {
@@ -755,6 +765,8 @@ export function calcularResultadoCorrida(
       statusInformado: x.statusInformado,
       status: x.status,
       posicaoChegada: x.linha.posicaoChegada ?? null,
+      voltas: typeof x.linha.voltas === 'number' && Number.isFinite(x.linha.voltas) ? x.linha.voltas : null,
+      melhorVolta: typeof x.linha.melhorVolta === 'number' && x.linha.melhorVolta > 0 ? x.linha.melhorVolta : null,
       posicaoOficial: x.posicaoOficial,
       posicaoOficialManual: x.manual,
       posicaoCategoria: posCategoria.get(x) ?? null,
@@ -871,9 +883,10 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
   const idsConsiderados = new Set(etapasConsideradas.map((e) => k(e.id)))
 
   // Corridas oficiais das etapas consideradas, do grupo, em ordem cronológica dentro de cada etapa.
+  // Warm-up fica de fora sempre (não dá pontos, pole, participação nem estatísticas).
   const corridasPorEtapa = new Map<string, Corrida[]>()
   for (const c of entrada.corridas) {
-    if (c.status !== 'oficial' || !idsConsiderados.has(k(c.etapa)) || !corridaDoGrupo(c, grupo, mapaIns)) continue
+    if (c.status !== 'oficial' || ehWarmUp(c) || !idsConsiderados.has(k(c.etapa)) || !corridaDoGrupo(c, grupo, mapaIns)) continue
     const lista = corridasPorEtapa.get(k(c.etapa)) ?? []
     lista.push(c)
     corridasPorEtapa.set(k(c.etapa), lista)

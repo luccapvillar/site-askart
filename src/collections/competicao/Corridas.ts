@@ -24,8 +24,8 @@ const lerResultados: FieldAccess = ({ req, doc }) => ehMembro(req.user) || doc?.
 const soSistema: FieldAccess = () => false
 
 /**
- * Corridas de cada etapa (tomada de tempo, baterias, final…) com os resultados. A classificação é
- * calculada a partir das corridas OFICIAIS das etapas realizadas.
+ * Corridas de cada etapa (warm-up, tomada de tempo, baterias, final…) com os resultados. A classificação é
+ * calculada a partir das corridas OFICIAIS das etapas realizadas. Warm-up só mostra posições (nunca pontua).
  */
 export const Corridas: CollectionConfig = comAcessoRestrito({
   slug: COLECOES.corridas,
@@ -100,7 +100,7 @@ export const Corridas: CollectionConfig = comAcessoRestrito({
           required: true,
           defaultValue: 'bateria',
           options: OPCOES_TIPO_CORRIDA,
-          admin: { width: '30%', description: 'A pole vem do 1º da tomada de tempo.' },
+          admin: { width: '30%', description: 'A pole vem do 1º da tomada de tempo. Warm-up não vale pontos.' },
         },
         {
           name: 'status',
@@ -163,7 +163,11 @@ export const Corridas: CollectionConfig = comAcessoRestrito({
               label: 'Conta para a classificação',
               type: 'checkbox',
               defaultValue: true,
-              admin: { width: '30%' },
+              admin: {
+                width: '30%',
+                // Warm-up nunca conta (o sistema desliga sozinho ao salvar): a caixa nem aparece.
+                condition: (dados: Record<string, unknown> | undefined) => dados?.tipo !== 'warm-up',
+              },
             },
             {
               name: 'fator',

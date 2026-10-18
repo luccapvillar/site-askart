@@ -33,7 +33,7 @@ import { nomeEtapaPadrao } from './texto'
 import type { CorridaDoc, EtapaDoc } from './tipos'
 import type { ID } from './util'
 import { contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
-import { statusEtapaAutomatico } from './validacoes'
+import { corridaContaPontos, statusEtapaAutomatico } from './validacoes'
 
 /** Campos que continuam editáveis com a temporada encerrada (apresentação, links e visibilidade). */
 const LIVRES_ENCERRADA = [
@@ -164,7 +164,7 @@ export const prepararEtapa: CollectionBeforeValidateHook = async ({ data, origin
 
     // "Realizada" é automática: só quando as corridas que contam estão oficiais
     if (data.status === 'realizada' && anterior.status !== 'realizada' && contexto.statusAutomaticoEtapa === undefined) {
-      const pendentes = corridas.filter((c) => c.contaParaClassificacao !== false && c.status === 'rascunho')
+      const pendentes = corridas.filter((c) => corridaContaPontos(c) && c.status === 'rascunho')
       if (pendentes.length) {
         erros.push({
           caminho: 'status',

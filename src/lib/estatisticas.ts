@@ -393,3 +393,56 @@ export function resultadoDaEtapa(resultado: Pick<ResultadoClassificacao, 'linhas
       desclassificado: x.etapa.desclassificado,
     }))
 }
+
+/** Linha do resultado somado de uma etapa (uma categoria). */
+export interface LinhaResultadoDaEtapa {
+  chave: string
+  inscricao: Id | null
+  piloto: Id | null
+  nome: string
+  pilotoSlug: string | null
+  numero: number | string | null
+  equipeNome: string | null
+  /** Posição na etapa (1..N, sem buracos); null = sem posição oficial em nenhuma corrida que conta. */
+  posicao: number | null
+  /** Pontos da etapa (corridas + pole), antes de penalidades. */
+  pontos: number
+  /** Penalidades de pontos das corridas da etapa (com sinal). */
+  ajustes: number
+  /** Total que vale na etapa (pontos + penalidades): é o que ordena o resultado. */
+  total: number
+  pole: boolean
+  desclassificado: boolean
+}
+
+/**
+ * Resultado somado de uma etapa com o MESMO desempate do campeonato: `resultado` precisa ser a
+ * classificação calculada só com esta etapa (sem descartes nem ajustes), cuja ordem já é a do campeonato
+ * (total, critérios de desempate da regra, ordem alfabética). Só entram os pilotos que correram a etapa;
+ * quem tem posição oficial em alguma corrida que conta é numerado 1..N nessa ordem, e os demais (ex.: só
+ * fizeram a tomada de tempo, ou não largaram/foram desclassificados em todas) vêm depois, sem posição.
+ */
+export function resultadoSomadoDaEtapa(resultado: Pick<ResultadoClassificacao, 'linhas'>, etapa: Id): LinhaResultadoDaEtapa[] {
+  const alvo = k(etapa)
+  const disputaram = resultado.linhas
+    .map((l) => ({ linha: l, etapa: l.porEtapa.find((e) => k(e.etapa) === alvo) }))
+    .filter((x): x is { linha: LinhaClassificacao; etapa: NonNullable<typeof x.etapa> } => !!x.etapa && x.etapa.participou)
+  const comPosicao = disputaram.filter((x) => x.etapa.posicao !== null)
+  const semPosicao = disputaram.filter((x) => x.etapa.posicao === null)
+  const paraLinha = (x: (typeof disputaram)[number], posicao: number | null): LinhaResultadoDaEtapa => ({
+    chave: x.linha.chave,
+    inscricao: x.linha.inscricao,
+    piloto: x.linha.piloto,
+    nome: x.linha.nome,
+    pilotoSlug: x.linha.pilotoSlug ?? null,
+    numero: x.linha.numero,
+    equipeNome: x.linha.equipeNome ?? null,
+    posicao,
+    pontos: x.etapa.pontos,
+    ajustes: x.etapa.ajustes,
+    total: deDecimos(paraDecimos(x.etapa.pontos) + paraDecimos(x.etapa.ajustes)),
+    pole: x.etapa.pole,
+    desclassificado: x.etapa.desclassificado,
+  })
+  return [...comPosicao.map((x, i) => paraLinha(x, i + 1)), ...semPosicao.map((x) => paraLinha(x, null))]
+}

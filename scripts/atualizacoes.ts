@@ -7,10 +7,19 @@
  * próxima publicação — nunca derruba a publicação do site.
  *
  * 1. Aba "Avisos" no menu do topo, logo depois de Notícias (pedido do cliente).
+ * 2. Categorias de kart indoor (nomes informados pelo cliente) e a modalidade das categorias.
+ * 3. Texto do evento aberto ao público ("Venha assistir"), se ainda for o padrão antigo.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
+import { CATEGORIAS_INDOOR_OFICIAIS } from '../src/collections/competicao/Categorias'
 import { resolverLink, type ValorLink } from '../src/fields/link'
+import {
+  ITENS_EVENTO_PUBLICO_ANTIGOS,
+  ITENS_EVENTO_PUBLICO_PADRAO,
+  TEXTO_EVENTO_PUBLICO_ANTIGO,
+  TEXTO_EVENTO_PUBLICO_PADRAO,
+} from '../src/globals/Configuracoes'
 import { contexto, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
@@ -181,6 +190,80 @@ async function criarVersoesIniciais(payload: Payload): Promise<string> {
   return `${total} versão(ões) publicada(s) gravada(s)`
 }
 
+/* ─────────────────── 2. BKS: karts profissionais e karts indoor ─────────────────── */
+
+/**
+ * As categorias que já existiam são de karts profissionais (a migração já grava esse padrão; aqui só se
+ * confere). Cria as 4 categorias de kart indoor informadas pelo cliente: visíveis, sem cor e sem
+ * subcategorias (não informadas). Não cria temporada, etapa nem horário (não informados).
+ */
+async function criarCategoriasIndoor(payload: Payload): Promise<string> {
+  const semModalidade = await payload.find({
+    collection: 'categorias',
+    where: { modalidade: { exists: false } },
+    limit: 500,
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+  })
+  for (const c of semModalidade.docs) {
+    await payload.update({ collection: 'categorias', id: c.id, data: { modalidade: 'profissional' } as never, overrideAccess: true, context: { ...contexto } })
+  }
+
+  const criadas: string[] = []
+  const ajustadas: string[] = []
+  for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
+    const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0, overrideAccess: true })
+    const existente = docs[0] as { id: number; modalidade?: string | null } | undefined
+    if (!existente) {
+      await payload.create({
+        collection: 'categorias',
+        data: { nome, modalidade: 'indoor', visibilidade: 'visivel' } as never,
+        overrideAccess: true,
+        context: { ...contexto },
+      })
+      criadas.push(nome)
+    } else if (existente.modalidade !== 'indoor') {
+      await payload.update({ collection: 'categorias', id: existente.id, data: { modalidade: 'indoor' } as never, overrideAccess: true, context: { ...contexto } })
+      ajustadas.push(nome)
+    }
+  }
+  const partes = [
+    semModalidade.docs.length ? `${semModalidade.docs.length} categoria(s) marcada(s) como karts profissionais` : null,
+    criadas.length ? `categorias indoor criadas: ${criadas.join(', ')}` : null,
+    ajustadas.length ? `marcadas como indoor: ${ajustadas.join(', ')}` : null,
+  ].filter(Boolean)
+  return partes.length ? partes.join('; ') : 'nada a fazer: as categorias indoor já existiam'
+}
+
+/* ─────────────────── 3. Evento aberto ao público ("Venha assistir") ─────────────────── */
+
+type ItemEvento = { texto?: string | null; descricao?: string | null }
+
+/** Lista ainda igual à padrão antiga (Food trucks, Telão, Mesas e cadeiras, Narrador, sem explicação)? */
+const itensAntigos = (itens: ItemEvento[]) =>
+  itens.length === ITENS_EVENTO_PUBLICO_ANTIGOS.length &&
+  itens.every((item, i) => item.texto?.trim() === ITENS_EVENTO_PUBLICO_ANTIGOS[i] && !item.descricao?.trim())
+
+/**
+ * Troca o texto e os itens do evento aberto ao público pelo texto do cliente SÓ quando ainda estão no
+ * padrão antigo ou vazios: o que o administrador já tiver escrito fica como está.
+ */
+async function atualizarEventoPublico(payload: Payload): Promise<string> {
+  const atual = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as {
+    textoEventoPublico?: string | null
+    itensEventoPublico?: ItemEvento[] | null
+  }
+  const texto = atual.textoEventoPublico?.trim() ?? ''
+  const itens = atual.itensEventoPublico ?? []
+  const data: Record<string, unknown> = {}
+  if (!texto || texto === TEXTO_EVENTO_PUBLICO_ANTIGO) data.textoEventoPublico = TEXTO_EVENTO_PUBLICO_PADRAO
+  if (!itens.length || itensAntigos(itens)) data.itensEventoPublico = ITENS_EVENTO_PUBLICO_PADRAO.map((i) => ({ ...i }))
+  if (!Object.keys(data).length) return 'nada a fazer: o texto e os itens já foram personalizados'
+  await payload.updateGlobal({ slug: 'configuracoes', data: data as never, overrideAccess: true, context: { ...contexto } })
+  return [data.textoEventoPublico && 'texto atualizado', data.itensEventoPublico && 'itens atualizados'].filter(Boolean).join(' e ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -188,6 +271,8 @@ const ATUALIZACOES: Atualizacao[] = [
   { chave: 'atualizacao:2026-10-aba-avisos-no-menu', descricao: 'Aba "Avisos" no menu', aplicar: adicionarAbaAvisos },
   { chave: 'atualizacao:2026-10-sem-avisos-de-exemplo', descricao: 'Aba Avisos sem exemplos', aplicar: removerAvisosDeDemonstracao },
   { chave: 'atualizacao:2026-10-subcategorias', descricao: 'Subcategorias do F400 e da 125cc', aplicar: preencherSubcategorias },
+  { chave: 'atualizacao:2026-10-categorias-indoor', descricao: 'Categorias de kart indoor', aplicar: criarCategoriasIndoor },
+  { chave: 'atualizacao:2026-10-evento-publico', descricao: 'Texto do evento aberto ao público', aplicar: atualizarEventoPublico },
 ]
 
 async function principal() {

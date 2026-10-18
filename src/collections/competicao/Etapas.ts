@@ -307,16 +307,16 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
                 naLinha(
                   campoLink(
                     'transmissaoProfissional',
-                    'Transmissão ao vivo: Profissional',
-                    'Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.',
+                    'Transmissão no YouTube — Karts profissionais',
+                    'Cole o link do YouTube (do vídeo ou da transmissão ao vivo): o vídeo aparece dentro da página da etapa. Outro site (Instagram…) vira o botão "Assistir à transmissão". Depois da etapa o link continua no site, com a gravação.',
                   ),
                   '50%',
                 ),
                 naLinha(
                   campoLink(
                     'transmissaoIndoor',
-                    'Transmissão ao vivo: Indoor',
-                    'Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.',
+                    'Transmissão no YouTube — Karts indoor',
+                    'Cole o link do YouTube (do vídeo ou da transmissão ao vivo): o vídeo aparece dentro da página da etapa. Outro site (Instagram…) vira o botão "Assistir à transmissão". Depois da etapa o link continua no site, com a gravação.',
                   ),
                   '50%',
                 ),

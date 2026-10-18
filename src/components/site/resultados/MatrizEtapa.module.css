@@ -1,0 +1,278 @@
+/*
+ * Matriz do resultado da etapa (uma categoria): folha de cronometragem sessão por sessão.
+ * Roxo = melhor do grid (convenção de cronometragem). #6B21A8 com branco: contraste 8,7:1 (AA e AAA).
+ * Celular: rolagem horizontal com a coluna do piloto fixa à esquerda.
+ */
+.bloco {
+  --roxo: #6b21a8;
+  --sobre-roxo: #ffffff;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ---------- Legenda ---------- */
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--texto-2);
+}
+
+.legenda li {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.legendaNota {
+  font-weight: 400;
+}
+
+.amostra {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 4px;
+  background: var(--roxo);
+  color: var(--sobre-roxo);
+}
+
+.amostraVolta {
+  border-radius: 999px;
+}
+
+.amostra .marca {
+  color: var(--sobre-roxo);
+}
+
+/* ---------- Tabela ---------- */
+.rolagem {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--branco);
+}
+
+.matriz {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.matriz th,
+.matriz td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: top;
+}
+
+.matriz tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.matriz thead th {
+  font-family: var(--fonte-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--texto);
+}
+
+.subtitulo {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--fonte);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Coluna do piloto fixa durante a rolagem lateral. */
+.colPiloto {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 10.5rem;
+  max-width: 14rem;
+  background: var(--branco);
+  box-shadow: 1px 0 0 var(--linha), 6px 0 8px -6px rgb(0 0 0 / 0.18);
+}
+
+.matriz thead .colPiloto {
+  z-index: 2;
+}
+
+.piloto {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.nome {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-weight: 650;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.nome a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nome a:hover {
+  text-decoration: underline;
+}
+
+.equipe {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--texto-2);
+}
+
+/* ---------- Células ---------- */
+.celula {
+  min-width: 6.75rem;
+  white-space: nowrap;
+}
+
+.colEtapa {
+  background: var(--papel);
+}
+
+.conteudo {
+  display: grid;
+  gap: 2px;
+}
+
+.linhaPosicao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.posicao {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.situacao {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--perigo);
+}
+
+.pontos {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe {
+  font-size: 0.75rem;
+  color: var(--texto-2);
+}
+
+.volta {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px;
+  margin-left: -4px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: var(--texto-2);
+}
+
+.voltaRapida {
+  margin-left: 0;
+  background: var(--roxo);
+  color: var(--sobre-roxo);
+  font-weight: 600;
+}
+
+.icone {
+  flex: none;
+}
+
+.marca {
+  display: inline-grid;
+  place-items: center;
+  color: var(--roxo);
+}
+
+.etiqueta {
+  justify-self: start;
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+.traco {
+  color: var(--texto-2);
+}
+
+/* Melhor do grid: célula inteira em roxo, texto branco (e o losango junto da posição). */
+.melhor {
+  background: var(--roxo);
+  color: var(--sobre-roxo);
+}
+
+.melhor .situacao,
+.melhor .detalhe,
+.melhor .volta,
+.melhor .etiqueta,
+.melhor .marca {
+  color: var(--sobre-roxo);
+}
+
+/* Volta mais rápida dentro de uma célula já roxa: inverte para continuar visível. */
+.melhor .voltaRapida {
+  background: var(--sobre-roxo);
+  color: var(--roxo);
+}
+
+@media (min-width: 48rem) {
+  .matriz {
+    font-size: 0.9375rem;
+  }
+
+  .colPiloto {
+    min-width: 13rem;
+    max-width: 18rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .melhor,
+  .voltaRapida,
+  .amostra {
+    border: 2px solid CanvasText;
+  }
+}

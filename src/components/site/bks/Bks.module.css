@@ -163,6 +163,127 @@
   color: var(--verde-escuro);
 }
 
+/* ---------- Karts profissionais | Karts indoor ---------- */
+/* Controle segmentado (links): a área atual tem fundo do campeonato, ícone de confirmação e aria-current */
+.modalidades {
+  margin-bottom: clamp(20px, 3vw, 32px);
+}
+
+.modalidades ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 460px;
+  padding: 4px;
+  border: 1px solid var(--linha);
+  border-radius: calc(var(--raio-g) + 4px);
+  background: var(--papel-2);
+}
+
+.modalidades a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--raio-g);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  color: var(--texto-2);
+}
+
+.modalidades a:hover {
+  color: var(--texto);
+  background: rgb(255 255 255 / 0.7);
+}
+
+.modalidades a[aria-current='page'] {
+  background: var(--camp-s);
+  color: var(--camp-sobre-s);
+  box-shadow: var(--sombra);
+}
+
+.modalidades svg {
+  flex: none;
+}
+
+.rotuloArea {
+  color: var(--texto-2);
+}
+
+/* Categorias da área, com as subcategorias em etiquetas */
+.categoriasArea {
+  margin-top: clamp(32px, 5vw, 56px);
+}
+
+.categoriasArea .subtitulo {
+  margin-top: 0;
+}
+
+.listaCategorias {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+
+.listaCategorias > li {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
+.nomeCategoria {
+  font-weight: 750;
+}
+
+.subcategorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subcategorias li {
+  padding: 3px 10px;
+  border: 1px solid var(--linha);
+  border-radius: 999px;
+  background: var(--papel);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Página da etapa: programação e resultado separados por modalidade */
+.pilhaModalidades {
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
+}
+
+.tituloModalidade {
+  margin-bottom: 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--camp-p);
+}
+
+/* Bloco geral "Venha assistir" (karts profissionais e indoor) */
+.venhaAssistir {
+  padding-block: calc(var(--secao) * 0.6);
+  border-top: 1px solid var(--linha);
+  background: var(--branco);
+}
+
+.textoPublico {
+  max-width: 46ch;
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
 /* ---------- Seções ---------- */
 .cabecalhoSecao {
   display: grid;

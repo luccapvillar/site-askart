@@ -832,11 +832,11 @@ export interface Etapa {
    */
   imagemGradeTreinosLivres?: (number | null) | Midia;
   /**
-   * Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.
+   * Cole o link do YouTube (do vídeo ou da transmissão ao vivo): o vídeo aparece dentro da página da etapa. Outro site (Instagram…) vira o botão "Assistir à transmissão". Depois da etapa o link continua no site, com a gravação.
    */
   transmissaoProfissional?: string | null;
   /**
-   * Link da transmissão (YouTube, Instagram…). Continua no site depois da etapa.
+   * Cole o link do YouTube (do vídeo ou da transmissão ao vivo): o vídeo aparece dentro da página da etapa. Outro site (Instagram…) vira o botão "Assistir à transmissão". Depois da etapa o link continua no site, com a gravação.
    */
   transmissaoIndoor?: string | null;
   /**
@@ -950,7 +950,7 @@ export interface Temporada {
   formatoEtapa?:
     | {
         nome: string;
-        tipo: 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
+        tipo: 'warm-up' | 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
         /**
          * Nome de uma tabela da regra (ex.: Final). Vazio = primeira tabela.
          */
@@ -1339,6 +1339,10 @@ export interface Categoria {
    * Gerado automaticamente. Só altere se precisar de um endereço diferente.
    */
   slug?: string | null;
+  /**
+   * Em qual parte da aba BKS a categoria aparece no site: "Karts profissionais" ou "Karts indoor" (datas, horários, classificação e resultados de cada uma).
+   */
+  modalidade: 'profissional' | 'indoor';
   /**
    * Opcional. Só o nome de cada uma, na ordem em que aparecem no site (ex.: Novatos, Junior).
    */
@@ -1799,9 +1803,9 @@ export interface Corrida {
   categorias: (number | Categoria)[];
   nome: string;
   /**
-   * A pole vem do 1º da tomada de tempo.
+   * A pole vem do 1º da tomada de tempo. Warm-up não vale pontos.
    */
-  tipo: 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
+  tipo: 'warm-up' | 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final';
   status: 'rascunho' | 'oficial' | 'cancelada';
   /**
    * Opcional. Aparece na programação da etapa, por categoria.
@@ -4300,6 +4304,7 @@ export interface CategoriasSelect<T extends boolean = true> {
   nome?: T;
   sigla?: T;
   slug?: T;
+  modalidade?: T;
   subcategorias?:
     | T
     | {
@@ -7002,15 +7007,19 @@ export interface Configuracoe {
   izyPassTexto?: string | null;
   exibirEventoPublico?: boolean | null;
   /**
-   * Vazio = "O evento é aberto ao público, com entrada gratuita."
+   * Vazio = "O evento é aberto ao público e a entrada é de graça."
    */
   textoEventoPublico?: string | null;
   /**
-   * Cada item vira uma etiqueta com ícone. Lista vazia = Food trucks, Telão, Mesas e cadeiras e Narrador.
+   * Cada item aparece com um ícone: um nome curto (ex.: Telão) e, se quiser, uma frase explicando. Lista vazia = food trucks, telão, mesas e cadeiras e narrador.
    */
   itensEventoPublico?:
     | {
         texto: string;
+        /**
+         * Opcional. Ex.: "Telão para assistir à corrida de diversos ângulos."
+         */
+        descricao?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -7585,6 +7594,7 @@ export interface ConfiguracoesSelect<T extends boolean = true> {
     | T
     | {
         texto?: T;
+        descricao?: T;
         id?: T;
       };
   textoRodape?: T;

@@ -3,20 +3,30 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { DataEtapa, dataPorExtenso, LinkMapa, NomeEtapa, nomeDaEtapa, Programacao, SeloEtapa } from '@/components/site/bks/pecas'
+import { MatrizesDaModalidade, resultadoComCategorias } from '@/components/site/bks/AreaResultados'
 import b from '@/components/site/bks/Bks.module.css'
-import { ResultadoCategoria } from '@/components/site/bks/Tabelas'
 import { CartaoNoticia, GradeCartoes } from '@/components/site/Cartoes'
 import { Galeria } from '@/components/site/Galeria'
 import { imagemDoCartao } from '@/components/site/Foto'
-import { BotaoExterno, CompraETreinos, EventoPublico, FaixaJaOcorreu, Transmissoes, transmissoesVisiveis } from '@/components/site/etapa/BlocosEtapa'
+import { BotaoExterno, CompraETreinos, EventoPublico, FaixaJaOcorreu, transmissoesVisiveis } from '@/components/site/etapa/BlocosEtapa'
+import { Transmissoes } from '@/components/site/etapa/TransmissaoEtapa'
 import { Secao, Sumario, TopoPagina } from '@/components/site/paginas/TopoPagina'
 import s from '@/components/site/paginas/Paginas.module.css'
 import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { TextoRico } from '@/components/site/TextoRico'
 import { formatarData, formatarHora } from '@/lib/datas'
 import { fotosDaGaleria } from '@/lib/galeria'
-import { comoDoc, lerBks, lerCategorias, lerConfiguracoes, lerContato, lerConteudoDaEtapa, lerEtapa, lerProgramacao, lerResultadosEtapa } from '@/lib/publico'
-import { eventoPublico, mapaDaEtapa, situacaoDaEtapa, variaveisDoCampeonato } from '@/lib/site'
+import { comoDoc, lerBks, lerConfiguracoes, lerContato, lerConteudoDaEtapa, lerEtapa, lerProgramacao, lerResultadosEtapa } from '@/lib/publico'
+import {
+  caminhoDaArea,
+  corridaNaModalidade,
+  eventoPublico,
+  mapaDaEtapa,
+  modalidadesDaEtapa,
+  ROTULO_MODALIDADE,
+  situacaoDaEtapa,
+  variaveisDoCampeonato,
+} from '@/lib/site'
 import type { Campeonato, CategoriasNoticia, Midia, Temporada } from '@/payload-types'
 
 export const revalidate = 60
@@ -47,9 +57,11 @@ export default async function PaginaEtapa({ params }: Props) {
   ])
   const temporada = comoDoc<Temporada>(etapa.temporada)
   const campeonato = comoDoc<Campeonato>(temporada?.campeonato) ?? bks?.campeonato ?? null
-  const categorias = await lerCategorias((resultado?.categorias ?? []).map((c) => Number(c.categoria)))
-  const cor = new Map(categorias.map((c) => [String(c.id), c.cor ?? null]))
-  const temResultado = resultado?.categorias.some((c) => c.corridas.length)
+  // Programação e resultado agrupados por modalidade (karts profissionais e karts indoor), só as que têm dados
+  const modalidadesProgramacao = modalidadesDaEtapa(etapa, programacao)
+  const { comCorridas: comResultado, porId } = await resultadoComCategorias(etapa.id)
+  const modalidadesResultado = modalidadesDaEtapa({ categorias: comResultado.map((c) => porId.get(String(c.categoria)) ?? { id: c.categoria }) })
+  const temResultado = comResultado.length > 0
   // Antes da etapa: compra, treinos livres e grade. Depois: o aviso no lugar (a página se atualiza a cada minuto).
   const situacao = situacaoDaEtapa(etapa)
   const publico = situacao.antes ? eventoPublico(config) : null
@@ -119,7 +131,7 @@ export default async function PaginaEtapa({ params }: Props) {
           titulo={situacao.jaOcorreu ? 'Transmissão' : 'Transmissão ao vivo'}
           branca={proximoFundo()}
         >
-          <Transmissoes situacao={situacao} />
+          <Transmissoes situacao={situacao} nomeEtapa={semDemo(nomeDaEtapa(etapa))} />
         </Secao>
       )}
 
@@ -131,7 +143,19 @@ export default async function PaginaEtapa({ params }: Props) {
 
       <Secao id="programacao" rotulo="Horários" titulo="Programação por categoria" branca={proximoFundo()}>
         <div className={`${s.duas} ${s.duasLargo}`}>
-          <Programacao corridas={programacao} />
+          <div className={b.pilhaModalidades}>
+            {modalidadesProgramacao.map((m) => {
+              const corridas = programacao.filter((c) => corridaNaModalidade(c, m))
+              return (
+                <section key={m} aria-labelledby={`programacao-${m}`}>
+                  <h3 id={`programacao-${m}`} className={`h3 ${b.tituloModalidade}`}>
+                    {ROTULO_MODALIDADE[m]}
+                  </h3>
+                  <Programacao corridas={corridas} vazio={`A programação dos ${ROTULO_MODALIDADE[m].toLowerCase()} nesta etapa ainda não foi publicada.`} />
+                </section>
+              )
+            })}
+          </div>
           <div className={s.cartao} style={{ display: 'grid', gap: 12, justifyItems: 'start' }}>
             <DataEtapa etapa={etapa} grande />
             <p>
@@ -155,18 +179,15 @@ export default async function PaginaEtapa({ params }: Props) {
 
       {temResultado && (
         <Secao id="resultado" rotulo={resultado?.parcial ? 'Parcial' : 'Oficial'} titulo="Resultado" branca={proximoFundo()}>
-          <div className={b.pilhaCategorias}>
-            {resultado!.categorias.map((c) =>
-              c.corridas.length ? (
-                <section key={String(c.categoria)} className={b.categoria} aria-label={semDemo(c.categoriaNome) || 'Categoria'}>
-                  <h3 className={`h3 ${b.tituloCategoria}`}>
-                    <span className={b.corCategoria} style={{ background: cor.get(String(c.categoria)) ?? 'var(--camp-p)' }} aria-hidden="true" />
-                    <TextoDemo texto={c.categoriaNome} />
-                  </h3>
-                  <ResultadoCategoria resultado={c} cor={cor.get(String(c.categoria))} />
-                </section>
-              ) : null,
-            )}
+          <div className={b.pilhaModalidades}>
+            {modalidadesResultado.map((m) => (
+              <section key={m} aria-labelledby={`resultado-${m}`}>
+                <h3 id={`resultado-${m}`} className={`h3 ${b.tituloModalidade}`}>
+                  {ROTULO_MODALIDADE[m]}
+                </h3>
+                <MatrizesDaModalidade etapaId={etapa.id} modalidade={m} nivelTitulo={4} />
+              </section>
+            ))}
           </div>
         </Secao>
       )}
@@ -196,7 +217,8 @@ export default async function PaginaEtapa({ params }: Props) {
       )}
 
       <div className="conteiner" style={{ paddingBlock: 32 }}>
-        <Link className={b.linkSeta} href="/bks">
+        {/* Etapa só de kart indoor volta para o calendário indoor */}
+        <Link className={b.linkSeta} href={caminhoDaArea(modalidadesProgramacao.includes('profissional') ? 'profissional' : 'indoor')}>
           ← Calendário completo
         </Link>
       </div>
