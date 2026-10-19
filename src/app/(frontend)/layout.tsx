@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Archivo, Geist_Mono } from 'next/font/google'
 import type { CSSProperties, ReactNode } from 'react'
 import { Cabecalho } from '@/components/site/Cabecalho'
-import { Rodape } from '@/components/site/Rodape'
+import { Rodape, type ColunaRodape } from '@/components/site/Rodape'
 import { fontesDaFoto } from '@/components/site/Foto'
 import { FaixaPrevia } from '@/components/site/previa/FaixaPrevia'
 import { semDemo } from '@/components/site/TextoDemo'
@@ -20,7 +20,33 @@ const mono = Geist_Mono({ subsets: ['latin'], variable: '--fonte-geist-mono', di
 
 export const revalidate = 60
 
-export const viewport: Viewport = { themeColor: '#111111', width: 'device-width', initialScale: 1 }
+// Cor da barra do navegador no celular: o cabeçalho é branco
+export const viewport: Viewport = { themeColor: '#ffffff', width: 'device-width', initialScale: 1 }
+
+/** Rodapé padrão enquanto ninguém montou as colunas no painel (Navegação → rodapé). Só rotas que existem. */
+const COLUNAS_PADRAO: ColunaRodape[] = [
+  {
+    titulo: 'Campeonato BKS',
+    links: [
+      { rotulo: 'Karts profissionais', href: '/bks' },
+      { rotulo: 'Karts indoor', href: '/bks/indoor' },
+      { rotulo: 'Classificação', href: '/bks/classificacao' },
+      { rotulo: 'Resultados', href: '/bks/resultados' },
+      { rotulo: 'História', href: '/bks/historia' },
+      { rotulo: 'Regulamento', href: '/bks/regulamento' },
+    ],
+  },
+  {
+    titulo: 'Institucional',
+    links: [
+      { rotulo: 'Kartódromo', href: '/kartodromo' },
+      { rotulo: 'Notícias', href: '/noticias' },
+      { rotulo: 'Avisos', href: '/avisos' },
+      { rotulo: 'Sobre a ASKART', href: '/sobre' },
+      { rotulo: 'Contato', href: '/contato' },
+    ],
+  },
+]
 
 export async function generateMetadata(): Promise<Metadata> {
   const config = await lerConfiguracoes()
@@ -73,10 +99,19 @@ export default async function LayoutSite({ children }: { children: ReactNode }) 
   const canais = canaisDoContato(contato, 'rodape')
   const redes = (contato.redes ?? []).map((r) => ({ rede: r.rede, url: r.url, usuario: r.usuario }))
   const instagram = redes.find((r) => r.rede === 'instagram')
-  const colunas = (navegacao.rodape ?? []).map((c) => ({
+  const colunasPainel = (navegacao.rodape ?? []).map((c) => ({
     titulo: c.titulo,
     links: (c.links ?? []).map((l) => itemDoLink(l.link as ValorLink)).filter((l): l is NonNullable<typeof l> => l !== null),
   }))
+  // Sem colunas no painel: mapa do site padrão (+ IZY Pass, quando o link geral estiver cadastrado)
+  const colunas = colunasPainel.length
+    ? colunasPainel
+    : COLUNAS_PADRAO.map((c, i) =>
+        i === 0 && config.izyPass
+          ? { ...c, links: [...c.links, { rotulo: semDemo(config.izyPassTexto) || 'Comprar na IZY Pass', href: config.izyPass, externo: true }] }
+          : c,
+      )
+  const nomeKartodromo = kartodromo.nome || 'Kartódromo Ayrton Senna do Guará'
   const destaqueMenu = itemDoLink(navegacao.botaoDestaque as ValorLink)
 
   return (
@@ -98,7 +133,7 @@ export default async function LayoutSite({ children }: { children: ReactNode }) 
           nome={nome}
           logo={logoInfo}
           menu={menuDoSite(navegacao)}
-          local={`${kartodromo.nome || 'Kartódromo Ayrton Senna do Guará'} · Brasília/DF`}
+          local={`${nomeKartodromo} · Brasília/DF`}
           atalhos={[
             ...(instagram ? [{ rotulo: NOMES_REDES.instagram, href: instagram.url, externo: true }] : []),
             { rotulo: 'Contato', href: '/contato' },
@@ -115,7 +150,9 @@ export default async function LayoutSite({ children }: { children: ReactNode }) 
           texto={config.textoRodape || config.descricao}
           colunas={colunas}
           canais={canais}
-          endereco={semDemo(contato.endereco?.texto?.split('\n')[0]) || null}
+          endereco={semDemo(contato.endereco?.texto) || null}
+          mapa={contato.endereco?.linkMapa || null}
+          local={nomeKartodromo}
           redes={redes}
           ano={new Date().getFullYear()}
         />
