@@ -51,6 +51,14 @@ export const prepararRegra: CollectionBeforeValidateHook = ({ data, req }) => {
 }
 
 /**
+ * "Como a etapa é pontuada" vazio (regra gravada antes do campo existir) é o cálculo por corrida: preencher
+ * com "por corrida" não muda resultado nenhum (usado por scripts/atualizacoes.ts nas regras de temporadas
+ * encerradas).
+ */
+export const soPreencheCalculoAntigo = (novo: unknown, antigo: unknown) =>
+  novo === 'por-corrida' && (antigo === null || antigo === undefined || antigo === '')
+
+/**
  * Regra usada por temporada encerrada: só o nome pode mudar. Tabela renomeada ou removida não pode
  * estar em uso por corridas nem pelo formato de etapa das temporadas.
  */
@@ -58,7 +66,8 @@ export const protegerRegraEmUso: CollectionBeforeChangeHook = async ({ data, ori
   if (operation !== 'update' || !docAnterior(originalDoc)) return data
   const usos = await temporadasQueUsam(req, originalDoc.id)
   const encerradas = usos.filter((t) => t.status === 'encerrada')
-  if (encerradas.length && camposAlterados(data, originalDoc, ['nome', 'temporadas', 'classificacoes']).length) {
+  const livres = ['nome', 'temporadas', 'classificacoes', ...(soPreencheCalculoAntigo(data.calculoDaEtapa, originalDoc.calculoDaEtapa) ? ['calculoDaEtapa'] : [])]
+  if (encerradas.length && camposAlterados(data, originalDoc, livres).length) {
     falhar(
       `Esta regra foi usada na temporada encerrada "${encerradas[0].nome}" e não pode mudar (o resultado oficial ficaria diferente). ` +
         'Para outra temporada, use "Duplicar regra" e edite a cópia.',

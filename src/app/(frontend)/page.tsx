@@ -49,6 +49,7 @@ import {
   ROTULO_MODALIDADE,
   situacaoDaEtapa,
 } from '@/lib/site'
+import { separarClassificacao } from '@/lib/subcategorias'
 import type { Galeria, Midia, PaginaInicial, Piloto } from '@/payload-types'
 
 export const revalidate = 60
@@ -189,23 +190,50 @@ export default async function Inicio() {
     comunicados: (b) => <AvisosInicio avisos={avisos} titulo={tituloDe(b, 'Avisos no ar')} subtitulo={subtituloDe(b)} />,
     lideres: async (b) => {
       if (!temporada) return null
-      const classificacoes = (await lerClassificacoes(temporada.id)).filter((c) => c.lider)
+      // Regra do BKS (pontos por subcategoria): um líder por subcategoria, na ordem cadastrada na categoria.
+      const lidas = await lerClassificacoes(temporada.id)
+      const classificacoes = lidas.filter((c) => c.lider || c.porSubcategoria)
       if (!classificacoes.length) return null
       const categorias = await lerCategorias(classificacoes.map((c) => Number(c.categoria)))
       const porId = new Map(categorias.map((c) => [String(c.id), c]))
-      const lideres: LiderInicio[] = classificacoes.slice(0, quantidadeDe(b, 6)).map((c) => {
-        const lider = c.lider!.linha
-        const segundo = c.linhas[1]
-        return {
-          chave: String(c.categoria),
-          categoria: porId.get(String(c.categoria)) ?? null,
-          numero: lider.numero ?? null,
-          nome: lider.nome,
-          equipe: lider.equipeNome ?? null,
-          pontos: lider.pontos,
-          vantagem: segundo ? Math.round((lider.pontos - segundo.pontos) * 10) / 10 : null,
+      const vantagem = (lider: { pontos: number }, segundo?: { pontos: number }) =>
+        segundo ? Math.round((lider.pontos - segundo.pontos) * 10) / 10 : null
+      const todos: LiderInicio[] = classificacoes.flatMap((c): LiderInicio[] => {
+        const categoria = porId.get(String(c.categoria)) ?? null
+        const separada = c.porSubcategoria ? separarClassificacao(c.linhas, categoria?.subcategorias, { pontosPorSubcategoria: true }) : null
+        if (separada?.porSubcategoria && !c.lider) {
+          return separada.grupos
+            .filter((g) => (g.linhas[0]?.linha.pontos ?? 0) > 0)
+            .map((g) => {
+              const lider = g.linhas[0].linha
+              return {
+                chave: `${String(c.categoria)}-${g.chave}`,
+                categoria,
+                subcategoria: g.semSubcategoria ? null : g.nome,
+                numero: lider.numero ?? null,
+                nome: lider.nome,
+                equipe: lider.equipeNome ?? null,
+                pontos: lider.pontos,
+                vantagem: vantagem(lider, g.linhas[1]?.linha),
+              }
+            })
         }
+        if (!c.lider) return []
+        const lider = c.lider.linha
+        return [
+          {
+            chave: String(c.categoria),
+            categoria,
+            numero: lider.numero ?? null,
+            nome: lider.nome,
+            equipe: lider.equipeNome ?? null,
+            pontos: lider.pontos,
+            vantagem: vantagem(lider, c.linhas[1]),
+          },
+        ]
       })
+      const lideres = todos.slice(0, quantidadeDe(b, 6))
+      if (!lideres.length) return null
       return (
         <Lideres
           lideres={lideres}

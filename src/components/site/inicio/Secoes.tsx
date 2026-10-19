@@ -163,6 +163,11 @@ export function BlocoBks({
 export type LiderInicio = {
   chave: string
   categoria: Pick<Categoria, 'nome' | 'cor' | 'subcategorias'> | null
+  /**
+   * Regra do BKS (pontos por subcategoria): o líder é o da subcategoria — o cartão mostra só ela e a
+   * vantagem é sobre o 2º dela. Ausente/null = líder da categoria.
+   */
+  subcategoria?: string | null
   numero: string | number | null
   nome: string
   equipe: string | null
@@ -194,8 +199,13 @@ export function Lideres({
               <div className={s.liderCabeca}>
                 <h3 className={s.liderCategoria}>
                   <TextoDemo texto={l.categoria?.nome || 'Categoria'} />
+                  {l.subcategoria && <span className="visualmente-oculto">, subcategoria {semDemo(l.subcategoria)}</span>}
                 </h3>
-                <Subcategorias itens={l.categoria?.subcategorias} rotulo={`Subcategorias da ${semDemo(l.categoria?.nome) || 'categoria'}`} />
+                {l.subcategoria ? (
+                  <Subcategorias itens={[{ nome: l.subcategoria }]} rotulo={`Subcategoria da ${semDemo(l.categoria?.nome) || 'categoria'}`} />
+                ) : (
+                  <Subcategorias itens={l.categoria?.subcategorias} rotulo={`Subcategorias da ${semDemo(l.categoria?.nome) || 'categoria'}`} />
+                )}
               </div>
               <div className={s.liderPiloto}>
                 <PlacaNumero numero={l.numero} cor={l.categoria?.cor} tamanho="m" />

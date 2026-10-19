@@ -30,8 +30,18 @@
  * - Desempate: só os critérios cadastrados na regra, na ordem dela. Nada é presumido: sem critérios (ou
  *   persistindo o empate) vale a ordem alfabética, e o motor avisa o administrador quando isso decidiu algo.
  * - Pontos têm 1 casa decimal: todas as contas são feitas em DÉCIMOS inteiros (sem erro de ponto flutuante).
+ *
+ * Cálculo da etapa (`regra.calculoDaEtapa`, ver "cálculo pela média" mais abaixo):
+ * - `media-das-corridas` — REGRA DO BKS informada pelo cliente: a categoria é só o tipo de kart; cada
+ *   subcategoria é um grid próprio (warm-up, tomada de tempo, Corrida 1 e Corrida 2). A posição do piloto na
+ *   etapa é a da MÉDIA das suas posições nas corridas da subcategoria (2º e 2º → 2º na etapa) e os pontos da
+ *   tabela são dados por essa posição. Pole e volta mais rápida são da subcategoria, e a classificação do
+ *   campeonato é separada por subcategoria (cada uma com os seus pontos e posições).
+ * - `por-corrida` (antigo) — cada corrida dá pontos pela tabela; a etapa é a soma; classificação única.
+ *   Regra sem o campo (gravada antes de ele existir) continua assim.
  */
 import { instanteDeChave } from './datas'
+import { normalizarSubcategoria } from './subcategorias'
 
 export type Id = string | number
 
@@ -53,6 +63,13 @@ export type RegraConvidados = 'reclassificar-elegiveis' | 'manter-posicoes'
 export type UnidadeDescarte = 'etapa' | 'corrida'
 export type CriterioDesempate = 'mais-vitorias' | 'contagem-de-posicoes' | 'melhor-resultado-ultima-etapa' | 'mais-poles'
 export type TipoAjuste = 'penalidade' | 'bonificacao' | 'correcao'
+/**
+ * Como a etapa é pontuada: `media-das-corridas` (regra do BKS: posição na etapa pela média das posições nas
+ * corridas, por subcategoria) ou `por-corrida` (antigo: pontos em cada corrida, somados).
+ */
+export type CalculoDaEtapa = 'media-das-corridas' | 'por-corrida'
+/** Desempate de média igual no cálculo pela média (ver DECISOES_MEDIA). */
+export type CriterioDesempateMedia = 'ultima-corrida' | 'classificacao'
 
 /** Critério que separou dois pilotos empatados em pontos. */
 export type CriterioAplicado = CriterioDesempate | 'ordem-alfabetica'
@@ -110,6 +127,8 @@ export interface Regra {
    * (empate em pontos fica na ordem alfabética, com aviso ao administrador).
    */
   criteriosDesempate?: CriterioDesempate[] | null
+  /** Como a etapa é pontuada. Vazio = `por-corrida` (regra gravada antes do campo existir). */
+  calculoDaEtapa?: CalculoDaEtapa | null
 }
 
 export interface Etapa {
@@ -163,6 +182,11 @@ export interface Corrida {
   etapa: Id
   /** Categorias que largam juntas nesta corrida (normalmente uma). */
   categorias?: Id[] | null
+  /**
+   * Subcategorias para as quais a sessão vale (vazio = todas as da categoria). No cálculo pela média, a
+   * corrida só entra na média das subcategorias marcadas.
+   */
+  subcategorias?: string[] | null
   nome?: string | null
   tipo?: TipoCorrida | null
   /** Tabela de pontos da regra a usar (id da linha ou nome). Vazio = 1ª tabela da regra. */
@@ -189,7 +213,10 @@ export interface Inscricao {
   numero?: number | string | null
   equipe?: Id | null
   equipeNome?: string | null
-  /** Subcategoria da inscrição (ex.: "Novatos"), só para exibir os resultados separados; não muda pontos. */
+  /**
+   * Subcategoria da inscrição (ex.: "Novatos"). No cálculo pela média é o GRID do piloto (posição e pontos
+   * contados dentro dela); no cálculo por corrida só separa as tabelas do site.
+   */
   subcategoria?: string | null
   /** Padrão: titular. */
   condicao?: CondicaoInscricao | null
@@ -231,13 +258,29 @@ export interface EntradaClassificacao {
 
 // ───────────────────────────── tipos de saída ─────────────────────────────
 
+/** Posição de um piloto numa corrida, como entrou na média da etapa (cálculo pela média). */
+export interface PosicaoNaMedia {
+  corrida: Id
+  /** Posição usada na média (dentro da subcategoria). */
+  posicao: number
+  /** Contou como a última posição do grid (abandono, não largou, desclassificado ou não correu). */
+  ultima: boolean
+}
+
 export interface ResultadoEtapaLinha {
   etapa: Id
   numero: number
   /** Pontos da etapa antes de penalidades/ajustes (corridas + pole). */
   pontos: number
-  /** Posição do piloto na etapa (entre os pilotos da classificação); null = sem posição oficial na etapa. */
+  /**
+   * Posição do piloto na etapa (entre os pilotos da classificação; no cálculo pela média, dentro da
+   * subcategoria); null = sem posição oficial na etapa.
+   */
   posicao: number | null
+  /** Cálculo pela média: média das posições nas corridas (ex.: 2 = 2º e 2º). Ausente no cálculo por corrida. */
+  media?: number | null
+  /** Cálculo pela média: a posição de cada corrida que entrou na média, na ordem das corridas. */
+  posicoesNaMedia?: PosicaoNaMedia[]
   /** Etapa inteira descartada. */
   descartado: boolean
   /** Pontos descartados nesta etapa (no descarte por corrida pode ser parte da etapa). */
@@ -267,6 +310,11 @@ export interface LinhaClassificacao {
   equipe: Id | null
   equipeNome?: string | null
   categoria: Id | null
+  /**
+   * Cálculo pela média: a subcategoria (grid) em que o piloto pontua — posição e pontos são DENTRO dela
+   * (null = sem subcategoria). Ausente no cálculo por corrida.
+   */
+  subcategoria?: string | null
   pontos: number
   /** Soma das etapas antes dos descartes e ajustes. */
   pontosBrutos: number
@@ -293,6 +341,8 @@ export interface EmpateResolvido {
   posicoes: number[]
   /** Para cada par (posição i, i+1) do grupo, o critério que decidiu. */
   resolvidoPor: CriterioAplicado[]
+  /** Cálculo pela média: subcategoria do empate (null = sem subcategoria). */
+  subcategoria?: string | null
 }
 
 export interface CriteriosAplicados {
@@ -310,10 +360,15 @@ export interface CriteriosAplicados {
   requisitoParticipacao: RequisitoParticipacao
   percentualMinimoVoltas: number
   empates: EmpateResolvido[]
+  /** Como a etapa foi pontuada (ausente em fotografias gravadas antes do campo existir = por corrida). */
+  calculoDaEtapa?: CalculoDaEtapa
 }
 
 export interface ResultadoClassificacao {
+  /** No cálculo pela média: agrupadas por subcategoria e, dentro de cada uma, na ordem da classificação. */
   linhas: LinhaClassificacao[]
+  /** true = pontos e posições contados por subcategoria (cálculo pela média): `posicao` é dentro dela. */
+  porSubcategoria: boolean
   criterios: CriteriosAplicados
   /** Etapas realizadas que contam para esta categoria (até `ateEtapa`, se informado). */
   etapasRealizadas: number
@@ -335,6 +390,40 @@ export const REGRA_PADRAO = {
   abandono: 'so-participacao' as RegraAbandono,
   convidados: 'reclassificar-elegiveis' as RegraConvidados,
   unidadeDescarte: 'etapa' as UnidadeDescarte,
+  /**
+   * Regra gravada antes do campo existir (vazio) continua como era. As regras novas nascem com
+   * `media-das-corridas` (padrão do painel) e as existentes são atualizadas por scripts/atualizacoes.ts.
+   */
+  calculoDaEtapa: 'por-corrida' as CalculoDaEtapa,
+}
+
+/**
+ * Cálculo pela média — decisões que o cliente NÃO informou (definidas pelo integrador; para mudar, é aqui).
+ * O que o cliente informou: cada subcategoria é um grid; a posição na etapa é a média das posições nas
+ * corridas (2º e 2º → 2º na etapa); pontos e classificação são separados por subcategoria.
+ */
+export const DECISOES_MEDIA = {
+  /**
+   * Média igual: desempata, nesta ordem, a melhor posição na ÚLTIMA corrida da etapa (a Corrida 2) e a melhor
+   * posição na classificação (tomada de tempo) da subcategoria. Persistindo, fica o EMPATE: mesma posição
+   * na etapa e mesmos pontos (o seguinte pula: 2º, 2º, 4º).
+   */
+  desempate: ['ultima-corrida', 'classificacao'] as CriterioDesempateMedia[],
+  /** Situações numa corrida que contam como a ÚLTIMA posição do grid (não correr a corrida também conta). */
+  contamComoUltima: ['abandono', 'nao-classificado', 'desclassificado', 'nao-largou'] as StatusResultado[],
+  /**
+   * Qual é a "última posição do grid":
+   * - `pilotos-da-etapa`: nº de pilotos da subcategoria que correram alguma corrida da etapa (quem não terminou
+   *   ou não correu fica sempre atrás de todos os que terminaram aquela corrida);
+   * - `pilotos-da-corrida`: nº de pilotos da subcategoria que constam no resultado daquela corrida.
+   */
+  ultimaPosicao: 'pilotos-da-etapa' as 'pilotos-da-etapa' | 'pilotos-da-corrida',
+}
+
+/** Rótulos do cálculo da etapa (painel e site). */
+export const ROTULOS_CALCULO_DA_ETAPA: Record<CalculoDaEtapa, string> = {
+  'media-das-corridas': 'Média das posições nas corridas, por subcategoria (regra do BKS)',
+  'por-corrida': 'Pontos em cada corrida (antigo)',
 }
 
 const k = (id: Id | null | undefined): string => (id === null || id === undefined ? '' : String(id))
@@ -379,6 +468,30 @@ export function ordenarEtapas<T extends Pick<Etapa, 'numero' | 'inicio'>>(etapas
     }
     return a.numero - b.numero
   })
+}
+
+const ORDEM_TIPO: Record<TipoCorrida, number> = {
+  'warm-up': 0,
+  'tomada-de-tempo': 1,
+  classificatoria: 2,
+  bateria: 3,
+  'pre-final': 4,
+  final: 5,
+}
+
+/**
+ * Sessões de uma etapa em ordem: pelo horário quando todas têm horário; senão pelo tipo (warm-up, tomada de
+ * tempo, classificatória, bateria, pré-final, final) e pelo nome ("Corrida 2" antes de "Corrida 10").
+ */
+export function ordenarSessoes<T extends Pick<Corrida, 'inicio' | 'tipo' | 'nome'>>(corridas: T[]): T[] {
+  const todasComHorario = corridas.every((c) => tempo(c.inicio) !== null)
+  const porTipoENome = (a: T, b: T) =>
+    ORDEM_TIPO[a.tipo ?? 'bateria'] - ORDEM_TIPO[b.tipo ?? 'bateria'] ||
+    (a.nome ?? '').localeCompare(b.nome ?? '', 'pt-BR', { sensitivity: 'base', numeric: true })
+  return corridas
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => (todasComHorario ? (tempo(a.c.inicio) as number) - (tempo(b.c.inicio) as number) : 0) || porTipoENome(a.c, b.c) || a.i - b.i)
+    .map((x) => x.c)
 }
 
 function ordenarCorridas(corridas: Corrida[]): Corrida[] {
@@ -819,6 +932,8 @@ type EtapaAcum = {
   temPosicao: boolean
   posicoes: Map<string, number | null> // corrida que conta → posição para pontos
   pole: boolean
+  media: number | null // cálculo pela média: média das posições nas corridas
+  posicoesNaMedia: PosicaoNaMedia[] | null // cálculo pela média: posição de cada corrida
 }
 
 type PilotoAcum = {
@@ -847,6 +962,8 @@ const novaEtapaAcum = (): EtapaAcum => ({
   temPosicao: false,
   posicoes: new Map(),
   pole: false,
+  media: null,
+  posicoesNaMedia: null,
 })
 
 const sinalAjuste = (a: Ajuste): number => {
@@ -870,8 +987,276 @@ const categoriasDaCorrida = (c: Corrida, mapaIns: Map<string, Inscricao>): Set<s
 const corridaDoGrupo = (c: Corrida, grupo: Set<string>, mapaIns: Map<string, Inscricao>) =>
   [...categoriasDaCorrida(c, mapaIns)].some((x) => grupo.has(x))
 
+// ───────────────────────────── cálculo pela média (regra do BKS) ─────────────────────────────
+
+/** Chave do grid de uma subcategoria: o nome normalizado ("junior" = "Junior"); '' = sem subcategoria. */
+export const chaveDoGrid = (subcategoria: string | null | undefined): string =>
+  typeof subcategoria === 'string' ? normalizarSubcategoria(subcategoria) : ''
+
+/**
+ * A corrida vale para o grid? Corrida sem subcategorias marcadas vale para todas; marcada, só para as
+ * marcadas. Quem não tem subcategoria vale em qualquer corrida em que aparece.
+ */
+const corridaValeParaGrid = (c: Corrida, grid: string): boolean => {
+  const marcadas = (c.subcategorias ?? []).map(chaveDoGrid).filter(Boolean)
+  return !marcadas.length || grid === '' || marcadas.includes(grid)
+}
+
+/** Piloto de um grid numa etapa. `piloto` null = convidado (só ocupa posição quando a regra é "manter posições"). */
+type Competidor = { chave: string; nome: string; piloto: PilotoAcum | null; grid: string; nomeGrid: string | null }
+
+interface EntradaMedia {
+  etapa: Etapa
+  /** Corridas oficiais da etapa, do grupo, sem warm-up. */
+  corridas: Corrida[]
+  regra: Regra
+  mapaIns: Map<string, Inscricao>
+  grupo: Set<string>
+  pilotoDaInscricao: (id: Id | null | undefined) => PilotoAcum | null
+  acumEtapa: (p: PilotoAcum, etapaId: string) => EtapaAcum
+  /** Nome exibido de cada grid (o primeiro encontrado), preenchido aqui. */
+  nomesGrid: Map<string, string>
+  /** null = não avisa (cálculo da posição anterior). */
+  avisos: string[] | null
+}
+
+const comparaNumero = (a: number, b: number) => (a === b ? 0 : a < b ? -1 : 1)
+
+/**
+ * Pontua UMA etapa pelo cálculo da média (regra do BKS). Para cada grid (subcategoria; sem subcategoria =
+ * um grid só):
+ * 1. corridas do grid = as que contam (nunca warm-up nem tomada de tempo) marcadas para a subcategoria (ou
+ *    sem marcação) e em que algum piloto dela aparece;
+ * 2. posição em cada corrida = posição oficial RELATIVA dentro da subcategoria (penalidades de tempo e de
+ *    posições já aplicadas); abandono, não classificado, desclassificado, não largou e não correr contam
+ *    como a última posição do grid (DECISOES_MEDIA);
+ * 3. média das posições → ordem (desempates de DECISOES_MEDIA) → posição na etapa → pontos da tabela por essa
+ *    posição × fator da etapa;
+ * 4. bônus por subcategoria: pole (1º da tomada de tempo da subcategoria) e volta mais rápida da subcategoria
+ *    em cada corrida; pontos de participação por corrida, como no cálculo por corrida.
+ * Convidados: em "reclassificar" ficam de fora (os titulares sobem); em "manter posições" ocupam a posição.
+ * Devolve a posição de cada piloto na etapa (dentro do grid dele) e as corridas que contaram.
+ */
+function pontuarEtapaPelaMedia(entrada: EntradaMedia): { posicoes: Map<string, number>; contadas: Corrida[] } {
+  const { etapa, regra, mapaIns, grupo, avisos } = entrada
+  const idEtapa = k(etapa.id)
+  const nomeEtapa = etapa.nome?.trim() || `Etapa ${etapa.numero}`
+  const avisosLocais: string[] = []
+  const avisar = (texto: string) => avisos?.push(texto)
+  const manter = (regra.convidados ?? REGRA_PADRAO.convidados) === 'manter-posicoes'
+  const ehTomada = (c: Corrida) => (c.tipo ?? 'bateria') === 'tomada-de-tempo'
+
+  // Resultado de cada corrida (posição oficial com penalidades de tempo e de posições já aplicadas).
+  const resultados = new Map<Corrida, ResultadoCorrida>()
+  for (const c of entrada.corridas) {
+    const r = calcularResultadoCorrida(c, regra, { inscricoes: mapaIns, categorias: [...grupo], fatorEtapa: etapa.fatorPontuacao })
+    if (avisos) avisos.push(...r.avisos)
+    resultados.set(c, r)
+  }
+  const resultadoDa = (c: Corrida) => resultados.get(c) as ResultadoCorrida
+  const contadas = ordenarSessoes(entrada.corridas.filter((c) => resultadoDa(c).conta && !ehTomada(c)))
+  const tomadas = ordenarSessoes(entrada.corridas.filter(ehTomada))
+
+  // Participação e penalidades de pontos: como no cálculo por corrida (todas as sessões da etapa).
+  for (const c of entrada.corridas) {
+    for (const l of resultadoDa(c).linhas) {
+      const p = entrada.pilotoDaInscricao(l.inscricao)
+      if (!p) continue
+      const e = entrada.acumEtapa(p, idEtapa)
+      e.participou = true
+      e.penalidades += paraDecimos(l.penalidadePontos)
+    }
+  }
+
+  const competidorDa = (l: LinhaResultadoCalculada): Competidor | null => {
+    const ins = mapaIns.get(k(l.inscricao))
+    if (!ins) return null
+    if (l.convidado) {
+      if (!manter || ins.status === 'excluida') return null
+      const sub = ins.subcategoria?.trim() || null
+      return { chave: `convidado:${k(ins.id)}`, nome: ins.nome, piloto: null, grid: chaveDoGrid(sub), nomeGrid: sub }
+    }
+    const p = entrada.pilotoDaInscricao(l.inscricao)
+    if (!p) return null
+    const sub = p.principal.subcategoria?.trim() || null
+    return { chave: p.chave, nome: p.principal.nome, piloto: p, grid: chaveDoGrid(sub), nomeGrid: sub }
+  }
+
+  // Linhas de cada sessão, só de quem tem a sessão valendo para o seu grid (um piloto conta uma vez por sessão).
+  type LinhaGrid = { comp: Competidor; linha: LinhaResultadoCalculada }
+  const linhasDa = new Map<Corrida, LinhaGrid[]>()
+  for (const c of [...contadas, ...tomadas]) {
+    const vistos = new Set<string>()
+    const lista: LinhaGrid[] = []
+    for (const linha of resultadoDa(c).linhas) {
+      const comp = competidorDa(linha)
+      if (!comp || vistos.has(comp.chave) || !corridaValeParaGrid(c, comp.grid)) continue
+      vistos.add(comp.chave)
+      if (comp.nomeGrid && !entrada.nomesGrid.has(comp.grid)) entrada.nomesGrid.set(comp.grid, comp.nomeGrid)
+      lista.push({ comp, linha })
+    }
+    linhasDa.set(c, lista)
+  }
+  const doGrid = (c: Corrida, grid: string) => (linhasDa.get(c) ?? []).filter((x) => x.comp.grid === grid)
+
+  /** Posição relativa dentro do grid (só quem tem posição oficial e não está entre os que contam como último). */
+  const ranking = (c: Corrida, grid: string): Map<string, number> =>
+    new Map(
+      doGrid(c, grid)
+        .filter((x) => x.linha.posicaoOficial !== null && !DECISOES_MEDIA.contamComoUltima.includes(x.linha.status))
+        .sort((a, b) => (a.linha.posicaoOficial as number) - (b.linha.posicaoOficial as number))
+        .map((x, i) => [x.comp.chave, i + 1] as const),
+    )
+
+  /** Volta mais rápida do grid numa corrida (marcação manual primeiro; convidado marcado = ninguém). */
+  const voltaRapidaDoGrid = (c: Corrida, grid: string): PilotoAcum | null => {
+    const linhas = doGrid(c, grid)
+    const marcadas = new Set(idsDe(c.voltaMaisRapidaManual))
+    const manuais = linhas.filter((x) => c.resultados?.[x.linha.indice]?.voltaMaisRapida === true || marcadas.has(k(x.linha.inscricao)))
+    const elegiveis = manuais.filter((x) => x.comp.piloto && x.linha.statusInformado !== 'desclassificado')
+    const porPosicao = (a: LinhaGrid, b: LinhaGrid) => (a.linha.posicaoOficial ?? Infinity) - (b.linha.posicaoOficial ?? Infinity) || a.linha.indice - b.linha.indice
+    if (elegiveis.length) return [...elegiveis].sort(porPosicao)[0].comp.piloto
+    if (manuais.some((x) => !x.comp.piloto)) return null
+    const melhor = linhas
+      .filter((x) => x.linha.posicaoOficial !== null && !DECISOES_MEDIA.contamComoUltima.includes(x.linha.status) && x.linha.melhorVolta !== null)
+      .sort((a, b) => (a.linha.melhorVolta as number) - (b.linha.melhorVolta as number) || porPosicao(a, b))[0]
+    return melhor?.comp.piloto ?? null
+  }
+
+  const fatorEtapa = fator(etapa.fatorPontuacao, 'etapa', avisosLocais)
+  const pPole = paraDecimos(numeroOu(regra.pontosPole, 0))
+  const pVmr = paraDecimos(numeroOu(regra.pontosVoltaRapida, 0))
+  const posicoes = new Map<string, number>()
+
+  // Avisos de lançamentos que o cálculo pela média não usa.
+  for (const c of contadas) {
+    const nomeCorrida = c.nome ?? String(c.id)
+    if (resultadoDa(c).linhas.some((l) => l.pontosManuais !== null && !l.convidado)) {
+      avisar(`${nomeEtapa} — ${nomeCorrida}: há "pontos manuais" lançados, mas no cálculo pela média os pontos vêm da posição na etapa. Para corrigir pontos, use um ajuste na classificação.`)
+    }
+    if (typeof c.fatorPontuacao === 'number' && c.fatorPontuacao !== 1) {
+      avisar(`${nomeEtapa} — ${nomeCorrida}: o fator da corrida não se aplica no cálculo pela média (só o fator da etapa).`)
+    }
+  }
+
+  const grids = [...new Set([...contadas, ...tomadas].flatMap((c) => (linhasDa.get(c) ?? []).map((x) => x.comp.grid)))]
+  for (const grid of grids) {
+    const rotulo = grid ? `da subcategoria ${entrada.nomesGrid.get(grid) ?? grid}` : 'sem subcategoria'
+    const corridas = contadas.filter((c) => doGrid(c, grid).length > 0)
+    const tomada = tomadas.find((t) => doGrid(t, grid).length > 0) ?? null
+    const naTomada = tomada ? ranking(tomada, grid) : new Map<string, number>()
+
+    // Pole da subcategoria: 1º da tomada de tempo dela (convidado na frente em "manter posições" = sem pole).
+    if (tomada) {
+      const primeiro = doGrid(tomada, grid).find((x) => naTomada.get(x.comp.chave) === 1)?.comp.piloto
+      if (primeiro) {
+        const e = entrada.acumEtapa(primeiro, idEtapa)
+        if (!e.pole) {
+          e.pole = true
+          primeiro.poles++
+          e.pontos += pPole
+          e.extras += pPole
+        }
+      }
+    }
+    if (!corridas.length) continue
+
+    // Membros do grid: todos os que aparecem em alguma corrida dele.
+    const membros = new Map<string, Competidor>()
+    for (const c of corridas) for (const x of doGrid(c, grid)) if (!membros.has(x.comp.chave)) membros.set(x.comp.chave, x.comp)
+    const rankings = corridas.map((c) => ranking(c, grid))
+    const listados = corridas.map((c) => doGrid(c, grid).length)
+    type Calc = { comp: Competidor; soma: number; posicoes: PosicaoNaMedia[] }
+    const calculos: Calc[] = [...membros.values()].map((comp) => {
+      const pos = corridas.map((c, i): PosicaoNaMedia => {
+        const p = rankings[i].get(comp.chave)
+        if (p !== undefined) return { corrida: c.id, posicao: p, ultima: false }
+        const ultima = DECISOES_MEDIA.ultimaPosicao === 'pilotos-da-corrida' ? listados[i] : membros.size
+        return { corrida: c.id, posicao: ultima, ultima: true }
+      })
+      return { comp, soma: pos.reduce((s, x) => s + x.posicao, 0), posicoes: pos }
+    })
+
+    const ultimaCorrida = corridas.length - 1
+    const criterios: Record<CriterioDesempateMedia, (a: Calc, b: Calc) => number> = {
+      'ultima-corrida': (a, b) => a.posicoes[ultimaCorrida].posicao - b.posicoes[ultimaCorrida].posicao,
+      classificacao: (a, b) => comparaNumero(naTomada.get(a.comp.chave) ?? Infinity, naTomada.get(b.comp.chave) ?? Infinity),
+    }
+    // Todos do grid têm o mesmo número de corridas na média: comparar a soma é comparar a média (sem arredondar).
+    const compara = (a: Calc, b: Calc) => {
+      if (a.soma !== b.soma) return a.soma - b.soma
+      for (const criterio of DECISOES_MEDIA.desempate) {
+        const d = criterios[criterio]?.(a, b) ?? 0
+        if (d !== 0) return d
+      }
+      return 0
+    }
+    const ordenados = [...calculos].sort((a, b) => compara(a, b) || comparaNome(a.comp.nome, b.comp.nome) || (a.comp.chave < b.comp.chave ? -1 : 1))
+
+    // Tabela de pontos: a das corridas (todas iguais); diferentes → a primeira da regra, com aviso.
+    const tabelas = corridas.map((c) => tabelaDaCorrida(regra, c, avisosLocais))
+    let tabela = tabelas[0] ?? []
+    if (tabelas.some((t) => t !== tabela)) {
+      tabela = regra.tabelas?.[0]?.pontos ?? []
+      avisar(`${nomeEtapa}: as corridas ${rotulo} usam tabelas de pontos diferentes; no cálculo pela média a etapa usou a primeira tabela da regra.`)
+    }
+
+    let posicaoAnterior = 0
+    ordenados.forEach((x, i) => {
+      // Empate que nenhum critério resolveu: mesma posição (e mesmos pontos); o seguinte pula (2º, 2º, 4º).
+      const posicao = i > 0 && compara(ordenados[i - 1], x) === 0 ? posicaoAnterior : i + 1
+      posicaoAnterior = posicao
+      const p = x.comp.piloto
+      if (!p) return // convidado (manter posições): ocupa a posição, mas não pontua
+      const e = entrada.acumEtapa(p, idEtapa)
+      e.temPosicao = true
+      e.media = Math.round((x.soma / corridas.length) * 100) / 100
+      e.posicoesNaMedia = x.posicoes
+      posicoes.set(p.chave, posicao)
+      const pts = paraDecimos(numeroOu(tabela[posicao - 1], 0) * fatorEtapa)
+      e.pontos += pts
+      e.extras += pts
+    })
+
+    // Estatísticas por corrida (dentro da subcategoria), participação e volta mais rápida.
+    corridas.forEach((c, i) => {
+      for (const { comp, linha } of doGrid(c, grid)) {
+        const p = comp.piloto
+        if (!p) continue
+        const e = entrada.acumEtapa(p, idEtapa)
+        const part = paraDecimos(linha.pontosParticipacao)
+        e.pontos += part
+        e.extras += part
+        if (linha.largou) p.corridas++
+        if (linha.desclassificado) {
+          e.dsq = true
+          e.dsqCorridas.add(k(c.id))
+        }
+        const pos = rankings[i].get(comp.chave) ?? null
+        e.posicoes.set(k(c.id), pos)
+        if (pos !== null) {
+          p.contagem[pos] = (p.contagem[pos] ?? 0) + 1
+          if (pos === 1) p.vitorias++
+          if (pos <= 3) p.podios++
+        }
+      }
+      const vmr = voltaRapidaDoGrid(c, grid)
+      if (vmr) {
+        vmr.voltasRapidas++
+        const e = entrada.acumEtapa(vmr, idEtapa)
+        e.pontos += pVmr
+        e.extras += pVmr
+      }
+    })
+  }
+  if (avisos) avisos.push(...avisosLocais)
+  return { posicoes, contadas }
+}
+
 type Nucleo = {
   linhas: LinhaClassificacao[]
+  /** Cálculo pela média: pontos e posições por subcategoria. */
+  porSubcategoria: boolean
   criterios: CriteriosAplicados
   etapasConsideradas: Etapa[]
   avisos: string[]
@@ -933,9 +1318,32 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
   // Corridas que contam (para descarte por corrida): lista por etapa.
   const contadasPorEtapa = new Map<string, Corrida[]>()
 
+  // Cálculo pela média (regra do BKS): cada etapa é pontuada por subcategoria (ver pontuarEtapaPelaMedia).
+  const calculoDaEtapa: CalculoDaEtapa = regra.calculoDaEtapa ?? REGRA_PADRAO.calculoDaEtapa
+  const media = calculoDaEtapa === 'media-das-corridas'
+  const nomesGrid = new Map<string, string>()
+  // Posição de cada piloto em cada etapa: etapa → piloto → posição.
+  const posicaoNaEtapa = new Map<string, Map<string, number>>()
+
   for (const etapa of etapas) {
     const idEtapa = k(etapa.id)
     const corridas = corridasPorEtapa.get(idEtapa) ?? []
+    if (media) {
+      const r = pontuarEtapaPelaMedia({
+        etapa,
+        corridas,
+        regra,
+        mapaIns,
+        grupo,
+        pilotoDaInscricao,
+        acumEtapa,
+        nomesGrid,
+        avisos: comAvisos ? avisos : null,
+      })
+      contadasPorEtapa.set(idEtapa, r.contadas)
+      posicaoNaEtapa.set(idEtapa, r.posicoes)
+      continue
+    }
     const fatorEtapa = etapa.fatorPontuacao
     const contadas: Corrida[] = []
     // Pole: para cada categoria do grupo, a 1ª tomada de tempo oficial da etapa que a inclui. Tomada comum a
@@ -1021,7 +1429,11 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
   // Descartes.
   const desc = regra.descartes ?? null
   const qtd = Math.max(0, Math.trunc(numeroOu(desc?.quantidade, 0)))
-  const unidade = desc?.unidade ?? REGRA_PADRAO.unidadeDescarte
+  // No cálculo pela média as corridas não têm pontos próprios: o descarte é sempre de etapas inteiras.
+  const unidade = media ? 'etapa' : (desc?.unidade ?? REGRA_PADRAO.unidadeDescarte)
+  if (media && qtd > 0 && desc?.unidade === 'corrida' && comAvisos) {
+    avisos.push('A regra descarta corridas avulsas, mas no cálculo pela média os pontos são da etapa: o descarte foi feito por etapas inteiras.')
+  }
   const aPartirDe = Math.max(0, Math.trunc(numeroOu(desc?.aPartirDeEtapas, 0)))
   const ultimaDescartavel = desc?.ultimaEtapaDescartavel !== false
   const unidadesRealizadas = unidade === 'etapa' ? etapas.length : [...contadasPorEtapa.values()].reduce((s, l) => s + l.length, 0)
@@ -1057,8 +1469,8 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
   }
 
   // Posição de cada piloto em cada etapa (pontos da etapa; empate: melhor posição na última corrida, voltando).
-  const posicaoNaEtapa = new Map<string, Map<string, number>>() // etapa → piloto → posição
-  for (const e of etapas) {
+  // No cálculo pela média ela já veio da média das corridas, dentro da subcategoria.
+  for (const e of media ? [] : etapas) {
     const id = k(e.id)
     const lista = [...pilotos.values()].filter((p) => p.etapas.get(id)?.temPosicao)
     lista.sort((a, b) => {
@@ -1119,10 +1531,14 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
         participou: ea.participou,
         desclassificado: ea.dsq,
         pole: ea.pole,
+        ...(media ? { media: ea.media, posicoesNaMedia: ea.posicoesNaMedia ?? [] } : {}),
       }
     })
     const ordemCrono = etapas.map((e) => posicaoNaEtapa.get(k(e.id))?.get(p.chave) ?? null)
     const ins = p.principal
+    // Cálculo pela média: o grid (subcategoria) do piloto, com o nome como foi encontrado primeiro.
+    const grid = chaveDoGrid(ins.subcategoria)
+    if (media && grid && !nomesGrid.has(grid)) nomesGrid.set(grid, (ins.subcategoria ?? '').trim())
     linhas.push({
       chave: p.chave,
       posicao: 0,
@@ -1136,6 +1552,7 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
       equipe: ins.equipe ?? null,
       equipeNome: ins.equipeNome ?? null,
       categoria: ins.categoria ?? null,
+      ...(media ? { subcategoria: grid ? (nomesGrid.get(grid) ?? null) : null } : {}),
       pontos: deDecimos(brutos - descartados + ajustes),
       pontosBrutos: deDecimos(brutos),
       pontosDescartados: deDecimos(descartados),
@@ -1188,35 +1605,57 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
     }
     return { criterio: 'ordem-alfabetica', d: alfabetica(a, b) }
   }
-  linhas.sort((a, b) => paraDecimos(b.pontos) - paraDecimos(a.pontos) || quemDecide(a, b).d)
-
   const empates: EmpateResolvido[] = []
-  linhas.forEach((l, i) => {
-    l.posicao = i + 1
-    const anterior = linhas[i - 1]
-    if (anterior && paraDecimos(anterior.pontos) === paraDecimos(l.pontos)) {
-      const criterio = quemDecide(anterior, l).criterio
-      l.desempate = criterio
-      // Empate com pontos que só a ordem alfabética separou: o administrador precisa saber.
-      if (comAvisos && criterio === 'ordem-alfabetica' && paraDecimos(l.pontos) !== 0) {
-        avisos.push(
-          criterios.length
-            ? `${anterior.nome} e ${l.nome} continuam empatados (${l.pontos} pontos) depois de todos os critérios de desempate da regra; ficaram em ordem alfabética.`
-            : `A regra não tem critérios de desempate: ${anterior.nome} e ${l.nome} empataram com ${l.pontos} pontos e ficaram em ordem alfabética. Cadastre os critérios do regulamento.`,
-        )
+  /** Ordena e numera 1..N um grupo de linhas (a categoria inteira, ou uma subcategoria no cálculo pela média). */
+  const numerar = (grupoLinhas: L[], subcategoria?: string | null): L[] => {
+    grupoLinhas.sort((a, b) => paraDecimos(b.pontos) - paraDecimos(a.pontos) || quemDecide(a, b).d)
+    const empatesDoGrupo: EmpateResolvido[] = []
+    const onde = subcategoria === undefined ? '' : subcategoria ? ` (${subcategoria})` : ' (sem subcategoria)'
+    grupoLinhas.forEach((l, i) => {
+      l.posicao = i + 1
+      const anterior = grupoLinhas[i - 1]
+      if (anterior && paraDecimos(anterior.pontos) === paraDecimos(l.pontos)) {
+        const criterio = quemDecide(anterior, l).criterio
+        l.desempate = criterio
+        // Empate com pontos que só a ordem alfabética separou: o administrador precisa saber.
+        if (comAvisos && criterio === 'ordem-alfabetica' && paraDecimos(l.pontos) !== 0) {
+          avisos.push(
+            criterios.length
+              ? `${anterior.nome} e ${l.nome}${onde} continuam empatados (${l.pontos} pontos) depois de todos os critérios de desempate da regra; ficaram em ordem alfabética.`
+              : `A regra não tem critérios de desempate: ${anterior.nome} e ${l.nome}${onde} empataram com ${l.pontos} pontos e ficaram em ordem alfabética. Cadastre os critérios do regulamento.`,
+          )
+        }
+        const ultimo = empatesDoGrupo[empatesDoGrupo.length - 1]
+        if (ultimo && ultimo.posicoes[ultimo.posicoes.length - 1] === i) {
+          ultimo.posicoes.push(i + 1)
+          ultimo.resolvidoPor.push(criterio)
+        } else {
+          empatesDoGrupo.push({ pontos: l.pontos, posicoes: [i, i + 1], resolvidoPor: [criterio], ...(subcategoria === undefined ? {} : { subcategoria }) })
+        }
       }
-      const ultimo = empates[empates.length - 1]
-      if (ultimo && ultimo.posicoes[ultimo.posicoes.length - 1] === i) {
-        ultimo.posicoes.push(i + 1)
-        ultimo.resolvidoPor.push(criterio)
-      } else {
-        empates.push({ pontos: l.pontos, posicoes: [i, i + 1], resolvidoPor: [criterio] })
-      }
+    })
+    empates.push(...empatesDoGrupo)
+    return grupoLinhas
+  }
+
+  let ordenadas: L[]
+  if (!media) ordenadas = numerar(linhas)
+  else {
+    // Cálculo pela média: uma classificação por subcategoria (pela ordem do nome; "sem subcategoria" no fim).
+    // A ordem das subcategorias cadastrada na categoria é aplicada na exibição (src/lib/subcategorias.ts).
+    const porGrid = new Map<string, L[]>()
+    for (const l of linhas) {
+      const grid = chaveDoGrid(l.subcategoria)
+      porGrid.set(grid, [...(porGrid.get(grid) ?? []), l])
     }
-  })
+    const nomeDoGrid = (grid: string) => nomesGrid.get(grid) ?? grid
+    const grids = [...porGrid.keys()].sort((a, b) => Number(a === '') - Number(b === '') || comparaNome(nomeDoGrid(a), nomeDoGrid(b)))
+    ordenadas = grids.flatMap((grid) => numerar(porGrid.get(grid) as L[], grid ? nomeDoGrid(grid) : null))
+  }
 
   return {
-    linhas: linhas.map(({ _contagem, _ordemEtapas, ...l }) => l),
+    linhas: ordenadas.map(({ _contagem, _ordemEtapas, ...l }) => l),
+    porSubcategoria: media,
     criterios: {
       desempate: [...criterios],
       descartes: qtd > 0 ? { unidade, quantidade: qtd, aPartirDeEtapas: aPartirDe, ultimaEtapaDescartavel: ultimaDescartavel, aplicado: descartaAgora } : null,
@@ -1225,6 +1664,7 @@ function calcularNucleo(entrada: EntradaClassificacao, etapasConsideradas: Etapa
       requisitoParticipacao: regra.requisitoParticipacao ?? REGRA_PADRAO.requisitoParticipacao,
       percentualMinimoVoltas: Math.max(0, numeroOu(regra.percentualMinimoVoltas, 0)),
       empates,
+      calculoDaEtapa,
     },
     etapasConsideradas: etapas,
     avisos: [...new Set(avisos)],
@@ -1262,6 +1702,7 @@ export function calcularClassificacao(entrada: EntradaClassificacao): ResultadoC
 
   return {
     linhas: atual.linhas,
+    porSubcategoria: atual.porSubcategoria,
     criterios: atual.criterios,
     etapasRealizadas: atual.etapasConsideradas.length,
     etapas: atual.etapasConsideradas.map((e) => ({ id: e.id, numero: e.numero, nome: e.nome ?? null })),
@@ -1326,6 +1767,11 @@ export interface FotografiaFinal {
   geradaEm: string
   etapasRealizadas: number
   criterios: CriteriosAplicados | null
+  /**
+   * Classificação por subcategoria (cálculo pela média): cada linha guarda a `subcategoria` em que pontuou e a
+   * `posicao` é dentro dela. Ausente/false = classificação única da categoria.
+   */
+  porSubcategoria?: boolean
   linhas: LinhaClassificacao[]
 }
 
@@ -1334,7 +1780,7 @@ export interface FotografiaFinal {
  * da temporada, que grava também campeão, vice e 3º a partir de `linhas[0..2].inscricao`.
  */
 export function criarFotografiaFinal(
-  resultado: { linhas: LinhaClassificacao[]; criterios?: CriteriosAplicados | null; etapasRealizadas?: number },
+  resultado: { linhas: LinhaClassificacao[]; criterios?: CriteriosAplicados | null; etapasRealizadas?: number; porSubcategoria?: boolean },
   agora: Date = new Date(),
 ): FotografiaFinal {
   return {
@@ -1342,6 +1788,7 @@ export function criarFotografiaFinal(
     geradaEm: agora.toISOString(),
     etapasRealizadas: resultado.etapasRealizadas ?? 0,
     criterios: resultado.criterios ?? null,
+    ...(resultado.porSubcategoria ? { porSubcategoria: true } : {}),
     linhas: resultado.linhas,
   }
 }
@@ -1359,6 +1806,7 @@ export function lerFotografiaFinal(json: unknown): FotografiaFinal | null {
       geradaEm: typeof f.geradaEm === 'string' ? f.geradaEm : '',
       etapasRealizadas: typeof f.etapasRealizadas === 'number' ? f.etapasRealizadas : 0,
       criterios: f.criterios ?? null,
+      ...(f.porSubcategoria === true ? { porSubcategoria: true } : {}),
       linhas: f.linhas as LinhaClassificacao[],
     }
   }

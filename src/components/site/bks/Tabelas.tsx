@@ -64,8 +64,12 @@ const pilotos = (n: number) => `${n} ${n === 1 ? 'piloto' : 'pilotos'}`
  *
  * Com `subcategorias` (as da categoria) e pilotos com subcategoria na inscrição: uma tabela por subcategoria,
  * com abas no topo para ver uma de cada vez (o único JavaScript; sem ele, as tabelas aparecem uma embaixo da
- * outra). Em cada tabela, só os pilotos da subcategoria, na ordem da classificação geral, com a posição dentro
- * dela e a geral entre parênteses; os pontos são os do campeonato. Sem subcategorias: uma tabela só.
+ * outra). Em cada tabela, só os pilotos da subcategoria:
+ * - regra do BKS (cálculo pela média, `classificacao.porSubcategoria`): cada subcategoria tem o seu próprio
+ *   campeonato — posição e pontos contados só entre os pilotos dela;
+ * - cálculo antigo: na ordem da classificação geral, com a posição dentro dela e a geral entre parênteses;
+ *   os pontos são os do campeonato.
+ * Sem subcategorias: uma tabela só.
  */
 export function ClassificacaoCategoria({
   classificacao,
@@ -89,7 +93,9 @@ export function ClassificacaoCategoria({
   /** Nível do título de cada subcategoria (um abaixo do título da categoria). */
   nivelTitulo?: 3 | 4 | 5 | 6
 }) {
-  const separada = separarClassificacao(classificacao.linhas, compacta ? [] : subcategorias)
+  const pontosPorSubcategoria = classificacao.porSubcategoria === true
+  // Com pontos por subcategoria as tabelas ficam sempre separadas (as posições se repetem entre elas).
+  const separada = separarClassificacao(classificacao.linhas, compacta && !pontosPorSubcategoria ? [] : subcategorias, { pontosPorSubcategoria })
   const total = separada.grupos.reduce((n, g) => n + g.linhas.length, 0)
   if (!total) return <EstadoVazio texto="A classificação aparece depois da primeira etapa com resultado oficial." />
   const demo = classificacao.linhas.some((l) => separarDemo(l.nome).demo)
@@ -143,7 +149,11 @@ export function ClassificacaoCategoria({
             cor={cor}
             colunasEtapas={colunasEtapas}
             compacta={compacta}
-            legenda={`Classificação — ${nome}, subcategoria ${sub}. Posição na subcategoria e, entre parênteses, a posição geral.`}
+            legenda={
+              pontosPorSubcategoria
+                ? `Classificação — ${nome}, subcategoria ${sub}. Posição e pontos contados só entre os pilotos da subcategoria.`
+                : `Classificação — ${nome}, subcategoria ${sub}. Posição na subcategoria e, entre parênteses, a posição geral.`
+            }
           />
         </>
       ),
@@ -153,7 +163,11 @@ export function ClassificacaoCategoria({
   return (
     <div className={s.blocoTabela}>
       {demo && <AvisoExemplo />}
-      <p className={s.notaTabela}>Posição dentro da subcategoria; entre parênteses, a posição geral na categoria. Os pontos são os do campeonato.</p>
+      <p className={s.notaTabela}>
+        {pontosPorSubcategoria
+          ? 'Cada subcategoria tem a sua própria classificação: posição e pontos contados só entre os pilotos dela. Em cada etapa, a posição vem da média das posições nas corridas da subcategoria.'
+          : 'Posição dentro da subcategoria; entre parênteses, a posição geral na categoria. Os pontos são os do campeonato.'}
+      </p>
       {abas.length > 1 ? (
         <AbasSubcategorias rotulo={`Subcategorias de ${nome}`} abas={abas} />
       ) : (

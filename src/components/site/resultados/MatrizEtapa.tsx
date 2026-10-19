@@ -7,6 +7,8 @@ import { PlacaNumero } from '../PlacaNumero'
 import { separarDemo } from '../TextoDemo'
 import { AbasSubcategorias } from './AbasSubcategorias'
 import {
+  explicacaoDaMedia,
+  formatarMedia,
   formatarPontos,
   formatarPosicao,
   formatarVolta,
@@ -23,6 +25,11 @@ export type CategoriaDaMatriz = {
   cor?: string | null
   sigla?: string | null
   subcategorias?: { nome?: string | null }[] | null
+}
+
+/** Regra do BKS: com que posição a corrida entrou na média da etapa (quando é diferente da mostrada). */
+function ValeNaMedia({ posicao }: { posicao: number }) {
+  return <span className={s.detalhe}>vale {formatarPosicao(posicao)} na média</span>
 }
 
 /** Losango: marca visual do melhor tempo (o texto para leitor de tela vem junto: nada só pela cor). */
@@ -62,7 +69,38 @@ function Celula({
           —
         </span>
         <span className="visualmente-oculto">{motivo}</span>
+        {celula.contaComo !== null && <ValeNaMedia posicao={celula.contaComo} />}
       </>
+    )
+  }
+  // Regra do BKS: posição na subcategoria pela média das corridas, a média e os pontos numa linha só.
+  if (coluna.tipo === 'etapa' && celula.media !== null) {
+    return (
+      <span className={s.conteudo}>
+        <span className={s.linhaEtapa}>
+          {celula.posicao !== null && <strong className={s.posicao}>{formatarPosicao(celula.posicao)}</strong>}
+          <span className={s.media}>
+            <span aria-hidden="true">· </span>
+            <span className="visualmente-oculto">, </span>
+            média {formatarMedia(celula.media)}
+          </span>
+          {celula.pontos !== null && (
+            <span className={s.pontos}>
+              <span aria-hidden="true">· </span>
+              <span className="visualmente-oculto">, </span>
+              {formatarPontos(celula.pontos)}
+              <span aria-hidden="true"> pts</span>
+              <span className="visualmente-oculto"> {celula.pontos === 1 ? 'ponto' : 'pontos'}</span>
+            </span>
+          )}
+        </span>
+        {celula.penalidade !== null && (
+          <span className={s.detalhe}>
+            <span aria-hidden="true">{formatarPontos(celula.penalidade).replace('-', '−')} pen.</span>
+            <span className="visualmente-oculto">já descontada penalidade de {formatarPontos(Math.abs(celula.penalidade))} pontos</span>
+          </span>
+        )}
+      </span>
     )
   }
   return (
@@ -92,6 +130,7 @@ function Celula({
           </span>
         </span>
       )}
+      {celula.contaComo !== null && <ValeNaMedia posicao={celula.contaComo} />}
       {celula.melhorVolta !== null && (
         <span className={['mono', s.volta].join(' ')}>
           <span className="visualmente-oculto">Melhor volta: </span>
@@ -191,6 +230,9 @@ const pilotos = (n: number) => `${n} ${n === 1 ? 'piloto' : 'pilotos'}`
  * subcategoria, com posição dentro dela ("1º (3º geral)") e abas no topo para ver uma de cada vez — as abas
  * são o único JavaScript (AbasSubcategorias); sem ele, as tabelas aparecem uma embaixo da outra.
  * Em roxo: o melhor tempo de cada sessão dentro da subcategoria (ou da categoria, quando não há subcategorias).
+ * Regra do BKS (média das corridas): a coluna "Resultado da etapa" mostra "2º · média 2,0 · 22 pts" — posição
+ * e pontos da própria subcategoria —, as corridas não têm pontos próprios e a corrida que valeu outra
+ * posição na média (abandono, não correu…) diz qual ("vale 6º na média").
  */
 export function MatrizEtapa({
   categoria,
@@ -211,14 +253,17 @@ export function MatrizEtapa({
   if (!linhas.length) return <EstadoVazio texto="O resultado desta categoria ainda não foi publicado." />
 
   const porSub = matrizes.porSubcategoria
+  // Regra do BKS: resultado da etapa pela média das posições nas corridas, dentro de cada subcategoria.
+  const pelaMedia = resultado.calculoDaEtapa === 'media-das-corridas' && !resultado.semRegra
   const demo = linhas.some((l) => separarDemo(l.nome).demo || separarDemo(l.equipeNome).demo)
   const idBase = `matriz-etapa-${String(categoria.id)}`
   const temRoxo = linhas.some((l) => l.celulas.some((c) => c.melhorTempo))
+  const temGeral = linhas.some((l) => l.celulas.some((c) => c.posicaoGeral !== null))
   const textoMelhor = porSub ? 'melhor tempo da subcategoria nesta sessão' : 'melhor tempo da categoria nesta sessão'
   const Titulo = `h${nivelTitulo}` as const
 
   const legenda =
-    temRoxo || porSub ? (
+    temRoxo || porSub || pelaMedia ? (
       <ul className={s.legenda}>
         {temRoxo && (
           <li>
@@ -228,12 +273,22 @@ export function MatrizEtapa({
             <span>Em roxo: o melhor tempo da {porSub ? 'subcategoria' : 'categoria'} em cada sessão.</span>
           </li>
         )}
-        {porSub && (
+        {porSub && (!pelaMedia || temGeral) && (
           <li>
             <span className={s.amostraPosicao} aria-hidden="true">
               1º
             </span>
-            <span>Posição dentro da subcategoria; entre parênteses, a posição geral na categoria.</span>
+            <span>
+              {pelaMedia ? 'Nas sessões, posição' : 'Posição'} dentro da subcategoria; entre parênteses, a posição geral na categoria.
+            </span>
+          </li>
+        )}
+        {pelaMedia && (
+          <li>
+            <span className={s.amostraPosicao} aria-hidden="true">
+              2,0
+            </span>
+            <span>{explicacaoDaMedia()}</span>
           </li>
         )}
       </ul>

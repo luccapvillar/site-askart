@@ -21,8 +21,11 @@
  * (resultado oficial de cada corrida e da etapa, por categoria — sub-aba "Resultados").
  *
  * Subcategorias: as linhas da classificação e dos resultados levam a subcategoria da inscrição, juntada na
- * LEITURA (nunca gravada, nem na fotografia final); as sessões da etapa levam as subcategorias da corrida.
- * Só separam as tabelas do site: posições e pontos são sempre os da categoria.
+ * LEITURA; as sessões da etapa levam as subcategorias da corrida.
+ * - Regra com cálculo pela MÉDIA (regra do BKS): cada subcategoria é um grid com pontos e posições próprios
+ *   (`porSubcategoria`); a subcategoria vem do cálculo e fica gravada também na fotografia final.
+ * - Regra com cálculo POR CORRIDA (antigo): a subcategoria só separa as tabelas do site (posições e pontos
+ *   são os da categoria) e nunca é gravada.
  *
  * Só usa `import type` de 'payload' (nada roda do Payload aqui), então pode ser testado com um
  * Payload simulado. Consultas com `req` (dentro de hook/endpoint) são feitas uma de cada vez, na mesma
@@ -32,9 +35,12 @@ import type { Payload, PayloadRequest, Where } from 'payload'
 import {
   calcularClassificacao,
   calcularResultadoCorrida,
+  chaveDoGrid,
   lerFotografiaFinal,
   liderDe,
+  ordenarSessoes,
   type Ajuste,
+  type CalculoDaEtapa,
   type CondicaoInscricao,
   type Corrida,
   type CriterioDesempate,
@@ -173,6 +179,7 @@ const CONVIDADOS = ['reclassificar-elegiveis', 'manter-posicoes'] as const
 const UNIDADES = ['etapa', 'corrida'] as const
 const CRITERIOS = ['mais-vitorias', 'contagem-de-posicoes', 'melhor-resultado-ultima-etapa', 'mais-poles'] as const
 const TIPOS_AJUSTE = ['penalidade', 'bonificacao', 'correcao'] as const
+const CALCULOS_DA_ETAPA = ['media-das-corridas', 'por-corrida'] as const
 
 /** Primeiro valor definido entre vários nomes de campo (tolerância a pequenas diferenças de nome). */
 const campo = (d: Record<string, unknown> | null | undefined, ...nomes: string[]): unknown => {
@@ -215,6 +222,8 @@ export function paraRegra(d: Record<string, unknown> | null | undefined): Regra 
           .map((c) => (typeof c === 'string' ? c : campo(obj(c), 'criterio', 'valor')))
           .filter((c): c is CriterioDesempate => typeof c === 'string' && (CRITERIOS as readonly string[]).includes(c))
       : null,
+    // Vazio (regra gravada antes do campo existir) = por corrida, como era (REGRA_PADRAO).
+    calculoDaEtapa: de<CalculoDaEtapa>(campo(d, 'calculoDaEtapa'), CALCULOS_DA_ETAPA),
   }
 }
 
@@ -264,6 +273,7 @@ export function paraCorrida(d: Doc): Corrida {
     id: d.id,
     etapa: idDe(d.etapa) ?? '',
     categorias: idsDe(d.categorias),
+    subcategorias: (Array.isArray(d.subcategorias) ? d.subcategorias : []).map(texto).filter((x): x is string => x !== null).map((x) => x.trim()),
     nome: texto(d.nome),
     tipo: de<TipoCorrida>(d.tipo, TIPOS_CORRIDA) ?? 'bateria',
     tabela: texto(d.tabela) ?? idDe(d.tabela),
@@ -356,6 +366,7 @@ const SELECT_REGRA = {
   convidados: true,
   descartes: true,
   criteriosDesempate: true,
+  calculoDaEtapa: true,
 } as const
 const SELECT_ETAPA = { numero: true, nome: true, inicio: true, status: true, fatorPontuacao: true, categorias: true } as const
 const SELECT_CORRIDA = {
@@ -371,11 +382,13 @@ const SELECT_CORRIDA = {
   status: true,
   resultados: true,
   voltaMaisRapidaManual: true,
+  // Para quais subcategorias a sessão vale (horário próprio; no cálculo pela média, a corrida entra só na média delas)
+  subcategorias: true,
 } as const
-/** A subcategoria só separa as tabelas do site (classificação e resultado da etapa); os pontos não mudam. */
+/** A subcategoria é o grid do piloto no cálculo pela média; no cálculo por corrida, só separa as tabelas do site. */
 const SELECT_INSCRICAO = { categoria: true, piloto: true, numero: true, equipe: true, subcategoria: true, condicao: true, status: true } as const
-/** No resultado da etapa, também as subcategorias de cada sessão (horários diferentes por subcategoria). */
-const SELECT_CORRIDA_ETAPA = { ...SELECT_CORRIDA, subcategorias: true } as const
+/** No resultado da etapa, as mesmas colunas (inclusive as subcategorias de cada sessão). */
+const SELECT_CORRIDA_ETAPA = SELECT_CORRIDA
 const SELECT_PILOTO = { nome: true, nomeExibicao: true, slug: true, visibilidade: true } as const
 const SELECT_EQUIPE = { nome: true, sigla: true } as const
 const SELECT_CATEGORIA = { nome: true, sigla: true, slug: true } as const
@@ -516,8 +529,9 @@ async function carregarNomes(ctx: Contexto, idsPilotos: Id[], idsEquipes: Id[]):
 export type FonteClassificacao = 'automatica' | 'manual' | 'fotografia' | 'sem-regra'
 
 /**
- * Linha da classificação pronta para o site: a do motor + a subcategoria da inscrição do piloto na categoria
- * (null = sem subcategoria). A subcategoria é lida das inscrições a cada leitura, nunca gravada: vale igual
+ * Linha da classificação pronta para o site: a do motor + a subcategoria (null = sem subcategoria).
+ * Classificação por subcategoria (cálculo pela média): a subcategoria em que o piloto pontuou, que vem do
+ * cálculo (ou da fotografia final). Senão: lida das inscrições a cada leitura, nunca gravada — vale igual
  * para o cálculo automático, o modo manual e a fotografia final (gravada antes do campo existir ou não).
  */
 export type LinhaClassificacaoExibida = LinhaClassificacao & { subcategoria?: string | null }
@@ -532,10 +546,19 @@ export interface ClassificacaoCarregada {
   encerrada: boolean
   /** Categorias somadas a esta classificação (vazio = só a própria). */
   incluiResultadosDe: Id[]
+  /**
+   * true = pontos e posições contados por subcategoria (cálculo pela média, regra do BKS): a `posicao` de cada
+   * linha é DENTRO da subcategoria dela, e cada subcategoria tem o seu 1º colocado.
+   */
+  porSubcategoria: boolean
   linhas: LinhaClassificacaoExibida[]
   criterios: CriteriosAplicados | null
   etapasRealizadas: number
   etapas: { id: Id; numero: number; nome: string | null }[]
+  /**
+   * Líder da categoria (ou o destaque manual). Classificação por subcategoria com mais de uma subcategoria:
+   * só o destaque manual — o líder de cada subcategoria é o 1º da tabela dela.
+   */
   lider: Lider | null
   /** Pódio final gravado ao encerrar (inscrições). */
   podioFinal: { campeao: Id | null; vice: Id | null; terceiro: Id | null }
@@ -641,8 +664,15 @@ const pesoInscricao = (i: Inscricao) => (i.status === 'ativa' || !i.status ? 2 :
  * Junta a subcategoria a cada linha, a partir das inscrições ATUAIS da categoria (pela inscrição da linha;
  * sem ela, pelo piloto). Piloto que só veio de uma categoria somada (incluiResultadosDe) fica sem
  * subcategoria. Não muda posição nem pontos.
+ * `porSubcategoria` (cálculo pela média): a linha já traz a subcategoria em que pontuou (do cálculo ou da
+ * fotografia final) e ela é mantida — a posição é dentro dela; só a linha sem o campo é completada.
  */
-export function comSubcategorias(linhas: LinhaClassificacao[], inscricoes: Inscricao[], categoria: Id): LinhaClassificacaoExibida[] {
+export function comSubcategorias(
+  linhas: LinhaClassificacao[],
+  inscricoes: Inscricao[],
+  categoria: Id,
+  porSubcategoria = false,
+): LinhaClassificacaoExibida[] {
   const daCategoria = inscricoes.filter((i) => String(i.categoria) === String(categoria))
   const porId = new Map(daCategoria.map((i) => [String(i.id), i] as const))
   const porPiloto = new Map<string, Inscricao>()
@@ -652,11 +682,29 @@ export function comSubcategorias(linhas: LinhaClassificacao[], inscricoes: Inscr
   }
   return linhas.map((l) => {
     const ids = [l.inscricao, ...(Array.isArray(l.inscricoes) ? l.inscricoes : [])]
+    if (porSubcategoria && l.subcategoria !== undefined) return { ...l, subcategoria: l.subcategoria?.trim() || null }
     const ins =
       ids.map((id) => (id === null || id === undefined ? undefined : porId.get(String(id)))).find((i) => i !== undefined) ??
       (l.piloto === null || l.piloto === undefined ? undefined : porPiloto.get(String(l.piloto)))
     return { ...l, subcategoria: ins?.subcategoria?.trim() || null }
   })
+}
+
+/**
+ * Líder de uma classificação. Por subcategoria (cálculo pela média) e com mais de uma subcategoria, não há
+ * um 1º da categoria: vale só o destaque manual (o líder de cada subcategoria é o 1º da tabela dela).
+ */
+export function liderDaClassificacao(
+  linhas: LinhaClassificacaoExibida[],
+  porSubcategoria: boolean,
+  destaque: DestaqueManual | null,
+  agora: Date,
+): Lider | null {
+  if (porSubcategoria && new Set(linhas.map((l) => chaveDoGrid(l.subcategoria))).size > 1) {
+    const lider = liderDe(linhas, destaque, agora)
+    return lider?.tipo === 'destaque' ? lider : null
+  }
+  return liderDe(linhas, destaque, agora)
 }
 
 /**
@@ -695,15 +743,17 @@ export function montarClassificacao(
   // 1) Temporada encerrada: a fotografia final é a classificação oficial (congelada).
   const foto = encerrada && semCorte && !opcoes.ignorarFotografia ? lerFotografiaFinal(classificacao?.fotografiaFinal) : null
   if (foto) {
-    const linhas = comSubcategorias(atualizarExibicao(foto.linhas, dados), dados.inscricoes, categoria)
+    const porSubcategoria = foto.porSubcategoria === true
+    const linhas = comSubcategorias(atualizarExibicao(foto.linhas, dados), dados.inscricoes, categoria, porSubcategoria)
     return {
       ...base,
       fonte: 'fotografia',
+      porSubcategoria,
       linhas,
       criterios: foto.criterios,
       etapasRealizadas: foto.etapasRealizadas,
       etapas: [],
-      lider: liderDe(linhas, null, agora),
+      lider: liderDaClassificacao(linhas, porSubcategoria, null, agora),
       avisos: [],
     }
   }
@@ -715,6 +765,7 @@ export function montarClassificacao(
     return {
       ...base,
       fonte: 'manual',
+      porSubcategoria: false,
       linhas,
       criterios: null,
       etapasRealizadas: 0,
@@ -730,6 +781,7 @@ export function montarClassificacao(
     return {
       ...base,
       fonte: 'sem-regra',
+      porSubcategoria: false,
       linhas: [],
       criterios: null,
       etapasRealizadas: 0,
@@ -742,15 +794,16 @@ export function montarClassificacao(
   if (encerrada && semCorte && !opcoes.ignorarFotografia) {
     r.avisos.push('Temporada encerrada sem fotografia final: a classificação foi recalculada a partir dos resultados.')
   }
-  const linhas = comSubcategorias(r.linhas, dados.inscricoes, categoria)
+  const linhas = comSubcategorias(r.linhas, dados.inscricoes, categoria, r.porSubcategoria)
   return {
     ...base,
     fonte: 'automatica',
+    porSubcategoria: r.porSubcategoria,
     linhas,
     criterios: r.criterios,
     etapasRealizadas: r.etapasRealizadas,
     etapas: r.etapas,
-    lider: liderDe(linhas, destaqueValido, agora),
+    lider: liderDaClassificacao(linhas, r.porSubcategoria, destaqueValido, agora),
     avisos: r.avisos,
   }
 }
@@ -873,11 +926,11 @@ export interface CorridaComResultado {
   inicio: string | null
   /** Ordem da sessão na etapa, para esta categoria (1 = primeira): pelo horário; sem horário, pelo tipo e nome. */
   ordem: number
-  /** Conta para a classificação (dá pontos). Warm-up nunca conta. */
+  /** Conta para a classificação (dá pontos; no cálculo pela média, entra na média). Warm-up nunca conta. */
   conta: boolean
   /**
    * Subcategorias para as quais a sessão vale (horário próprio), como gravadas na corrida. Vazio/ausente =
-   * todas. Só organiza as tabelas do site; posições e pontos são os da categoria.
+   * todas. Organiza as tabelas do site; no cálculo pela média, a corrida entra só na média delas.
    */
   subcategorias?: string[] | null
   /** Linhas na ordem oficial (posicionados primeiro), só da categoria. */
@@ -893,11 +946,17 @@ export interface ResultadoCategoriaNaEtapa {
   /** Sessões oficiais da categoria na etapa (warm-up, tomada de tempo, corridas), em ordem (`ordem`). */
   corridas: CorridaComResultado[]
   /**
-   * Resultado somado da etapa (corridas + pole, pela regra da categoria; warm-up nunca entra), com o mesmo
-   * desempate do campeonato: total, critérios da regra, ordem alfabética. Sem convidados. Quem correu mas
-   * não tem posição oficial em nenhuma corrida que conta vem no fim, com `posicao` nula.
+   * Resultado da etapa pela regra da categoria (warm-up nunca entra). Sem convidados.
+   * - Cálculo pela média (regra do BKS): por subcategoria — posição na etapa pela média das posições nas
+   *   corridas da subcategoria (`media`, `posicoesNaMedia`), pontos da tabela por essa posição (+ pole e volta
+   *   mais rápida da subcategoria). Linhas agrupadas por subcategoria, cada uma na ordem da posição na etapa.
+   * - Cálculo por corrida: corridas + pole somados, com o mesmo desempate do campeonato (total, critérios da
+   *   regra, ordem alfabética); posição única na categoria.
+   * Quem correu mas não tem posição na etapa (ex.: só fez a tomada de tempo) vem no fim, com `posicao` nula.
    */
   etapa: LinhaEtapaExibida[]
+  /** Como a etapa foi pontuada (a regra da categoria; sem regra = por corrida). */
+  calculoDaEtapa?: CalculoDaEtapa
   /** A categoria ainda não tem regra de pontuação: posições aparecem, pontos ficam zerados. */
   semRegra: boolean
 }
@@ -910,34 +969,8 @@ export interface ResultadosDaEtapa {
   categorias: ResultadoCategoriaNaEtapa[]
 }
 
-const ORDEM_TIPO: Record<TipoCorrida, number> = {
-  'warm-up': 0,
-  'tomada-de-tempo': 1,
-  classificatoria: 2,
-  bateria: 3,
-  'pre-final': 4,
-  final: 5,
-}
-
-const instante = (v: unknown): number | null => {
-  const t = typeof v === 'string' || v instanceof Date ? new Date(v).getTime() : NaN
-  return Number.isFinite(t) ? t : null
-}
-
-/**
- * Sessões de uma etapa em ordem: pelo horário quando todas têm horário; senão pelo tipo (warm-up, tomada de
- * tempo, classificatória, bateria, pré-final, final) e pelo nome ("Corrida 2" antes de "Corrida 10").
- */
-export function ordenarSessoes<T extends Pick<Corrida, 'inicio' | 'tipo' | 'nome'>>(corridas: T[]): T[] {
-  const todasComHorario = corridas.every((c) => instante(c.inicio) !== null)
-  const porTipoENome = (a: T, b: T) =>
-    ORDEM_TIPO[a.tipo ?? 'bateria'] - ORDEM_TIPO[b.tipo ?? 'bateria'] ||
-    (a.nome ?? '').localeCompare(b.nome ?? '', 'pt-BR', { sensitivity: 'base', numeric: true })
-  return corridas
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => (todasComHorario ? (instante(a.c.inicio) as number) - (instante(b.c.inicio) as number) : 0) || porTipoENome(a.c, b.c) || a.i - b.i)
-    .map((x) => x.c)
-}
+/** Ordem das sessões de uma etapa (horário; sem horário, tipo e nome) — fica no motor, também usada aqui. */
+export { ordenarSessoes }
 
 /**
  * Resultado oficial de uma etapa, por categoria: cada corrida oficial (posição oficial, pontos, voltas,
@@ -1029,8 +1062,9 @@ export async function resultadosDaEtapa(opcoes: {
         }),
       }
     })
-    // Resultado somado da etapa: o motor com só esta etapa (tratada como realizada, sem descartes nem ajustes);
-    // a ordem das linhas é a do campeonato (mesmo desempate). Warm-up é ignorado pelo motor.
+    // Resultado da etapa: o motor com só esta etapa (tratada como realizada, sem descartes nem ajustes). No
+    // cálculo por corrida, a ordem das linhas é a do campeonato (mesmo desempate); no cálculo pela média, a
+    // posição na etapa dentro de cada subcategoria. Warm-up é ignorado pelo motor.
     const soma = calcularClassificacao({
       regra: { ...regra, descartes: null },
       categoria,
@@ -1048,8 +1082,15 @@ export async function resultadosDaEtapa(opcoes: {
       corridas: corridasExibidas,
       etapa: resultadoSomadoDaEtapa(soma, etapa.id).map((l) => ({
         ...l,
-        subcategoria: l.inscricao === null ? null : (mapaIns.get(String(l.inscricao))?.subcategoria ?? null),
+        // Cálculo pela média: a subcategoria em que pontuou (vem do cálculo); senão, a da inscrição.
+        subcategoria:
+          soma.porSubcategoria && l.subcategoria !== undefined
+            ? l.subcategoria
+            : l.inscricao === null
+              ? null
+              : (mapaIns.get(String(l.inscricao))?.subcategoria ?? null),
       })),
+      calculoDaEtapa: soma.criterios.calculoDaEtapa ?? 'por-corrida',
       semRegra: !doc,
     })
   }

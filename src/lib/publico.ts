@@ -31,7 +31,9 @@ import type {
 } from '@/payload-types'
 import { carregarAgenda, paraAgendaSite } from './agenda'
 import { classificacoesDaTemporada, resultadosDaEtapa } from './carregar-competicao'
+import { lerFotografiaFinal } from './classificacao'
 import { chaveDia, somarDias } from './datas'
+import { podiosPorSubcategoria, SEM_SUBCATEGORIA } from './subcategorias'
 import { filtroDoPublicoSemStatus } from './previa/filtros'
 
 export const payloadSite = cache(() => getPayload({ config }))
@@ -375,7 +377,11 @@ export const lerGradeSemanal = cache(() =>
 
 export type CampeaoDaTemporada = { ano: number; temporada: string; categoria: string; campeao: string; vice: string | null; terceiro: string | null }
 
-/** Campeões das temporadas encerradas de um campeonato (gravados no encerramento). */
+/**
+ * Campeões das temporadas encerradas de um campeonato (gravados no encerramento). Categoria com pontos por
+ * subcategoria (regra do BKS) e mais de uma subcategoria: um pódio por subcategoria ("F400 · Novatos"), lido
+ * da fotografia final (nomes como estavam no encerramento), na ordem cadastrada das subcategorias.
+ */
 export const lerCampeoes = cache((campeonato: number) =>
   seguro('campeões', { temporadas: [] as import('@/payload-types').Temporada[], campeoes: [] as CampeaoDaTemporada[] }, async () => {
     const payload = await payloadSite()
@@ -392,7 +398,7 @@ export const lerCampeoes = cache((campeonato: number) =>
     if (!encerradas.length) return { temporadas, campeoes: [] }
     const { docs } = await payload.find({
       collection: 'temporada-categorias',
-      where: { and: [{ temporada: { in: encerradas } }, { campeao: { exists: true } }] },
+      where: { temporada: { in: encerradas } },
       depth: 3,
       limit: 500,
       ...PUBLICO,
@@ -402,23 +408,32 @@ export const lerCampeoes = cache((campeonato: number) =>
       const p = comoDoc<{ nome?: string; nomeExibicao?: string | null }>(i?.piloto)
       return p ? p.nomeExibicao || p.nome || null : null
     }
+    type ComOrdem = CampeaoDaTemporada & { nomeCategoria: string; ordem: number }
     const campeoes = docs
-      .map((d) => {
+      .flatMap((d): ComOrdem[] => {
         const t = comoDoc<{ ano?: number; nome?: string | null }>(d.temporada)
-        const c = comoDoc<{ nome?: string }>(d.categoria)
-        const campeao = nomePiloto(d.campeao)
-        if (!campeao) return null
-        return {
-          ano: t?.ano ?? 0,
-          temporada: t?.nome ?? String(t?.ano ?? ''),
-          categoria: c?.nome ?? '',
-          campeao,
-          vice: nomePiloto(d.vice),
-          terceiro: nomePiloto(d.terceiro),
+        const c = comoDoc<{ nome?: string; subcategorias?: { nome?: string | null }[] | null }>(d.categoria)
+        const base = { ano: t?.ano ?? 0, temporada: t?.nome ?? String(t?.ano ?? ''), nomeCategoria: c?.nome ?? '' }
+        const foto = lerFotografiaFinal(d.fotografiaFinal)
+        const grupos = foto?.porSubcategoria ? podiosPorSubcategoria(foto.linhas, c?.subcategorias) : []
+        if (grupos.length > 1) {
+          return grupos
+            .filter((g) => g.podio[0])
+            .map((g, ordem) => ({
+              ...base,
+              ordem,
+              categoria: `${base.nomeCategoria} · ${g.nome ?? SEM_SUBCATEGORIA}`,
+              campeao: g.podio[0].nome,
+              vice: g.podio[1]?.nome ?? null,
+              terceiro: g.podio[2]?.nome ?? null,
+            }))
         }
+        const campeao = nomePiloto(d.campeao)
+        if (!campeao) return []
+        return [{ ...base, ordem: 0, categoria: base.nomeCategoria, campeao, vice: nomePiloto(d.vice), terceiro: nomePiloto(d.terceiro) }]
       })
-      .filter((x): x is CampeaoDaTemporada => x !== null)
-      .sort((a, b) => b.ano - a.ano || a.categoria.localeCompare(b.categoria, 'pt-BR'))
+      .sort((a, b) => b.ano - a.ano || a.nomeCategoria.localeCompare(b.nomeCategoria, 'pt-BR') || a.ordem - b.ordem)
+      .map(({ nomeCategoria: _n, ordem: _o, ...x }): CampeaoDaTemporada => x)
     return { temporadas, campeoes }
   }),
 )

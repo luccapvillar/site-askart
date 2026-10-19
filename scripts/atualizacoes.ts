@@ -13,6 +13,9 @@
  *    subcategorias): cria "Kart indoor" e exclui as 4 categorias indoor separadas que não estão em uso.
  * 5. Só na prévia com exemplos: horários de exemplo por subcategoria (Warm-up, Classificação, Corrida 1 e
  *    Corrida 2) nas etapas futuras de demonstração, para o seletor de subcategoria do calendário.
+ * 6. Regra do BKS (informada pelo cliente): etapa pontuada pela média das posições nas corridas, por
+ *    subcategoria — preenche "Como a etapa é pontuada" nas regras que estão sem ele e recalcula a
+ *    classificação das temporadas não encerradas.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -24,6 +27,8 @@ import {
   TEXTO_EVENTO_PUBLICO_ANTIGO,
   TEXTO_EVENTO_PUBLICO_PADRAO,
 } from '../src/globals/Configuracoes'
+import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
+import type { CalculoDaEtapa } from '../src/lib/classificacao'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
@@ -512,6 +517,79 @@ async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<stri
     .join('; ')
 }
 
+/* ─────────────────── 6. Regra do BKS: etapa pela média das corridas ─────────────────── */
+
+/**
+ * Regra do BKS (informada pelo cliente): a categoria é só o tipo de kart; cada subcategoria é um grid com
+ * warm-up, classificação, corrida 1 e corrida 2, e a posição do piloto na etapa é a média das posições dele
+ * nas corridas (2º e 2º → 2º na etapa). Pontos e classificação são separados por subcategoria.
+ *
+ * 1. Regras com "Como a etapa é pontuada" VAZIO (gravadas antes do campo existir) recebem a média das
+ *    corridas. A regra usada por temporada ENCERRADA recebe "por corrida" — o cálculo com que a classificação
+ *    final dela foi gravada (o resultado não muda, e a proteção da regra permite só esse preenchimento).
+ *    Regra já preenchida (no painel ou pela migração) fica como está.
+ * 2. Recalcula a classificação de cada temporada não encerrada. Ela é calculada na leitura (nada fica
+ *    gravado), então o site já mostra o cálculo novo; o recálculo aqui confere que está tudo certo e registra
+ *    no log os avisos para o administrador. Temporada encerrada continua com a fotografia final gravada.
+ */
+async function etapaPelaMediaDasCorridas(payload: Payload): Promise<string> {
+  const lerTodos = async <T,>(collection: 'regras-pontuacao' | 'temporadas' | 'temporada-categorias', select: Record<string, true>) =>
+    (await payload.find({ collection, limit: 0, depth: 0, pagination: false, overrideAccess: true, select })).docs as unknown as T[]
+  type Regra = { id: number; nome?: string | null; calculoDaEtapa?: string | null }
+  type Temporada = { id: number; nome?: string | null; status?: string | null; regra?: IdRel }
+  type Classificacao = { id: number; temporada?: IdRel; regra?: IdRel }
+  const regras = await lerTodos<Regra>('regras-pontuacao', { nome: true, calculoDaEtapa: true })
+  const temporadas = await lerTodos<Temporada>('temporadas', { nome: true, status: true, regra: true })
+  const classificacoes = await lerTodos<Classificacao>('temporada-categorias', { temporada: true, regra: true })
+
+  // Regras usadas por temporada encerrada (na temporada ou como regra própria de uma categoria dela)
+  const encerradas = new Set(temporadas.filter((t) => t.status === 'encerrada').map((t) => t.id))
+  const daEncerrada = new Set(
+    [
+      ...temporadas.filter((t) => encerradas.has(t.id)).map((t) => idDaRel(t.regra)),
+      ...classificacoes.filter((c) => encerradas.has(Number(idDaRel(c.temporada)))).map((c) => idDaRel(c.regra)),
+    ].filter((id): id is number => id !== null),
+  )
+
+  const preenchidas: Record<CalculoDaEtapa, string[]> = { 'media-das-corridas': [], 'por-corrida': [] }
+  const falhas: string[] = []
+  for (const r of regras.filter((x) => !x.calculoDaEtapa)) {
+    const valor: CalculoDaEtapa = daEncerrada.has(r.id) ? 'por-corrida' : 'media-das-corridas'
+    try {
+      await payload.update({
+        collection: 'regras-pontuacao',
+        id: r.id,
+        data: { calculoDaEtapa: valor } as never,
+        overrideAccess: true,
+        context: { ...contexto },
+      })
+      preenchidas[valor].push(`"${r.nome ?? r.id}"`)
+    } catch (erro) {
+      falhas.push(`"${r.nome ?? r.id}" (${(erro as Error).message})`)
+    }
+  }
+
+  // Recálculo das temporadas não encerradas (com a regra já atualizada)
+  const recalculadas: string[] = []
+  for (const t of temporadas.filter((x) => x.status !== 'encerrada')) {
+    const lista = await classificacoesDaTemporada({ payload, temporada: t.id })
+    const porSubcategoria = lista.filter((c) => c.porSubcategoria).length
+    const avisos = [...new Set(lista.flatMap((c) => c.avisos))]
+    if (avisos.length) payload.logger.warn(`Temporada "${t.nome ?? t.id}" recalculada com ${avisos.length} aviso(s): ${avisos.join(' | ')}`)
+    recalculadas.push(`"${t.nome ?? t.id}" (${lista.length} categoria(s), ${porSubcategoria} pela média por subcategoria)`)
+  }
+
+  const partes = [
+    preenchidas['media-das-corridas'].length ? `média das corridas por subcategoria em: ${preenchidas['media-das-corridas'].join(', ')}` : null,
+    preenchidas['por-corrida'].length ? `mantidas por corrida (usadas por temporada encerrada): ${preenchidas['por-corrida'].join(', ')}` : null,
+    !preenchidas['media-das-corridas'].length && !preenchidas['por-corrida'].length ? 'nenhuma regra sem o cálculo da etapa' : null,
+    recalculadas.length ? `classificação recalculada: ${recalculadas.join('; ')}` : 'nenhuma temporada aberta para recalcular',
+  ].filter(Boolean)
+  // Falha: fica registrada e o passo é tentado de novo na próxima publicação (as já preenchidas são puladas)
+  if (falhas.length) throw new Error(`${partes.join('; ')}; não foi possível preencher: ${falhas.join('; ')}`)
+  return partes.join('; ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -527,6 +605,11 @@ const ATUALIZACOES: Atualizacao[] = [
     chave: 'atualizacao:2026-10-exemplos-horarios-por-subcategoria',
     descricao: 'Exemplos de horários por subcategoria',
     aplicar: exemplosDeHorariosPorSubcategoria,
+  },
+  {
+    chave: 'atualizacao:2026-10-etapa-pela-media-das-corridas',
+    descricao: 'Regra do BKS: etapa pela média das corridas, por subcategoria',
+    aplicar: etapaPelaMediaDasCorridas,
   },
 ]
 

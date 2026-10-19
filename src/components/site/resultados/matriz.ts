@@ -9,9 +9,15 @@
  * subcategoria na inscrição, sai UMA TABELA POR SUBCATEGORIA (`montarMatrizes`), na ordem cadastrada na
  * categoria; quem está sem subcategoria vai para "Sem subcategoria". Em cada tabela, a posição de cada
  * sessão é a posição DENTRO da subcategoria (ordem relativa pela posição geral), com a posição geral ao lado.
- * Os pontos continuam os do motor do campeonato (a subcategoria não muda pontos). Sessão marcada para
- * algumas subcategorias (corridas.subcategorias, horários diferentes) só vira coluna nas tabelas delas; sessão
- * sem marcação vale para todas.
+ * Sessão marcada para algumas subcategorias (corridas.subcategorias, horários diferentes) só vira coluna nas
+ * tabelas delas; sessão sem marcação vale para todas.
+ *
+ * Pontos (os do motor, src/lib/classificacao.ts):
+ * - regra do BKS (`calculoDaEtapa: 'media-das-corridas'`): as corridas não têm pontos próprios; a coluna
+ *   "Resultado da etapa" mostra a posição NA SUBCATEGORIA pela média das corridas, a média e os pontos
+ *   ("2º · média 2,0 · 22 pts"), e a corrida em que o piloto abandonou (ou não correu) mostra que valeu como
+ *   o último do grid na média ("vale 6º na média");
+ * - cálculo antigo (por corrida): pontos em cada corrida e o total da etapa, com a posição relativa e a geral.
  *
  * Roxo = o MELHOR TEMPO (menor melhor volta) de cada sessão dentro da tabela (da subcategoria, ou da
  * categoria quando não há subcategorias), seja de quem for — o vencedor não fica roxo por ter vencido.
@@ -19,7 +25,7 @@
  * desclassificado e de quem não largou não contam.
  */
 import type { CorridaComResultado, LinhaCorridaExibida, LinhaEtapaExibida, ResultadoCategoriaNaEtapa } from '@/lib/carregar-competicao'
-import type { Id, StatusResultado } from '@/lib/classificacao'
+import { DECISOES_MEDIA, type CriterioDesempateMedia, type Id, type StatusResultado } from '@/lib/classificacao'
 import {
   agruparPorSubcategoria,
   chaveDeSubcategoria,
@@ -59,6 +65,14 @@ export interface CelulaMatriz {
   posicaoGeral: number | null
   /** Situação por extenso curto ("Abandono", "Desclassificado", "Não largou", "Não classificado", "Sem posição"). */
   situacao: string | null
+  /** Regra do BKS, coluna da etapa: média das posições nas corridas (ex.: 2 = 2º e 2º). */
+  media: number | null
+  /**
+   * Regra do BKS, colunas das corridas: a posição com que a corrida entrou na média quando ela é diferente da
+   * mostrada — o piloto não terminou (abandono, não largou, desclassificado) ou não correu (vale a última do
+   * grid), ou um convidado à frente não conta. null nos demais casos.
+   */
+  contaComo: number | null
   pontos: number | null
   /** Penalidade de pontos (negativa) já descontada no total da etapa. */
   penalidade: number | null
@@ -150,12 +164,39 @@ const grupoDa = (c: CorridaComResultado): Grupo['tipo'] =>
 
 type ColunaInterna = ColunaMatriz & { sessao: CorridaComResultado | null; primeiraDoGrupo: boolean }
 type Piloto = Omit<LinhaMatriz, 'celulas'>
-type Base = { colunas: ColunaInterna[]; pilotos: Piloto[]; etapaDe: Map<string, LinhaEtapaExibida> }
-type Entrada = Pick<ResultadoCategoriaNaEtapa, 'corridas' | 'etapa' | 'semRegra'>
+type Base = { colunas: ColunaInterna[]; pilotos: Piloto[]; etapaDe: Map<string, LinhaEtapaExibida>; pelaMedia: boolean }
+type Entrada = Pick<ResultadoCategoriaNaEtapa, 'corridas' | 'etapa' | 'semRegra' | 'calculoDaEtapa'>
+
+/** Média com uma casa e vírgula: 2 → "2,0"; 2,5 → "2,5"; 2,333 → "2,3". */
+export const formatarMedia = (n: number) => n.toFixed(1).replace('.', ',')
+
+const DESEMPATE_DA_MEDIA: Record<CriterioDesempateMedia, string> = {
+  'ultima-corrida': 'a melhor posição na última corrida',
+  classificacao: 'a melhor posição na classificação (tomada de tempo)',
+}
+
+/** Lista em português: "a", "a e b", "a, b e c". */
+const emLista = (itens: string[]) => (itens.length <= 1 ? (itens[0] ?? '') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`)
+
+/**
+ * Como o resultado da etapa é calculado na regra do BKS (legenda da tabela), escrito a partir das decisões do
+ * motor (DECISOES_MEDIA): mudou a regra lá, o texto acompanha.
+ */
+export function explicacaoDaMedia(): string {
+  const desempate = DECISOES_MEDIA.desempate.map((c) => DESEMPATE_DA_MEDIA[c]).filter(Boolean)
+  const ultima = DECISOES_MEDIA.contamComoUltima.map((st) => (SITUACAO[st] ?? st).toLowerCase())
+  return [
+    'Resultado da etapa: posição dentro da subcategoria pela média das posições nas corridas dela',
+    desempate.length ? ` (média igual: desempata ${desempate.join(', depois ')})` : '',
+    `. ${emLista([...ultima, 'não correr']).replace(/^./, (l) => l.toUpperCase())} vale a última posição do grid.`,
+  ].join('')
+}
 
 /** Colunas e pilotos (já na ordem de exibição) de uma categoria. */
 function prepararBase(resultado: Entrada): Base {
   const semRegra = resultado.semRegra === true
+  // Regra do BKS: as corridas não têm pontos próprios (a etapa é pontuada pela média das posições).
+  const pelaMedia = resultado.calculoDaEtapa === 'media-das-corridas'
   const sessoes = [...(resultado.corridas ?? [])].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
   const etapa: LinhaEtapaExibida[] = semRegra ? [] : (resultado.etapa ?? [])
 
@@ -180,7 +221,7 @@ function prepararBase(resultado: Entrada): Base {
         titulo,
         subtitulo: notas.length ? notas.join(' · ') : null,
         ausente: c ? null : g.ausente(i + 1),
-        comPontos: Boolean(c && g.tipo === 'corrida' && c.conta && !semRegra),
+        comPontos: Boolean(c && g.tipo === 'corrida' && c.conta && !semRegra && !pelaMedia),
         corrida: c?.id ?? null,
         sessao: c,
         primeiraDoGrupo: i === 0,
@@ -191,7 +232,7 @@ function prepararBase(resultado: Entrada): Base {
     chave: 'etapa',
     tipo: 'etapa',
     titulo: 'Resultado da etapa',
-    subtitulo: null,
+    subtitulo: pelaMedia && !semRegra ? 'média das corridas' : null,
     ausente: semRegra ? 'Pontuação da categoria ainda não definida' : etapa.length ? null : 'Resultado da etapa ainda sem corridas oficiais',
     comPontos: !semRegra,
     corrida: null,
@@ -252,7 +293,7 @@ function prepararBase(resultado: Entrada): Base {
       a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base', numeric: true })
     )
   })
-  return { colunas, pilotos: ordenados, etapaDe }
+  return { colunas, pilotos: ordenados, etapaDe, pelaMedia }
 }
 
 /**
@@ -286,16 +327,20 @@ function montarTabela(base: Base, pilotos: Piloto[], porSubcategoria: boolean): 
     posicao: null,
     posicaoGeral: null,
     situacao: null,
+    media: null,
+    contaComo: null,
     pontos: null,
     penalidade: null,
     melhorVolta: null,
     melhorTempo: false,
     pole: false,
   }
-  const posicoes = (col: ColunaInterna, geral: number | null) =>
-    porSubcategoria
-      ? { posicao: relativa(geral, posicoesDaColuna.get(col.chave) ?? []), posicaoGeral: geral }
-      : { posicao: geral, posicaoGeral: null }
+  const posicoes = (col: ColunaInterna, geral: number | null) => {
+    if (!porSubcategoria) return { posicao: geral, posicaoGeral: null }
+    const posicao = relativa(geral, posicoesDaColuna.get(col.chave) ?? [])
+    // Regra do BKS: "(Xº geral)" só quando diz algo a mais (sessão em que correram outras subcategorias).
+    return { posicao, posicaoGeral: base.pelaMedia && geral === posicao ? null : geral }
+  }
 
   const celula = (col: ColunaInterna, p: Piloto): CelulaMatriz => {
     if (col.ausente) return vazia
@@ -305,21 +350,28 @@ function montarTabela(base: Base, pilotos: Piloto[], porSubcategoria: boolean): 
       return {
         ...vazia,
         tem: true,
-        ...posicoes(col, e.posicao),
+        // Regra do BKS: a posição na etapa já é a da subcategoria (pela média), sem posição geral.
+        ...(base.pelaMedia ? { posicao: e.posicao, posicaoGeral: null } : posicoes(col, e.posicao)),
         situacao: e.posicao === null ? (e.desclassificado ? 'Desclassificado' : 'Sem posição') : null,
+        media: base.pelaMedia && e.posicao !== null && typeof e.media === 'number' ? e.media : null,
         pontos: e.total,
         penalidade: e.ajustes < 0 ? e.ajustes : null,
       }
     }
     const sessao = col.sessao as CorridaComResultado
+    // Regra do BKS: a posição com que esta corrida entrou na média do piloto (quando entrou).
+    const naMedia = base.pelaMedia ? base.etapaDe.get(p.chave)?.posicoesNaMedia?.find((x) => String(x.corrida) === String(sessao.id)) : undefined
     const l = sessao.linhas.find((x) => chaveDaLinha(x) === p.chave)
-    if (!l) return vazia
+    if (!l) return naMedia ? { ...vazia, contaComo: naMedia.posicao } : vazia
     const pontua = col.comPontos && !l.convidado
     const melhor = melhorDaColuna.get(col.chave) ?? null
+    const pos = posicoes(col, l.posicaoCategoria)
     return {
       tem: true,
-      ...posicoes(col, l.posicaoCategoria),
+      ...pos,
       situacao: SITUACAO[l.status] ?? (l.posicaoCategoria === null ? 'Sem posição' : null),
+      media: null,
+      contaComo: naMedia && (naMedia.ultima || naMedia.posicao !== pos.posicao) ? naMedia.posicao : null,
       pontos: pontua ? l.pontos : null,
       penalidade: pontua && l.penalidadePontos < 0 ? l.penalidadePontos : null,
       melhorVolta: voltaDa(l),
@@ -360,7 +412,9 @@ export function montarMatrizes(
   const pilotos = base.pilotos.map((p) => ({ ...p, subcategoria: nomeOficial(p.subcategoria, cadastradas) }))
   const colunas = base.colunas.map(({ sessao: _s, primeiraDoGrupo: _p, ...c }) => c)
 
-  const porSubcategoria = cadastradas.length > 0 && pilotos.some((p) => p.subcategoria !== null)
+  // Regra do BKS: cada subcategoria é um grid com posições próprias — separa sempre que algum piloto tem
+  // subcategoria (mesmo que o nome não esteja mais cadastrado na categoria), senão as posições se repetiriam.
+  const porSubcategoria = (base.pelaMedia || cadastradas.length > 0) && pilotos.some((p) => p.subcategoria !== null)
   if (!porSubcategoria) {
     return {
       porSubcategoria: false,
