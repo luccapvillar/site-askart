@@ -11,81 +11,127 @@ type Props = {
   texto?: string | null
   colunas: ColunaRodape[]
   canais: CanalContato[]
+  /** Endereço (pode ter mais de uma linha). */
   endereco?: string | null
   redes: RedeSocial[]
   ano: number
+  /** Link do mapa ("Como chegar"), do painel (Contato → endereço). */
+  mapa?: string | null
+  /** Nome do kartódromo e cidade, exibidos junto do endereço. */
+  local?: string | null
 }
 
 const EMAIL_CREDITO = 'luccapvillar@gmail.com'
 
 const NOMES_REDES: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', tiktok: 'TikTok', x: 'X', whatsapp: 'WhatsApp' }
 
+const TIPO_CANAL: Record<CanalContato['tipo'], string> = { telefone: 'Telefone', whatsapp: 'WhatsApp', email: 'E-mail', outro: 'Contato' }
+
+function NovaAba() {
+  return <span className="visualmente-oculto"> (abre em nova aba)</span>
+}
+
 /**
- * Rodapé. Tudo vem do painel (configurações, navegação e contato).
+ * Rodapé institucional. Tudo vem do painel (configurações, navegação e contato).
  * Contato provisório aparece com o selo "Contato provisório" e SEM link de ligação, como pediu o cliente.
+ * Na base: crédito de quem fez o site, ao lado do acesso discreto ao painel.
  */
-export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, ano }: Props) {
+export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, ano, mapa, local }: Props) {
   const corte = sigla.toUpperCase().startsWith('AS') ? 2 : 0
+  const temContato = canais.length > 0 || Boolean(endereco)
   return (
-    <footer className={s.rodape}>
+    <footer id="rodape" className={s.rodape}>
+      <div className="faixa-marca" aria-hidden="true" />
       <div className="conteiner">
         <div className={s.grade}>
           <div className={s.marca}>
-            <span className={s.sigla}>
+            <p className={s.sigla}>
               {corte ? (
                 <>
-                  <b>{sigla.slice(0, corte)}</b>
-                  {sigla.slice(corte)}
+                  <span className={s.siglaAs}>{sigla.slice(0, corte)}</span>
+                  <span className={s.siglaKart}>{sigla.slice(corte)}</span>
                 </>
               ) : (
                 sigla
               )}
-            </span>
-            <span className="texto-2">{nome}</span>
-            {texto && <p className="texto-2">{texto}</p>}
-          </div>
-
-          {colunas.map((c) => (
-            <div key={c.titulo} className={s.coluna}>
-              <h2 className="rotulo">{c.titulo}</h2>
-              <ul>
-                {c.links.map((l) => (
-                  <li key={l.href + l.rotulo}>
-                    {l.externo ? (
-                      <a href={l.href} target="_blank" rel="noopener noreferrer">
-                        {l.rotulo}
-                      </a>
-                    ) : (
-                      <Link href={l.href}>{l.rotulo}</Link>
-                    )}
+            </p>
+            <p className={s.nome}>{nome}</p>
+            {texto && <p className={s.texto}>{texto}</p>}
+            {redes.length > 0 && (
+              <ul className={s.redes} aria-label="Redes sociais">
+                {redes.map((r) => (
+                  <li key={r.url}>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer">
+                      {NOMES_REDES[r.rede] ?? r.rede}
+                      <span aria-hidden="true" className={s.externo}>
+                        ↗
+                      </span>
+                      <NovaAba />
+                    </a>
                   </li>
                 ))}
               </ul>
-            </div>
-          ))}
+            )}
+          </div>
 
-          {(canais.length > 0 || endereco) && (
-            <div className={s.coluna}>
-              <h2 className="rotulo">Contato</h2>
-              <ul>
+          {colunas.length > 0 && (
+            <nav className={s.colunas} aria-label="Mapa do site">
+              {colunas.map((c) => (
+                <div key={c.titulo} className={s.coluna}>
+                  <h2 className={s.tituloColuna}>{c.titulo}</h2>
+                  <ul>
+                    {c.links.map((l) => (
+                      <li key={l.href + l.rotulo}>
+                        {l.externo ? (
+                          <a href={l.href} target="_blank" rel="noopener noreferrer">
+                            {l.rotulo}
+                            <NovaAba />
+                          </a>
+                        ) : (
+                          <Link href={l.href}>{l.rotulo}</Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </nav>
+          )}
+
+          {temContato && (
+            <div className={s.contato}>
+              <h2 className={s.tituloColuna}>Contato</h2>
+              <ul className={s.canais}>
                 {canais.map((c) => (
-                  <li key={c.tipo + c.valor} className={s.canal}>
-                    <small>{c.rotulo}</small>
+                  <li key={c.tipo + c.valor + c.rotulo} className={s.canal}>
+                    <span className={s.canalTipo}>{TIPO_CANAL[c.tipo] ?? c.rotulo}</span>
                     {c.provisorio ? (
-                      <span>
+                      <span className={s.canalValor}>
                         {c.valor} <span className={s.provisorio}>Contato provisório</span>
                       </span>
                     ) : c.href ? (
-                      <a href={c.href}>{c.valor}</a>
+                      <a className={s.canalValor} href={c.href}>
+                        {c.valor}
+                      </a>
                     ) : (
-                      <span>{c.valor}</span>
+                      <span className={s.canalValor}>{c.valor}</span>
                     )}
                   </li>
                 ))}
                 {endereco && (
                   <li className={s.canal}>
-                    <small>Endereço</small>
-                    <span style={{ whiteSpace: 'pre-line' }}>{endereco}</span>
+                    <span className={s.canalTipo}>Endereço</span>
+                    <address className={s.endereco}>
+                      {local && <strong>{local}</strong>}
+                      {endereco}
+                    </address>
+                    {mapa && (
+                      <a className={s.mapa} href={mapa} target="_blank" rel="noopener noreferrer">
+                        Como chegar
+                        <span aria-hidden="true"> ↗</span>
+                        <NovaAba />
+                      </a>
+                    )}
                   </li>
                 )}
               </ul>
@@ -93,20 +139,10 @@ export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, a
           )}
         </div>
 
-        {redes.length > 0 && (
-          <div className={s.redes} style={{ marginTop: 32 }}>
-            {redes.map((r) => (
-              <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer">
-                {NOMES_REDES[r.rede] ?? r.rede}
-              </a>
-            ))}
-          </div>
-        )}
-
         <div className={s.base}>
-          <span>
+          <p>
             © {ano} {sigla} — {nome}
-          </span>
+          </p>
           {/* Crédito de quem fez o site, junto do acesso discreto ao painel */}
           <p className={s.credito}>
             <span>

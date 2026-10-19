@@ -20,9 +20,11 @@ export function Canais({ canais, escuro = false }: { canais: Canal[]; escuro?: b
     <ul className={`${s.lista} ${escuro ? s.escuro : ''}`}>
       {canais.map((c, i) => (
         <li key={`${c.tipo}-${c.valor}-${i}`} className={s.canal}>
-          <svg className={s.icone} aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-            <path d={ICONES[c.tipo] ?? ICONES.outro} />
-          </svg>
+          <span className={s.icone} aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" focusable="false">
+              <path d={ICONES[c.tipo] ?? ICONES.outro} />
+            </svg>
+          </span>
           <span className={s.textos}>
             <span className={s.rotulo}>
               {TIPO[c.tipo]}
@@ -31,6 +33,7 @@ export function Canais({ canais, escuro = false }: { canais: Canal[]; escuro?: b
             {c.href ? (
               <a className={s.valor} href={c.href} {...(c.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
                 {c.valor}
+                {c.href.startsWith('http') && <span className="visualmente-oculto"> (abre em nova aba)</span>}
               </a>
             ) : (
               <span className={s.valor}>{c.valor}</span>

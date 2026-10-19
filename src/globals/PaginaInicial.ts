@@ -35,10 +35,11 @@ const quantidade = (padrao: number, max: number): Field => ({
   admin: { step: 1 },
 })
 
-const secao = (slug: string, rotulo: string, extras: Field[] = []): Block => ({
+/** `tituloPadrao`: o título que o site usa quando o campo fica vazio (padrão = o nome da seção). */
+const secao = (slug: string, rotulo: string, extras: Field[] = [], tituloPadrao = rotulo): Block => ({
   slug,
   labels: { singular: rotulo, plural: rotulo },
-  fields: [...comuns(rotulo), ...extras],
+  fields: [...comuns(tituloPadrao), ...extras],
 })
 
 export const SECOES_INICIO: Block[] = [
@@ -46,18 +47,23 @@ export const SECOES_INICIO: Block[] = [
     { name: 'contagem', label: 'Mostrar contagem regressiva', type: 'checkbox', defaultValue: true },
   ]),
   secao('lideres', 'Líderes por categoria', [quantidade(6, 12)]),
-  secao('calendario', 'Calendário do BKS'),
-  secao('treinos', 'Treinos de hoje e amanhã'),
-  secao('noticias', 'Notícias', [quantidade(3, 9)]),
-  secao('comunicados', 'Comunicados', [quantidade(3, 6)]),
+  secao('calendario', 'Calendário do BKS', [], 'Calendário da temporada'),
+  // Slug antigo mantido ("treinos"): agora é a chamada curta do kartódromo, sem listar os horários do dia
+  secao('treinos', 'Kartódromo: chamada dos treinos', [], 'Treino quase todos os dias'),
+  secao('noticias', 'Notícias', [quantidade(3, 9)], 'Últimas notícias'),
+  secao('comunicados', 'Avisos no ar', [quantidade(3, 6)]),
   secao('pilotos', 'Pilotos em destaque', [
     { name: 'pilotos', label: 'Pilotos', type: 'relationship', relationTo: 'pilotos', hasMany: true, maxRows: 8 },
   ]),
-  secao('galeria-destaque', 'Galeria em destaque', [
-    { name: 'galeria', label: 'Galeria', type: 'relationship', relationTo: 'galerias', admin: { description: 'Vazio = a galeria mais recente.' } },
-  ]),
-  secao('kartodromo', 'Kartódromo'),
-  secao('ingressos', 'IZY Pass (treinos e corridas)'),
+  secao(
+    'galeria-destaque',
+    'Galeria em destaque',
+    [{ name: 'galeria', label: 'Galeria', type: 'relationship', relationTo: 'galerias', admin: { description: 'Vazio = a galeria mais recente.' } }],
+    'título da galeria',
+  ),
+  // Mesma chamada do kartódromo: se "Kartódromo" e "Kartódromo: chamada dos treinos" estiverem ligadas, aparece uma vez só
+  secao('kartodromo', 'Kartódromo (mesma chamada)', [], 'Treino quase todos os dias'),
+  secao('ingressos', 'IZY Pass (só com o link geral cadastrado)', [], 'Etapas e treinos livres pela IZY Pass'),
   secao('perguntas', 'Perguntas frequentes', [quantidade(5, 10)]),
   secao('contato', 'Contato'),
   secao('apoiadores', 'Apoiadores', [
@@ -99,8 +105,14 @@ export const PaginaInicial: GlobalConfig = comAcessoRestrito(
             maxLength: 90,
             admin: { description: 'Vazio = nome do campeonato principal e da temporada atual.' },
           },
-          { name: 'subtitulo', label: 'Subtítulo', type: 'textarea', maxLength: 220 },
-          campoImagem('imagem', 'Foto de fundo', 'Foto larga (mínimo 1920 px). Vazio = foto do campeonato principal.'),
+          {
+            name: 'subtitulo',
+            label: 'Subtítulo',
+            type: 'textarea',
+            maxLength: 220,
+            admin: { description: 'Vazio = frase padrão sobre o campeonato e o kartódromo.' },
+          },
+          campoImagem('imagem', 'Foto de fundo', 'Foto larga e deitada (mínimo 1920 px). Vazio = foto do campeonato principal.'),
           {
             name: 'botoes',
             label: 'Botões',

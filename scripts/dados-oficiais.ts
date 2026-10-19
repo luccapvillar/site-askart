@@ -5,8 +5,9 @@
  * cliente em 16/10/2026); informações publicadas pela equipe Pro Kart Racing (uso autorizado pelo cliente):
  * taxa de ambulância de R$ 50,00 por piloto por dia de treino, endereço, turmas de iniciantes por idade e regra
  * de horários; informações do cliente: o kartódromo é só para treinos e corridas (sem aluguel de kart), há treino
- * quase todos os dias, BKS = Brasília Kart Series, taxa de pista (valor ainda não informado: "R$ X"); categorias
- * de kart indoor (só os nomes) e o texto do evento aberto ao público (food trucks, telão, mesas e cadeiras, narrador).
+ * quase todos os dias, BKS = Brasília Kart Series, taxa de pista (valor ainda não informado: "R$ X"); a categoria
+ * "Kart indoor" com as subcategorias informadas (só os nomes) e o texto do evento aberto ao público (food trucks,
+ * telão, mesas e cadeiras, narrador).
  *
  * Roda uma vez só (marca em Configurações): depois disso, o moderador é dono dos dados e nada é sobrescrito.
  */
@@ -192,10 +193,13 @@ export async function carregarDadosOficiais(payload: Payload) {
       await buscarOuCriar(payload, 'categorias', nome, { cor: CORES_CATEGORIA[nome], visibilidade: 'visivel', subcategorias, modalidade: 'profissional' }),
     )
   }
-  // Kart indoor: só os nomes (sem cor nem subcategorias, não informadas)
-  for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
-    await buscarOuCriar(payload, 'categorias', nome, { visibilidade: 'visivel', modalidade: 'indoor' })
-  }
+  // Kart indoor: UMA categoria com as subcategorias informadas pelo cliente (só os nomes; sem cor, não informada).
+  // Os nomes das subcategorias são os mesmos das antigas categorias indoor separadas.
+  await buscarOuCriar(payload, 'categorias', 'Kart indoor', {
+    visibilidade: 'visivel',
+    modalidade: 'indoor',
+    subcategorias: CATEGORIAS_INDOOR_OFICIAIS.map((s) => ({ nome: s })),
+  })
   const turmas = new Map<Turma, Id>()
   for (const [chave, t] of Object.entries(TURMAS) as [Turma, (typeof TURMAS)[Turma]][]) {
     turmas.set(chave, await buscarOuCriar(payload, 'tipos-treino', t.nome, { cor: t.cor, descricao: 'descricao' in t ? t.descricao : undefined }))

@@ -7,8 +7,10 @@
  * próxima publicação — nunca derruba a publicação do site.
  *
  * 1. Aba "Avisos" no menu do topo, logo depois de Notícias (pedido do cliente).
- * 2. Categorias de kart indoor (nomes informados pelo cliente) e a modalidade das categorias.
+ * 2. Modalidade das categorias (karts profissionais ou karts indoor).
  * 3. Texto do evento aberto ao público ("Venha assistir"), se ainda for o padrão antigo.
+ * 4. Kart indoor como UMA categoria com subcategorias (o cliente informou que o indoor também tem
+ *    subcategorias): cria "Kart indoor" e exclui as 4 categorias indoor separadas que não estão em uso.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -194,8 +196,9 @@ async function criarVersoesIniciais(payload: Payload): Promise<string> {
 
 /**
  * As categorias que já existiam são de karts profissionais (a migração já grava esse padrão; aqui só se
- * confere). Cria as 4 categorias de kart indoor informadas pelo cliente: visíveis, sem cor e sem
- * subcategorias (não informadas). Não cria temporada, etapa nem horário (não informados).
+ * confere). Categorias com os nomes do kart indoor que já existam passam para a modalidade indoor.
+ * Este passo não cria mais as 4 categorias indoor separadas: o kart indoor agora é UMA categoria com
+ * subcategorias (passo 4, unificarKartIndoor). Não cria temporada, etapa nem horário (não informados).
  */
 async function criarCategoriasIndoor(payload: Payload): Promise<string> {
   const semModalidade = await payload.find({
@@ -210,30 +213,137 @@ async function criarCategoriasIndoor(payload: Payload): Promise<string> {
     await payload.update({ collection: 'categorias', id: c.id, data: { modalidade: 'profissional' } as never, overrideAccess: true, context: { ...contexto } })
   }
 
-  const criadas: string[] = []
   const ajustadas: string[] = []
   for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
     const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0, overrideAccess: true })
     const existente = docs[0] as { id: number; modalidade?: string | null } | undefined
-    if (!existente) {
-      await payload.create({
-        collection: 'categorias',
-        data: { nome, modalidade: 'indoor', visibilidade: 'visivel' } as never,
-        overrideAccess: true,
-        context: { ...contexto },
-      })
-      criadas.push(nome)
-    } else if (existente.modalidade !== 'indoor') {
+    if (existente && existente.modalidade !== 'indoor') {
       await payload.update({ collection: 'categorias', id: existente.id, data: { modalidade: 'indoor' } as never, overrideAccess: true, context: { ...contexto } })
       ajustadas.push(nome)
     }
   }
   const partes = [
     semModalidade.docs.length ? `${semModalidade.docs.length} categoria(s) marcada(s) como karts profissionais` : null,
-    criadas.length ? `categorias indoor criadas: ${criadas.join(', ')}` : null,
     ajustadas.length ? `marcadas como indoor: ${ajustadas.join(', ')}` : null,
   ].filter(Boolean)
-  return partes.length ? partes.join('; ') : 'nada a fazer: as categorias indoor já existiam'
+  return partes.length ? partes.join('; ') : 'nada a fazer: as modalidades já estavam certas'
+}
+
+/* ─────────────────── 4. Kart indoor: uma categoria com subcategorias ─────────────────── */
+
+/** Nome da categoria única do kart indoor. */
+const KART_INDOOR = 'Kart indoor'
+
+/**
+ * Subcategorias do kart indoor (só os nomes, na ordem informada pelo cliente): são os mesmos nomes das
+ * 4 categorias indoor separadas criadas antes — Novatos - 95KGs (15HP), 80KGs (15HP), 95KGs (15HP) e
+ * 110KGs (15HP).
+ */
+const SUBCATEGORIAS_INDOOR: string[] = [...CATEGORIAS_INDOOR_OFICIAIS]
+
+/** Onde uma categoria pode estar em uso: se estiver em qualquer um, ela NÃO é excluída. */
+const USOS_DA_CATEGORIA = [
+  { collection: 'etapas', campo: 'categorias', rotulo: 'etapas' },
+  { collection: 'etapas', campo: 'gradeTreinosLivres.categorias', rotulo: 'grade de treinos livres de etapas' },
+  { collection: 'inscricoes', campo: 'categoria', rotulo: 'inscrições' },
+  { collection: 'corridas', campo: 'categorias', rotulo: 'corridas' },
+  { collection: 'temporada-categorias', campo: 'categoria', rotulo: 'categorias de temporada' },
+] as const
+
+/**
+ * Em que a categoria está em uso (lista vazia = em nada). Confere o documento gravado e, nas coleções com
+ * rascunho, também a versão mais recente. Se uma consulta falhar, conta como "em uso": na dúvida, não exclui.
+ */
+async function usosDaCategoria(payload: Payload, id: number): Promise<string[]> {
+  const usos: string[] = []
+  for (const u of USOS_DA_CATEGORIA) {
+    for (const draft of [false, true]) {
+      try {
+        const { totalDocs } = await payload.find({
+          collection: u.collection,
+          where: { [u.campo]: { equals: id } },
+          limit: 1,
+          depth: 0,
+          draft,
+          overrideAccess: true,
+        })
+        if (totalDocs) {
+          usos.push(`${u.rotulo} (${totalDocs})`)
+          break
+        }
+      } catch (erro) {
+        usos.push(`${u.rotulo} (não foi possível conferir: ${(erro as Error).message})`)
+        break
+      }
+    }
+  }
+  return usos
+}
+
+/**
+ * Kart indoor como UMA categoria com subcategorias. (1) Cria "Kart indoor" (modalidade indoor, visível)
+ * com as subcategorias, se ainda não existir; se existir sem subcategorias, só preenche as subcategorias.
+ * (2) Exclui as 4 categorias indoor separadas criadas antes SOMENTE se nenhuma etapa, inscrição, corrida ou
+ * categoria de temporada as usar (a exclusão do painel ainda recusa qualquer outro vínculo); as que estão
+ * em uso ficam como estão e o motivo vai para o log.
+ */
+async function unificarKartIndoor(payload: Payload): Promise<string> {
+  const partes: string[] = []
+
+  const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: KART_INDOOR } }, limit: 1, depth: 0, overrideAccess: true })
+  const existente = docs[0] as { id: number; subcategorias?: unknown[] | null } | undefined
+  if (!existente) {
+    await payload.create({
+      collection: 'categorias',
+      data: { nome: KART_INDOOR, modalidade: 'indoor', visibilidade: 'visivel', subcategorias: SUBCATEGORIAS_INDOOR.map((nome) => ({ nome })) } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+    partes.push(`categoria "${KART_INDOOR}" criada com ${SUBCATEGORIAS_INDOOR.length} subcategorias`)
+  } else if (!existente.subcategorias?.length) {
+    await payload.update({
+      collection: 'categorias',
+      id: existente.id,
+      data: { subcategorias: SUBCATEGORIAS_INDOOR.map((nome) => ({ nome })) } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+    partes.push(`subcategorias preenchidas em "${KART_INDOOR}"`)
+  } else {
+    partes.push(`"${KART_INDOOR}" já existia com subcategorias: mantida como está`)
+  }
+
+  const excluidas: string[] = []
+  const mantidas: string[] = []
+  for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
+    const { docs: antigas } = await payload.find({
+      collection: 'categorias',
+      where: { and: [{ nome: { equals: nome } }, { modalidade: { equals: 'indoor' } }] },
+      limit: 10,
+      depth: 0,
+      overrideAccess: true,
+    })
+    for (const antiga of antigas as { id: number }[]) {
+      const usos = await usosDaCategoria(payload, antiga.id)
+      if (usos.length) {
+        mantidas.push(`"${nome}" (em uso em: ${usos.join(', ')})`)
+        continue
+      }
+      try {
+        await payload.delete({ collection: 'categorias', id: antiga.id, overrideAccess: true, context: { ...contexto } })
+        excluidas.push(`"${nome}"`)
+      } catch (erro) {
+        // A exclusão do painel recusa categoria com qualquer outro vínculo (notícias, treinos…): fica como está
+        mantidas.push(`"${nome}" (${(erro as Error).message})`)
+      }
+    }
+  }
+  if (excluidas.length) partes.push(`categorias indoor separadas excluídas: ${excluidas.join(', ')}`)
+  if (mantidas.length) {
+    partes.push(`categorias indoor separadas mantidas: ${mantidas.join('; ')}`)
+    payload.logger.warn(`Kart indoor: categorias antigas mantidas porque estão em uso — ${mantidas.join('; ')}. Revise no painel (Competição › Categorias).`)
+  }
+  return partes.join('; ')
 }
 
 /* ─────────────────── 3. Evento aberto ao público ("Venha assistir") ─────────────────── */
@@ -273,6 +383,7 @@ const ATUALIZACOES: Atualizacao[] = [
   { chave: 'atualizacao:2026-10-subcategorias', descricao: 'Subcategorias do F400 e da 125cc', aplicar: preencherSubcategorias },
   { chave: 'atualizacao:2026-10-categorias-indoor', descricao: 'Categorias de kart indoor', aplicar: criarCategoriasIndoor },
   { chave: 'atualizacao:2026-10-evento-publico', descricao: 'Texto do evento aberto ao público', aplicar: atualizarEventoPublico },
+  { chave: 'atualizacao:2026-10-kart-indoor-subcategorias', descricao: 'Kart indoor com subcategorias', aplicar: unificarKartIndoor },
 ]
 
 async function principal() {

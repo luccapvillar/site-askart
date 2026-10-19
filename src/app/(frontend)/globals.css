@@ -1,57 +1,158 @@
 /* ==========================================================================
-   ASKART — base visual do site público.
-   As cores de marca vêm do global "configuracoes" (painel) e são injetadas no <html>
-   pelo layout como --marca-primaria, --marca-secundaria, --marca-destaque, --marca-escuro.
-   Os valores abaixo são os padrões tirados da logo oficial (verde, amarelo, preto).
+   ASKART — sistema visual do site público
+   --------------------------------------------------------------------------
+   Identidade: verde do capacete (cor principal), amarelo da placa (destaque),
+   vermelho do capacete (acento pontual), branco e neutros. Tom institucional:
+   fundo claro, hierarquia forte, fotos grandes, nada de efeito gratuito.
+
+   As cores de marca vêm do painel (Configurações) e são injetadas no <html> pelo
+   layout como --marca-primaria, --marca-secundaria, --marca-escuro e
+   --sobre-primaria/--sobre-secundaria (texto legível sobre cada uma).
+   Os valores abaixo são os padrões tirados da logo oficial.
+
+   Guia rápido para as páginas (detalhes no fim deste arquivo):
+     Estrutura ..... .conteiner .secao .secao-compacta .pilha .cluster .botoes
+     Grades ........ .grade-auto (--min) .grade-2 .grade-3 .grade-4
+     Tipografia .... .titulo-marca + .h1/.h2/.h3/.h4, .titulo-display, .rotulo,
+                     .lead, .texto-2, .texto-pequeno, .mono, .num
+     Fundos ........ .fundo-branco .fundo-papel .fundo-tinta .escuro
+     Peças ......... .cartao-base .cartao-pad .faixa-marca .link-seta .tabela
+                     .prosa .rolagem-x .visualmente-oculto
    ========================================================================== */
 
 :root {
-  --marca-primaria: #3a7f41; /* verde da logo, ajustado para contraste AA */
-  --marca-secundaria: #edd357;
+  /* ---------- Marca (o layout sobrescreve com as cores do painel) ---------- */
+  --marca-primaria: #3c8444; /* verde da logo/capacete, já ajustado para AA com branco */
+  --marca-secundaria: #edd357; /* amarelo da placa */
   --marca-destaque: #edd357;
   --marca-escuro: #111111;
+  --sobre-primaria: #ffffff;
+  --sobre-secundaria: #111111;
 
-  /* Derivadas */
+  /* ---------- Paleta da identidade ---------- */
   --verde: var(--marca-primaria);
-  --verde-escuro: color-mix(in oklab, var(--marca-primaria) 70%, black);
+  --verde-escuro: color-mix(in oklab, var(--marca-primaria) 70%, black); /* texto/link verde em fundo claro (AA) */
   --verde-claro: color-mix(in oklab, var(--marca-primaria) 55%, white);
-  --amarelo: var(--marca-secundaria);
-  --amarelo-escuro: color-mix(in oklab, var(--marca-secundaria) 72%, black);
+  --verde-tinta: color-mix(in oklab, var(--marca-primaria) 9%, white); /* fundo suave de destaque */
+  --verde-sobre-escuro: color-mix(in oklab, var(--marca-primaria) 45%, white); /* verde legível sobre fundo escuro */
 
-  --asfalto: color-mix(in oklab, var(--marca-escuro) 92%, var(--marca-primaria));
-  --asfalto-2: color-mix(in oklab, var(--asfalto) 90%, white);
-  --asfalto-3: color-mix(in oklab, var(--asfalto) 80%, white);
-  --papel: #f5f6f2;
-  --papel-2: #eceee7;
+  --amarelo: var(--marca-secundaria);
+  --amarelo-escuro: color-mix(in oklab, var(--marca-secundaria) 86%, black); /* hover do botão amarelo (texto continua escuro) */
+  --amarelo-tinta: color-mix(in oklab, var(--marca-secundaria) 24%, white);
+
+  --vermelho: #c4261d; /* vermelho do capacete: acento pontual (5,8:1 com branco) */
+  --vermelho-escuro: #9e1d16;
+  --vermelho-tinta: #fbe5e2;
+
+  /* Escuro institucional: preto da marca puxado para o verde */
+  --noite: color-mix(in oklab, var(--marca-escuro) 80%, var(--marca-primaria));
+  --noite-2: color-mix(in oklab, var(--noite) 90%, white);
+  --noite-3: color-mix(in oklab, var(--noite) 80%, white);
+  /* Nomes antigos (usados pelos módulos das páginas) */
+  --asfalto: var(--noite);
+  --asfalto-2: var(--noite-2);
+  --asfalto-3: var(--noite-3);
+
+  /* ---------- Neutros ---------- */
+  --papel: #f4f6f3;
+  --papel-2: #e8ece7;
   --branco: #ffffff;
 
-  --texto: #141714;
-  --texto-2: #50564f;
-  --texto-claro: #f3f5f0;
-  --texto-claro-2: rgb(243 245 240 / 0.72);
-  --linha: rgb(20 23 20 / 0.12);
-  --linha-clara: rgb(243 245 240 / 0.14);
+  --texto: #121813;
+  --texto-2: #4b544d; /* 7,2:1 sobre o papel */
+  --texto-claro: #f4f7f4;
+  --texto-claro-2: rgb(244 247 244 / 0.78);
+  --linha: rgb(18 24 19 / 0.12);
+  --linha-forte: rgb(18 24 19 / 0.24);
+  --linha-clara: rgb(244 247 244 / 0.16);
 
-  /* Estados (status de etapa, treino, aviso) */
+  /* ---------- Estados (status de etapa, treino, aviso). Cor nunca é a única informação. ---------- */
   --ok: #2f8f4e;
   --atencao: #c98a00;
-  --perigo: #c23b2b;
+  --perigo: #c4261d;
   --info: #2f6db3;
   --neutro: #6b7069;
+  /* Pares texto/fundo prontos (AA) */
+  --ok-texto: #1b6b35;
+  --ok-fundo: #e4f2e8;
+  --atencao-texto: #7a4e00;
+  --atencao-fundo: #fcefd0;
+  --perigo-texto: #a3221a;
+  --perigo-fundo: #fbe5e2;
+  --info-texto: #1d4f8c;
+  --info-fundo: #e3ecf8;
+  --neutro-texto: #454c46;
+  --neutro-fundo: #eceeeb;
 
+  /* Faixa do capacete: assinatura visual (verde · branco · vermelho · amarelo) */
+  --faixa-marca: linear-gradient(
+    90deg,
+    var(--verde) 0 62%,
+    var(--branco) 62% 63.5%,
+    var(--vermelho) 63.5% 80%,
+    var(--branco) 80% 81.5%,
+    var(--amarelo) 81.5% 100%
+  );
+
+  /* Anel de foco: escuro no claro; os fundos escuros trocam para o amarelo */
+  --foco: var(--texto);
+
+  /* ---------- Tipografia ---------- */
   --fonte: var(--fonte-archivo), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --fonte-mono: var(--fonte-geist-mono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  --largura: 1320px;
-  --margem: clamp(16px, 4.5vw, 56px);
-  --secao: clamp(56px, 8vw, 112px);
-  --cabecalho: 68px;
+  --fs-display: clamp(2.5rem, 1.35rem + 5.2vw, 5.25rem);
+  --fs-h1: clamp(2.125rem, 1.4rem + 3.1vw, 3.75rem);
+  --fs-h2: clamp(1.625rem, 1.22rem + 1.75vw, 2.5rem);
+  --fs-h3: clamp(1.125rem, 1.03rem + 0.42vw, 1.375rem);
+  --fs-h4: 1.0625rem;
+  --fs-lead: clamp(1.0625rem, 1rem + 0.32vw, 1.25rem);
+  --fs-corpo: clamp(1rem, 0.97rem + 0.14vw, 1.0625rem);
+  --fs-pequeno: 0.875rem;
+  --fs-mini: 0.75rem;
+
+  /* ---------- Espaço e medidas ---------- */
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+  --esp-7: 48px;
+  --esp-8: 64px;
+  --esp-9: 96px;
+
+  --largura: 1280px;
+  --largura-texto: 68ch;
+  --margem: clamp(16px, 4vw, 48px);
+  --secao: clamp(56px, 7vw, 104px);
+  --cabecalho: 64px; /* altura do cabeçalho fixo (as sub-abas "grudam" logo abaixo) */
+  --alvo: 44px; /* área mínima de toque */
+
+  --raio-p: 4px;
   --raio: 6px;
-  --raio-g: 12px;
-  --sombra: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+  --raio-g: 10px;
+  --raio-pilula: 999px;
+
+  --sombra-1: 0 1px 2px rgb(16 24 18 / 0.06);
+  --sombra: 0 1px 2px rgb(16 24 18 / 0.06), 0 6px 20px rgb(16 24 18 / 0.07);
+  --sombra-2: 0 2px 4px rgb(16 24 18 / 0.06), 0 14px 34px rgb(16 24 18 / 0.1);
+  --sombra-3: 0 24px 60px rgb(10 16 12 / 0.28);
+
   --curva: cubic-bezier(0.2, 0.7, 0.1, 1);
-  --inclinacao: -8deg;
+  --duracao: 0.2s;
+  --inclinacao: -8deg; /* legado: não usar em peças novas */
 }
+
+@media (min-width: 960px) {
+  :root {
+    --cabecalho: 76px;
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
 
 *,
 *::before,
@@ -62,7 +163,7 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--cabecalho) + 12px);
+  scroll-padding-top: calc(var(--cabecalho) + 16px);
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -76,10 +177,11 @@ body {
   background: var(--papel);
   color: var(--texto);
   font-family: var(--fonte);
-  font-size: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+  font-size: var(--fs-corpo);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   font-variation-settings: 'wdth' 100;
+  text-rendering: optimizeLegibility;
 }
 
 img,
@@ -108,6 +210,20 @@ ul {
   margin: 0;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
 ol,
 ul {
   padding: 0;
@@ -118,6 +234,10 @@ a {
   color: inherit;
   text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
 }
 
 button,
@@ -132,8 +252,12 @@ button {
   cursor: pointer;
 }
 
+address {
+  font-style: normal;
+}
+
 :focus-visible {
-  outline: 3px solid var(--amarelo);
+  outline: 3px solid var(--foco);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -148,13 +272,30 @@ table {
   width: 100%;
 }
 
-/* ---------- Tipografia de marca ---------- */
+main:focus {
+  outline: none;
+}
 
+/* ==========================================================================
+   Tipografia
+   ========================================================================== */
+
+/* Títulos de página e de seção: Archivo pesada, levemente larga, sem itálico falso. */
 .titulo-marca {
   font-family: var(--fonte);
-  font-variation-settings: 'wdth' 118;
+  font-variation-settings: 'wdth' 110;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+/* Manchete grande (topo da página inicial, faixas com foto): caixa alta, mais larga. */
+.titulo-display {
+  font-family: var(--fonte);
+  font-variation-settings: 'wdth' 116;
   font-weight: 850;
-  font-style: italic;
+  font-size: var(--fs-display);
   letter-spacing: -0.015em;
   line-height: 0.98;
   text-transform: uppercase;
@@ -162,20 +303,52 @@ table {
 }
 
 .h1 {
-  font-size: clamp(2.25rem, 1.2rem + 4.6vw, 5rem);
+  font-size: var(--fs-h1);
 }
 
 .h2 {
-  font-size: clamp(1.75rem, 1.1rem + 2.6vw, 3rem);
+  font-size: var(--fs-h2);
+  line-height: 1.1;
 }
 
 .h3 {
   font-family: var(--fonte);
-  font-variation-settings: 'wdth' 108;
-  font-weight: 780;
-  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.45rem);
-  line-height: 1.2;
-  letter-spacing: -0.005em;
+  font-variation-settings: 'wdth' 104;
+  font-weight: 750;
+  font-size: var(--fs-h3);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.h4 {
+  font-weight: 700;
+  font-size: var(--fs-h4);
+  line-height: 1.3;
+}
+
+/* Rótulo/sobretítulo: caixa alta pequena e espaçada */
+.rotulo {
+  font-family: var(--fonte);
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.lead {
+  max-width: 62ch;
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+  color: var(--texto-2);
+}
+
+.texto-2 {
+  color: var(--texto-2);
+}
+
+.texto-pequeno {
+  font-size: var(--fs-pequeno);
 }
 
 .mono {
@@ -183,28 +356,74 @@ table {
   font-variant-numeric: tabular-nums;
 }
 
-.rotulo {
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+/* Números alinhados (tabelas, horários, pontos) */
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.texto-2 {
-  color: var(--texto-2);
+/* Link de ação com seta */
+.link-seta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--alvo);
+  font-weight: 700;
+  color: var(--verde-escuro);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color var(--duracao) var(--curva);
+}
+
+.link-seta::after {
+  content: '→';
+  transition: transform var(--duracao) var(--curva);
+}
+
+.link-seta:hover {
+  text-decoration-color: currentColor;
+}
+
+.link-seta:hover::after {
+  transform: translateX(3px);
+}
+
+/* ==========================================================================
+   Fundos
+   ========================================================================== */
+
+.fundo-branco {
+  background: var(--branco);
+}
+
+.fundo-papel {
+  background: var(--papel);
+}
+
+.fundo-tinta {
+  background: var(--verde-tinta);
 }
 
 .escuro {
-  background: var(--asfalto);
+  --foco: var(--amarelo);
+  background: var(--noite);
   color: var(--texto-claro);
 }
 
-.escuro .texto-2 {
+.escuro .texto-2,
+.escuro .lead {
   color: var(--texto-claro-2);
 }
 
-/* ---------- Estrutura ---------- */
+.escuro .link-seta {
+  color: var(--amarelo);
+}
+
+/* ==========================================================================
+   Estrutura
+   ========================================================================== */
 
 .conteiner {
   width: 100%;
@@ -218,15 +437,64 @@ table {
 }
 
 .secao-compacta {
-  padding-block: calc(var(--secao) * 0.6);
+  padding-block: calc(var(--secao) * 0.62);
+}
+
+/* Fundos claros iguais em seções seguidas: separa com uma linha fina */
+.secao.fundo-papel + .secao.fundo-papel,
+.secao-compacta.fundo-papel + .secao-compacta.fundo-papel {
+  border-top: 1px solid var(--linha);
 }
 
 .pilha > * + * {
   margin-top: var(--pilha, 1rem);
 }
 
+.pilha-g > * + * {
+  margin-top: var(--pilha, 2rem);
+}
+
+.cluster,
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap, 12px);
+}
+
+.grade-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--min, 280px)), 1fr));
+  gap: var(--gap, clamp(16px, 2vw, 24px));
+}
+
+.grade-2,
+.grade-3,
+.grade-4 {
+  display: grid;
+  gap: var(--gap, clamp(16px, 2vw, 24px));
+}
+
+@media (min-width: 720px) {
+  .grade-2,
+  .grade-3,
+  .grade-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1040px) {
+  .grade-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .grade-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Texto corrido (notícias, páginas institucionais) */
 .prosa {
-  max-width: 70ch;
+  max-width: var(--largura-texto);
 }
 
 .prosa > * + * {
@@ -236,7 +504,17 @@ table {
 .prosa h2,
 .prosa h3 {
   margin-top: 1.6em;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   line-height: 1.2;
+}
+
+.prosa h2 {
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+}
+
+.prosa h3 {
+  font-size: var(--fs-h3);
 }
 
 .prosa ul {
@@ -249,13 +527,104 @@ table {
   padding-left: 1.25em;
 }
 
+.prosa li + li {
+  margin-top: 0.35em;
+}
+
 .prosa a {
   color: var(--verde-escuro);
+  font-weight: 600;
+}
+
+.prosa blockquote {
+  padding: 4px 0 4px 20px;
+  border-left: 4px solid var(--verde);
+  font-size: var(--fs-lead);
 }
 
 .escuro .prosa a {
   color: var(--amarelo);
 }
+
+/* Cartão neutro reaproveitável */
+.cartao-base {
+  background: var(--branco);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  box-shadow: var(--sombra-1);
+}
+
+.cartao-pad {
+  padding: clamp(18px, 2.6vw, 28px);
+}
+
+.escuro .cartao-base {
+  background: var(--noite-2);
+  border-color: var(--linha-clara);
+  box-shadow: none;
+}
+
+/* Faixa do capacete (assinatura). Uso: <div className="faixa-marca" aria-hidden="true" /> */
+.faixa-marca {
+  height: 4px;
+  background: var(--faixa-marca);
+}
+
+/* ==========================================================================
+   Tabelas (classificação, resultados, grade de treinos, taxas)
+   Uso: <div className="rolagem-x"><table className="tabela"><caption>…</caption>
+        <thead><tr><th scope="col">…</th></tr></thead> … </table></div>
+   ========================================================================== */
+
+.tabela {
+  background: var(--branco);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela caption {
+  padding: 0 0 12px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.tabela th,
+.tabela td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--linha);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabela thead th {
+  background: var(--papel-2);
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+  white-space: nowrap;
+}
+
+.tabela tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--papel) 55%, white);
+}
+
+.tabela tbody th {
+  font-weight: 700;
+}
+
+/* Rolagem horizontal acessível para tabelas largas */
+.rolagem-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* ==========================================================================
+   Acessibilidade
+   ========================================================================== */
 
 .visualmente-oculto {
   position: absolute !important;
@@ -271,23 +640,17 @@ table {
   top: 8px;
   left: 8px;
   z-index: 100;
-  padding: 10px 16px;
+  padding: 12px 18px;
   background: var(--amarelo);
   color: var(--marca-escuro);
   font-weight: 700;
   border-radius: var(--raio);
+  box-shadow: var(--sombra-2);
   transform: translateY(-200%);
 }
 
 .pular:focus {
   transform: none;
-}
-
-/* Rolagem horizontal acessível para tabelas largas */
-.rolagem-x {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -297,43 +660,34 @@ table {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* ---------- Site: peças compartilhadas ---------- */
+/* ==========================================================================
+   Peças compartilhadas do layout
+   ========================================================================== */
 
-main:focus {
-  outline: none;
-}
-
+/* Faixa de demonstração (Configurações → "faixa de demonstração") */
 .faixa-demo {
-  background: #fff4c2;
-  color: #4a3b00;
-  border-bottom: 1px solid #e8d488;
+  background: var(--amarelo-tinta);
+  color: #3d3200;
+  border-bottom: 1px solid color-mix(in oklab, var(--amarelo) 70%, black);
   font-size: 0.8125rem;
   line-height: 1.45;
   padding-block: 8px;
 }
 
+/* Crédito sobre a foto (componente Foto com credito) */
 .credito-foto {
   position: absolute;
   right: 8px;
   bottom: 8px;
   max-width: calc(100% - 16px);
   padding: 2px 8px;
-  border-radius: 4px;
-  background: rgb(0 0 0 / 0.55);
+  border-radius: var(--raio-p);
+  background: rgb(0 0 0 / 0.62);
   color: #fff;
   font-size: 0.6875rem;
   line-height: 1.5;
-}
-
-.cartao-base {
-  background: var(--branco);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
-}
-
-.fundo-branco {
-  background: var(--branco);
 }

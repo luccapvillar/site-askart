@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Artigo, Relacionados, tituloCurto } from '@/components/site/conteudo/Artigo'
+import { ItemNoticia } from '@/components/site/conteudo/Noticias'
+import c from '@/components/site/conteudo/Conteudo.module.css'
 import { Foto } from '@/components/site/Foto'
 import { Galeria } from '@/components/site/Galeria'
-import s from '@/components/site/paginas/Leitura.module.css'
+import { Selo } from '@/components/site/Selo'
 import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { TextoRico, textoPuro } from '@/components/site/TextoRico'
-import { formatarDataExtenso } from '@/lib/datas'
+import { TituloSecao } from '@/components/site/TituloSecao'
+import { formatarDataExtenso, formatarHora } from '@/lib/datas'
 import { fotosDaGaleria } from '@/lib/galeria'
-import { comoDoc, lerNoticia } from '@/lib/publico'
+import { comoDoc, lerNoticia, lerNoticias } from '@/lib/publico'
 import type { CategoriasNoticia, Etapa, Galeria as TipoGaleria, Midia } from '@/payload-types'
 
 export const revalidate = 60
@@ -23,8 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const capa = comoDoc<Midia>(n.capa)
   return {
     title: semDemo(n.titulo),
-    description: n.subtitulo || textoPuro(n.conteudo, 160),
-    openGraph: { type: 'article', publishedTime: n.publicarEm ?? undefined, images: capa?.sizes?.compartilhamento?.url ? [capa.sizes.compartilhamento.url] : undefined },
+    description: semDemo(n.subtitulo) || textoPuro(n.conteudo, 160) || undefined,
+    alternates: { canonical: `/noticias/${n.slug}` },
+    openGraph: {
+      type: 'article',
+      publishedTime: n.publicarEm ?? undefined,
+      images: capa?.sizes?.compartilhamento?.url ? [capa.sizes.compartilhamento.url] : undefined,
+    },
   }
 }
 
@@ -34,44 +42,92 @@ export default async function Noticia({ params }: Props) {
   const categoria = comoDoc<CategoriasNoticia>(n.categoria)
   const etapa = comoDoc<Etapa>(n.etapa)
   const galeria = comoDoc<TipoGaleria>(n.galeria)
+  const fotos = galeria ? fotosDaGaleria(galeria) : []
+  const capa = comoDoc<Midia>(n.capa)
+  const titulo = semDemo(n.titulo)
+  // Mais notícias (as mais recentes, sem esta)
+  const outras = (await lerNoticias(4)).docs.filter((o) => o.id !== n.id).slice(0, 3)
+
   return (
-    <article className={s.artigo}>
-      <header className={`conteiner ${s.cabeca}`}>
-        <nav aria-label="Você está em" className={s.trilha}>
-          <Link href="/noticias">Notícias</Link>
-          {categoria && <span aria-hidden="true"> / </span>}
-          {categoria && <span>{semDemo(categoria.nome)}</span>}
-        </nav>
-        <h1 className={`h2 ${s.titulo}`}>
-          <TextoDemo texto={n.titulo} />
-        </h1>
-        {n.subtitulo && <p className={s.subtitulo}>{n.subtitulo}</p>}
-        <p className={s.meta}>
-          {n.publicarEm && <time dateTime={n.publicarEm}>{formatarDataExtenso(n.publicarEm)}</time>}
-          {n.autor && <span>Por {n.autor}</span>}
-        </p>
-      </header>
-      {comoDoc<Midia>(n.capa) && (
-        <div className={`conteiner ${s.capa}`}>
-          <Foto midia={comoDoc<Midia>(n.capa)} prioridade sizes="(min-width: 1100px) 1000px, 100vw" credito />
-        </div>
-      )}
-      <div className={`conteiner ${s.corpo}`}>
+    <>
+      <Artigo
+        trilha={[{ rotulo: 'Notícias', href: '/noticias' }, { rotulo: tituloCurto(titulo) }]}
+        meta={
+          categoria ? (
+            <Selo tom="marca" ponto={false}>
+              {semDemo(categoria.nome)}
+            </Selo>
+          ) : null
+        }
+        titulo={<TextoDemo texto={n.titulo} />}
+        linhaFina={n.subtitulo ? semDemo(n.subtitulo) : null}
+        assinatura={
+          <>
+            {n.publicarEm && (
+              <span>
+                Publicada em{' '}
+                <time dateTime={n.publicarEm}>
+                  <strong>{formatarDataExtenso(n.publicarEm)}</strong>, às {formatarHora(n.publicarEm)}
+                </time>
+              </span>
+            )}
+            {n.autor && (
+              <span>
+                Por <strong>{semDemo(n.autor)}</strong>
+              </span>
+            )}
+          </>
+        }
+        capa={
+          capa?.url ? (
+            <figure className={c.figuraCapa}>
+              <Foto midia={capa} prioridade sizes="(min-width: 1200px) 1120px, 100vw" />
+              {(capa.legenda || capa.credito) && (
+                <figcaption className={c.legenda}>
+                  {capa.legenda && <span>{semDemo(capa.legenda)}</span>}
+                  {capa.credito && <span className={c.credito}>Foto: {capa.credito}</span>}
+                </figcaption>
+              )}
+            </figure>
+          ) : null
+        }
+        depois={
+          <>
+            {fotos.length > 0 && galeria && (
+              <section className={c.galeria} aria-labelledby="fotos-noticia">
+                <h2 id="fotos-noticia" className={c.subtituloCorpo}>
+                  Fotos {galeria.titulo ? <span className="texto-2">· {semDemo(galeria.titulo)}</span> : null}
+                </h2>
+                <Galeria fotos={fotos} exibicao={galeria.exibicao ?? 'grade'} />
+              </section>
+            )}
+            {etapa && (
+              <Relacionados
+                titulo="Sobre a etapa"
+                itens={[{ href: `/etapas/${etapa.id}`, rotulo: <TextoDemo texto={etapa.nome || `${etapa.numero}ª etapa`} /> }]}
+              />
+            )}
+          </>
+        }
+        voltar={{ href: '/noticias', rotulo: 'Todas as notícias' }}
+      >
         <TextoRico dados={n.conteudo} />
-        {galeria && (
-          <section aria-label="Fotos" className={s.galeria}>
-            <Galeria fotos={fotosDaGaleria(galeria)} exibicao={galeria.exibicao ?? 'grade'} />
-          </section>
-        )}
-        {etapa && (
-          <p className={s.relacionado}>
-            Sobre a <Link href={`/etapas/${etapa.id}`}>{semDemo(etapa.nome) || `${etapa.numero}ª etapa`}</Link>
-          </p>
-        )}
-        <p>
-          <Link href="/noticias">← Todas as notícias</Link>
-        </p>
-      </div>
-    </article>
+      </Artigo>
+
+      {outras.length > 0 && (
+        <section className="secao-compacta fundo-papel" aria-labelledby="mais-noticias">
+          <div className="conteiner">
+            <TituloSecao id="mais-noticias" rotulo="Continue lendo" titulo="Mais notícias" />
+            <ul className={c.gradeItens}>
+              {outras.map((o) => (
+                <li key={o.id} className={c.gradeItem}>
+                  <ItemNoticia noticia={o} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+    </>
   )
 }
