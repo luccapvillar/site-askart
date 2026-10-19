@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import type { Categoria, Corrida, Etapa } from '@/payload-types'
-import { formatarDataExtenso, formatarHora } from '@/lib/datas'
+import { formatarDataExtenso } from '@/lib/datas'
 import { dataDaEtapa } from '@/lib/site'
 import { Subcategorias } from '../base/Subcategorias'
 import { Botao } from '../Botao'
 import { Selo, STATUS_ETAPA } from '../Selo'
 import { semDemo, TextoDemo } from '../TextoDemo'
+import { agruparProgramacao, type MapaSubcategorias, type SessaoProgramada } from './programacao'
 import s from './Bks.module.css'
 
 /**
@@ -76,8 +77,7 @@ export const nomeDaEtapa = (etapa: Pick<Etapa, 'nome' | 'numero'>) => etapa.nome
 
 export const dataPorExtenso = (etapa: Pick<Etapa, 'inicio'>) => (etapa.inicio ? formatarDataExtenso(etapa.inicio) : 'Data a definir')
 
-/** Subcategorias de cada categoria (pelo id), para mostrar junto da categoria na programação. */
-export type MapaSubcategorias = Map<string, { nome?: string | null }[] | null | undefined>
+export { agruparProgramacao, type GrupoCategoria, type MapaSubcategorias } from './programacao'
 
 export const mapaDeSubcategorias = (categorias: unknown[] | null | undefined): MapaSubcategorias =>
   new Map(
@@ -86,26 +86,25 @@ export const mapaDeSubcategorias = (categorias: unknown[] | null | undefined): M
       .map((c) => [String(c.id), c.subcategorias]),
   )
 
-type GrupoCategoria = { categoria: string; ids: string[]; cor: string | null; corridas: { nome: string; hora: string | null }[] }
-
-/** Corridas de uma etapa agrupadas por categoria, na ordem do primeiro horário. */
-export function agruparProgramacao(corridas: Corrida[]): GrupoCategoria[] {
-  const grupos = new Map<string, GrupoCategoria & { primeiro: number }>()
-  for (const c of corridas) {
-    const cats = (c.categorias ?? []).filter((x): x is Categoria => typeof x === 'object' && x !== null)
-    const nome = cats.map((x) => semDemo(x.nome)).join(' + ') || 'Todas as categorias'
-    const g = grupos.get(nome) ?? { categoria: nome, ids: cats.map((x) => String(x.id)), cor: cats[0]?.cor ?? null, corridas: [], primeiro: Infinity }
-    const t = c.inicio ? new Date(c.inicio).getTime() : Infinity
-    g.primeiro = Math.min(g.primeiro, t)
-    g.corridas.push({ nome: semDemo(c.nome), hora: c.inicio ? formatarHora(c.inicio) : null })
-    grupos.set(nome, g)
-  }
-  return [...grupos.values()].sort((a, b) => a.primeiro - b.primeiro)
+/** Lista de horários (hora e nome da sessão). */
+function Horarios({ sessoes, rotulo }: { sessoes: SessaoProgramada[]; rotulo: string }) {
+  return (
+    <ul className={s.progHorarios} aria-label={rotulo}>
+      {sessoes.map((c, i) => (
+        <li key={i}>
+          <span className={s.progHora}>{c.hora ?? '—'}</span>
+          <span>{c.nome}</span>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 /**
  * Programação da etapa: o horário de cada categoria (o que o cliente pediu ao tocar na data), com as
- * subcategorias junto do nome da categoria. Lista (não tabela) para ler bem no celular.
+ * subcategorias junto do nome da categoria. Quando cada subcategoria tem o seu horário (sessões marcadas no
+ * painel), os horários saem separados: "Todas as subcategorias" e depois cada uma, na ordem da categoria.
+ * Listas (não tabela) para ler bem no celular.
  */
 export function Programacao({
   corridas,
@@ -116,7 +115,7 @@ export function Programacao({
   vazio?: string
   subcategorias?: MapaSubcategorias
 }) {
-  const grupos = agruparProgramacao(corridas)
+  const grupos = agruparProgramacao(corridas, subcategorias)
   if (!grupos.length) return <p className={s.semProgramacao}>{vazio}</p>
   return (
     <ul className={s.programacao} aria-label="Horários por categoria">
@@ -129,16 +128,23 @@ export function Programacao({
                 <span className={s.corCategoria} style={{ background: g.cor ?? 'var(--verde)' }} aria-hidden="true" />
                 {g.categoria}
               </span>
-              <Subcategorias itens={subs} rotulo={`Subcategorias de ${g.categoria}`} />
+              {/* Separada por subcategoria, os nomes já aparecem em cada grupo de horários */}
+              {!g.subcategorias && <Subcategorias itens={subs} rotulo={`Subcategorias de ${g.categoria}`} />}
             </div>
-            <ul className={s.progHorarios} aria-label={`Horários de ${g.categoria}`}>
-              {g.corridas.map((c, i) => (
-                <li key={i}>
-                  <span className={s.progHora}>{c.hora ?? '—'}</span>
-                  <span>{c.nome}</span>
-                </li>
-              ))}
-            </ul>
+            {g.subcategorias ? (
+              <ul className={s.progSubgrupos} aria-label={`Horários de ${g.categoria} por subcategoria`}>
+                {g.subcategorias.map((sg) => (
+                  <li key={sg.chave} className={`${s.progSubgrupo} ${sg.nome === null ? s.progSubgrupoTodas : ''}`}>
+                    <span className={s.progSubNome}>
+                      <TextoDemo texto={sg.rotulo} />
+                    </span>
+                    <Horarios sessoes={sg.sessoes} rotulo={`Horários de ${g.categoria} — ${semDemo(sg.rotulo)}`} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Horarios sessoes={g.corridas} rotulo={`Horários de ${g.categoria}`} />
+            )}
           </li>
         )
       })}

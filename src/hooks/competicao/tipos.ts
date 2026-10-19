@@ -146,6 +146,8 @@ export interface EtapaDoc extends Base {
 export interface CorridaDoc extends Base {
   etapa: Rel
   categorias?: Rel[] | null
+  /** Subcategorias para as quais a sessão vale (horário próprio); vazio = todas. */
+  subcategorias?: string[] | null
   nome: string
   tipo?: TipoCorrida | null
   tabela?: string | null

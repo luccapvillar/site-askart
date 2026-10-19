@@ -20,6 +20,10 @@
  * (entrada de src/lib/estatisticas.ts para histórico, estatísticas e página do piloto) e `resultadosDaEtapa`
  * (resultado oficial de cada corrida e da etapa, por categoria — sub-aba "Resultados").
  *
+ * Subcategorias: as linhas da classificação e dos resultados levam a subcategoria da inscrição, juntada na
+ * LEITURA (nunca gravada, nem na fotografia final); as sessões da etapa levam as subcategorias da corrida.
+ * Só separam as tabelas do site: posições e pontos são sempre os da categoria.
+ *
  * Só usa `import type` de 'payload' (nada roda do Payload aqui), então pode ser testado com um
  * Payload simulado. Consultas com `req` (dentro de hook/endpoint) são feitas uma de cada vez, na mesma
  * transação; sem `req` (site), em paralelo.
@@ -368,9 +372,10 @@ const SELECT_CORRIDA = {
   resultados: true,
   voltaMaisRapidaManual: true,
 } as const
-const SELECT_INSCRICAO = { categoria: true, piloto: true, numero: true, equipe: true, condicao: true, status: true } as const
-/** No resultado da etapa, também a subcategoria (só para separar as tabelas; os pontos não mudam). */
-const SELECT_INSCRICAO_ETAPA = { ...SELECT_INSCRICAO, subcategoria: true } as const
+/** A subcategoria só separa as tabelas do site (classificação e resultado da etapa); os pontos não mudam. */
+const SELECT_INSCRICAO = { categoria: true, piloto: true, numero: true, equipe: true, subcategoria: true, condicao: true, status: true } as const
+/** No resultado da etapa, também as subcategorias de cada sessão (horários diferentes por subcategoria). */
+const SELECT_CORRIDA_ETAPA = { ...SELECT_CORRIDA, subcategorias: true } as const
 const SELECT_PILOTO = { nome: true, nomeExibicao: true, slug: true, visibilidade: true } as const
 const SELECT_EQUIPE = { nome: true, sigla: true } as const
 const SELECT_CATEGORIA = { nome: true, sigla: true, slug: true } as const
@@ -510,6 +515,13 @@ async function carregarNomes(ctx: Contexto, idsPilotos: Id[], idsEquipes: Id[]):
 
 export type FonteClassificacao = 'automatica' | 'manual' | 'fotografia' | 'sem-regra'
 
+/**
+ * Linha da classificação pronta para o site: a do motor + a subcategoria da inscrição do piloto na categoria
+ * (null = sem subcategoria). A subcategoria é lida das inscrições a cada leitura, nunca gravada: vale igual
+ * para o cálculo automático, o modo manual e a fotografia final (gravada antes do campo existir ou não).
+ */
+export type LinhaClassificacaoExibida = LinhaClassificacao & { subcategoria?: string | null }
+
 export interface ClassificacaoCarregada {
   fonte: FonteClassificacao
   temporada: { id: Id; nome: string | null; ano: number | null; status: string | null }
@@ -520,7 +532,7 @@ export interface ClassificacaoCarregada {
   encerrada: boolean
   /** Categorias somadas a esta classificação (vazio = só a própria). */
   incluiResultadosDe: Id[]
-  linhas: LinhaClassificacao[]
+  linhas: LinhaClassificacaoExibida[]
   criterios: CriteriosAplicados | null
   etapasRealizadas: number
   etapas: { id: Id; numero: number; nome: string | null }[]
@@ -622,6 +634,31 @@ export function entradaDe(dados: DadosTemporada, categoria: Id, opcoes: { ateEta
   }
 }
 
+/** Preferência entre inscrições do mesmo piloto na categoria: ativa e com subcategoria primeiro. */
+const pesoInscricao = (i: Inscricao) => (i.status === 'ativa' || !i.status ? 2 : 0) + (i.subcategoria ? 1 : 0)
+
+/**
+ * Junta a subcategoria a cada linha, a partir das inscrições ATUAIS da categoria (pela inscrição da linha;
+ * sem ela, pelo piloto). Piloto que só veio de uma categoria somada (incluiResultadosDe) fica sem
+ * subcategoria. Não muda posição nem pontos.
+ */
+export function comSubcategorias(linhas: LinhaClassificacao[], inscricoes: Inscricao[], categoria: Id): LinhaClassificacaoExibida[] {
+  const daCategoria = inscricoes.filter((i) => String(i.categoria) === String(categoria))
+  const porId = new Map(daCategoria.map((i) => [String(i.id), i] as const))
+  const porPiloto = new Map<string, Inscricao>()
+  for (const i of daCategoria) {
+    const atual = porPiloto.get(String(i.piloto))
+    if (!atual || pesoInscricao(i) > pesoInscricao(atual)) porPiloto.set(String(i.piloto), i)
+  }
+  return linhas.map((l) => {
+    const ids = [l.inscricao, ...(Array.isArray(l.inscricoes) ? l.inscricoes : [])]
+    const ins =
+      ids.map((id) => (id === null || id === undefined ? undefined : porId.get(String(id)))).find((i) => i !== undefined) ??
+      (l.piloto === null || l.piloto === undefined ? undefined : porPiloto.get(String(l.piloto)))
+    return { ...l, subcategoria: ins?.subcategoria?.trim() || null }
+  })
+}
+
 /**
  * Classificação de uma categoria a partir dos dados carregados:
  * fotografia (temporada encerrada) → manual (modo manual ou temporada só com classificação final) → automática.
@@ -658,7 +695,7 @@ export function montarClassificacao(
   // 1) Temporada encerrada: a fotografia final é a classificação oficial (congelada).
   const foto = encerrada && semCorte && !opcoes.ignorarFotografia ? lerFotografiaFinal(classificacao?.fotografiaFinal) : null
   if (foto) {
-    const linhas = atualizarExibicao(foto.linhas, dados)
+    const linhas = comSubcategorias(atualizarExibicao(foto.linhas, dados), dados.inscricoes, categoria)
     return {
       ...base,
       fonte: 'fotografia',
@@ -674,7 +711,7 @@ export function montarClassificacao(
   // 2) Modo manual (ou temporada histórica só com a classificação final).
   const manual = classificacao?.modo === 'manual' || t.fonteDados === 'so-classificacao-final'
   if (manual && classificacao) {
-    const linhas = linhasManuais(classificacao, dados, categoria)
+    const linhas = comSubcategorias(linhasManuais(classificacao, dados, categoria), dados.inscricoes, categoria)
     return {
       ...base,
       fonte: 'manual',
@@ -705,14 +742,15 @@ export function montarClassificacao(
   if (encerrada && semCorte && !opcoes.ignorarFotografia) {
     r.avisos.push('Temporada encerrada sem fotografia final: a classificação foi recalculada a partir dos resultados.')
   }
+  const linhas = comSubcategorias(r.linhas, dados.inscricoes, categoria)
   return {
     ...base,
     fonte: 'automatica',
-    linhas: r.linhas,
+    linhas,
     criterios: r.criterios,
     etapasRealizadas: r.etapasRealizadas,
     etapas: r.etapas,
-    lider: liderDe(r.linhas, destaqueValido, agora),
+    lider: liderDe(linhas, destaqueValido, agora),
     avisos: r.avisos,
   }
 }
@@ -837,6 +875,11 @@ export interface CorridaComResultado {
   ordem: number
   /** Conta para a classificação (dá pontos). Warm-up nunca conta. */
   conta: boolean
+  /**
+   * Subcategorias para as quais a sessão vale (horário próprio), como gravadas na corrida. Vazio/ausente =
+   * todas. Só organiza as tabelas do site; posições e pontos são os da categoria.
+   */
+  subcategorias?: string[] | null
   /** Linhas na ordem oficial (posicionados primeiro), só da categoria. */
   linhas: LinhaCorridaExibida[]
   /** Inscrição com a volta mais rápida na categoria. */
@@ -925,15 +968,17 @@ export async function resultadosDaEtapa(opcoes: {
   }
   if (etapa.status === 'cancelada') return saida
 
-  const corridas = (
-    await buscar(ctx, SLUGS.corridas, { and: [{ etapa: { equals: etapa.id } }, { status: { equals: 'oficial' } }] }, SELECT_CORRIDA)
-  ).map(paraCorrida)
+  const docsCorridas = await buscar(ctx, SLUGS.corridas, { and: [{ etapa: { equals: etapa.id } }, { status: { equals: 'oficial' } }] }, SELECT_CORRIDA_ETAPA)
+  const corridas = docsCorridas.map(paraCorrida)
   if (!corridas.length) return saida
+  // Subcategorias de cada sessão (horário próprio de algumas subcategorias; vazio = todas)
+  const nomesDaSessao = (v: unknown) => (Array.isArray(v) ? v : []).map(texto).filter((x): x is string => x !== null).map((x) => x.trim())
+  const subcategoriasDa = new Map(docsCorridas.map((d) => [String(d.id), nomesDaSessao(d.subcategorias)] as const))
 
   // Regra de cada categoria (a própria da classificação, senão a da temporada) e ordem do painel.
   const [classificacoes, docsInscricoes] = await emSequenciaOuParalelo(ctx, [
     () => buscar(ctx, SLUGS.temporadaCategorias, { temporada: { equals: temporada.id } }, { categoria: true, ordem: true, regra: true }),
-    () => buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO_ETAPA),
+    () => buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO),
   ])
   const classificacaoDa = new Map(classificacoes.map((c) => [String(idDe(c.categoria)), c] as const))
   const idsRegras = unicos([idDe(temporada.regra), ...classificacoes.map((c) => idDe(c.regra))].filter((x): x is Id => x !== null))
@@ -976,6 +1021,7 @@ export async function resultadosDaEtapa(opcoes: {
         inicio: typeof c.inicio === 'string' ? c.inicio : null,
         ordem: i + 1,
         conta: r.conta,
+        subcategorias: subcategoriasDa.get(String(c.id)) ?? [],
         voltaMaisRapida: r.voltaMaisRapida,
         linhas: r.linhas.map((l) => {
           const ins = mapaIns.get(String(l.inscricao))

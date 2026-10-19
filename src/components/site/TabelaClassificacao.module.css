@@ -90,6 +90,16 @@
   color: var(--texto);
 }
 
+/* Posição geral na categoria, embaixo da posição na subcategoria: "(3º geral)" */
+.geral {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--texto-2);
+}
+
 .pontos {
   font-variation-settings: 'wdth' 106;
   font-weight: 800;

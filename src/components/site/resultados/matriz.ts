@@ -9,7 +9,9 @@
  * subcategoria na inscrição, sai UMA TABELA POR SUBCATEGORIA (`montarMatrizes`), na ordem cadastrada na
  * categoria; quem está sem subcategoria vai para "Sem subcategoria". Em cada tabela, a posição de cada
  * sessão é a posição DENTRO da subcategoria (ordem relativa pela posição geral), com a posição geral ao lado.
- * Os pontos continuam os do motor do campeonato (a subcategoria não muda pontos).
+ * Os pontos continuam os do motor do campeonato (a subcategoria não muda pontos). Sessão marcada para
+ * algumas subcategorias (corridas.subcategorias, horários diferentes) só vira coluna nas tabelas delas; sessão
+ * sem marcação vale para todas.
  *
  * Roxo = o MELHOR TEMPO (menor melhor volta) de cada sessão dentro da tabela (da subcategoria, ou da
  * categoria quando não há subcategorias), seja de quem for — o vencedor não fica roxo por ter vencido.
@@ -18,6 +20,18 @@
  */
 import type { CorridaComResultado, LinhaCorridaExibida, LinhaEtapaExibida, ResultadoCategoriaNaEtapa } from '@/lib/carregar-competicao'
 import type { Id, StatusResultado } from '@/lib/classificacao'
+import {
+  agruparPorSubcategoria,
+  chaveDeSubcategoria,
+  nomeOficial,
+  nomesCadastrados,
+  normalizarSubcategoria as normalizar,
+  posicaoRelativa as relativa,
+  SEM_SUBCATEGORIA,
+  subcategoriasDaSessao,
+} from '@/lib/subcategorias'
+
+export { SEM_SUBCATEGORIA }
 
 export type TipoColuna = 'warm-up' | 'classificacao' | 'corrida' | 'etapa'
 
@@ -90,22 +104,12 @@ export interface MatrizesEtapa {
   tabelas: TabelaMatriz[]
 }
 
-export const SEM_SUBCATEGORIA = 'Sem subcategoria'
-
 const SITUACAO: Partial<Record<StatusResultado, string>> = {
   abandono: 'Abandono',
   desclassificado: 'Desclassificado',
   'nao-largou': 'Não largou',
   'nao-classificado': 'Não classificado',
 }
-
-const normalizar = (t: string) =>
-  t
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/gi, ' ')
-    .trim()
-    .toLowerCase()
 
 /** Chave do piloto numa linha de corrida (igual à `chave` do resultado da etapa: id do piloto). */
 const chaveDaLinha = (l: Pick<LinhaCorridaExibida, 'piloto' | 'inscricao'>) =>
@@ -251,9 +255,6 @@ function prepararBase(resultado: Entrada): Base {
   return { colunas, pilotos: ordenados, etapaDe }
 }
 
-/** Posição relativa: 1 + quantos do grupo estão à frente (empate na posição geral = mesma posição). */
-const relativa = (geral: number | null, gerais: number[]) => (geral === null ? null : 1 + gerais.filter((g) => g < geral).length)
-
 /**
  * Uma tabela com os `pilotos` dados. `porSubcategoria`: posição dentro do grupo (com a geral ao lado).
  * O roxo (melhor tempo) é sempre calculado só entre os pilotos da tabela.
@@ -339,29 +340,24 @@ export function montarMatriz(resultado: Entrada): MatrizEtapa {
   return montarTabela(base, base.pilotos, false)
 }
 
-/** Chave para ids de HTML: "GSS/60+" → "gss-60". */
-const chaveDe = (nome: string) => normalizar(nome).replace(/ /g, '-') || 'subcategoria'
-
 /**
  * Tabelas do resultado de uma categoria: uma por subcategoria (as que têm piloto na etapa, na ordem
  * cadastrada na categoria; subcategoria gravada que não está mais na lista vem depois, pelo nome; quem não
  * tem subcategoria fica em "Sem subcategoria", no fim). Categoria sem subcategorias — ou nenhum piloto com
  * subcategoria — tem uma tabela só, como antes.
+ *
+ * Sessões com horário próprio de subcategoria (corridas.subcategorias preenchido) só entram nas tabelas das
+ * subcategorias marcadas: a "Tomada de tempo" dos Novatos não vira coluna vazia na tabela dos Graduados.
+ * Sessão sem marcação vale para todas; a tabela "Sem subcategoria" mostra todas as sessões.
  */
 export function montarMatrizes(
   resultado: Entrada,
   subcategorias: Array<{ nome?: string | null } | string | null | undefined> | null | undefined = [],
 ): MatrizesEtapa {
   const base = prepararBase(resultado)
-  const cadastradas = (subcategorias ?? [])
-    .map((s) => (typeof s === 'string' ? s : s?.nome)?.trim() ?? '')
-    .filter((n, i, todas) => n && todas.indexOf(n) === i)
+  const cadastradas = nomesCadastrados(subcategorias)
   // Grafia como está na categoria ("junior" gravado antes de uma correção → "Junior").
-  const oficial = (nome: string | null) => {
-    if (!nome) return null
-    return cadastradas.find((c) => c === nome) ?? cadastradas.find((c) => normalizar(c) === normalizar(nome)) ?? nome
-  }
-  const pilotos = base.pilotos.map((p) => ({ ...p, subcategoria: oficial(p.subcategoria) }))
+  const pilotos = base.pilotos.map((p) => ({ ...p, subcategoria: nomeOficial(p.subcategoria, cadastradas) }))
   const colunas = base.colunas.map(({ sessao: _s, primeiraDoGrupo: _p, ...c }) => c)
 
   const porSubcategoria = cadastradas.length > 0 && pilotos.some((p) => p.subcategoria !== null)
@@ -373,20 +369,31 @@ export function montarMatrizes(
     }
   }
 
-  const extras = [...new Set(pilotos.map((p) => p.subcategoria).filter((s): s is string => s !== null && !cadastradas.includes(s)))].sort(
-    (a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true }),
-  )
-  const grupos: { nome: string | null; pilotos: Piloto[] }[] = [...cadastradas, ...extras, null]
-    .map((nome) => ({ nome, pilotos: pilotos.filter((p) => p.subcategoria === nome) }))
-    .filter((g) => g.pilotos.length > 0)
+  const sessoes = resultado.corridas ?? []
+  const valeParaTodas = sessoes.every((c) => !subcategoriasDaSessao(c.subcategorias, cadastradas).length)
+  /** Base (colunas e ordem) só com as sessões da subcategoria; sem marcação em nenhuma sessão, a da categoria. */
+  const baseDa = (nome: string | null): Base =>
+    valeParaTodas || nome === null
+      ? base
+      : prepararBase({
+          ...resultado,
+          corridas: sessoes.filter((c) => {
+            const subs = subcategoriasDaSessao(c.subcategorias, cadastradas)
+            return !subs.length || subs.includes(nome)
+          }),
+        })
 
   const usadas = new Set<string>()
-  const tabelas = grupos.map((g, i) => {
+  const tabelas = agruparPorSubcategoria(pilotos, (p) => p.subcategoria, cadastradas).map((g, i) => {
     const nome = g.nome ?? SEM_SUBCATEGORIA
-    let chave = g.nome === null ? 'sem-subcategoria' : chaveDe(g.nome)
+    let chave = g.nome === null ? 'sem-subcategoria' : chaveDeSubcategoria(g.nome)
     if (usadas.has(chave)) chave = `${chave}-${i + 1}`
     usadas.add(chave)
-    return { chave, nome, semSubcategoria: g.nome === null, ...montarTabela(base, g.pilotos, true) }
+    const baseGrupo = baseDa(g.nome)
+    // Ordem das linhas pelas sessões da própria subcategoria (quem não aparece nelas mantém a ordem geral).
+    const ordem = new Map(baseGrupo.pilotos.map((p, j) => [p.chave, j] as const))
+    const doGrupo = baseGrupo === base ? g.itens : [...g.itens].sort((a, b) => (ordem.get(a.chave) ?? Infinity) - (ordem.get(b.chave) ?? Infinity))
+    return { chave, nome, semSubcategoria: g.nome === null, ...montarTabela(baseGrupo, doGrupo, true) }
   })
   return { porSubcategoria: true, colunas, tabelas }
 }

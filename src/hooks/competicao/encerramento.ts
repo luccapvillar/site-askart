@@ -26,7 +26,8 @@ export async function gravarFotografiasFinais(req: PayloadRequest, temporadaId: 
   let gravadas = 0
   for (const c of classificacoes) {
     if (c.classificacao === null) continue
-    const linhas = porPosicao(c.linhas)
+    // A subcategoria não entra na fotografia: o site a lê sempre da inscrição atual (pode ser corrigida depois).
+    const linhas = porPosicao(c.linhas.map(({ subcategoria: _lidaDaInscricao, ...l }) => l))
     await atualizar(
       req,
       COLECOES.temporadaCategorias,

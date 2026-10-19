@@ -53,6 +53,7 @@ export async function derivadosCorrida(req: PayloadRequest, corrida: Dados<Corri
     etapa: etapa?.nome || (etapa?.numero ? nomeEtapaPadrao(etapa.numero) : null),
     categorias: categorias.map(rotuloCategoria),
     nome: corrida.nome,
+    subcategorias: Array.isArray(corrida.subcategorias) ? corrida.subcategorias : [],
   })
   return { titulo }
 }

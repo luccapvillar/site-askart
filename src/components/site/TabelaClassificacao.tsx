@@ -5,7 +5,10 @@ import { Selo } from './Selo'
 import s from './TabelaClassificacao.module.css'
 
 export type LinhaTabela = {
+  /** Posição exibida (na tabela de uma subcategoria, a posição dentro dela). */
   posicao: number
+  /** Posição geral na categoria — só nas tabelas por subcategoria: aparece como "(3º geral)". */
+  posicaoGeral?: number | null
   posicaoAnterior?: number | null
   pilotoNome: string
   pilotoHref?: string | null
@@ -26,6 +29,8 @@ const fmtPontos = (n: number | null | undefined) => (n === null || n === undefin
 /**
  * Tabela de classificação de uma categoria. `colunasEtapas` mostra a pontuação por etapa (com descartes riscados).
  * Celular: só posição, piloto e pontos; vitórias, pódios, corridas e etapas ficam em "Detalhes" de cada piloto.
+ * Tabela de uma subcategoria: linhas com `posicaoGeral` mostram a posição dentro da subcategoria e, embaixo,
+ * a geral entre parênteses ("(3º geral)").
  */
 export function TabelaClassificacao({
   linhas,
@@ -42,6 +47,7 @@ export function TabelaClassificacao({
 }) {
   const etapas = colunasEtapas ? (linhas[0]?.porEtapa ?? []).map((e) => e.etapa) : []
   const colunas = 3 + (compacta ? 0 : 3) + etapas.length
+  const comGeral = linhas.some((l) => typeof l.posicaoGeral === 'number')
   return (
     <div className={`rolagem-x ${s.moldura}`}>
       <table className={s.tabela}>
@@ -49,7 +55,7 @@ export function TabelaClassificacao({
         <thead>
           <tr>
             <th scope="col" className={s.colPos}>
-              Pos.
+              {comGeral ? <abbr title="Posição na subcategoria (entre parênteses, a posição geral na categoria)">Pos.</abbr> : 'Pos.'}
             </th>
             <th scope="col">Piloto</th>
             {!compacta && (
@@ -89,6 +95,12 @@ export function TabelaClassificacao({
                         <span aria-hidden="true">{variacao > 0 ? '▲' : '▼'}</span>
                         <span className="visualmente-oculto">{variacao > 0 ? `subiu ${variacao}` : `caiu ${-variacao}`}</span>
                       </span>
+                    )}
+                    {typeof l.posicaoGeral === 'number' && (
+                      <>
+                        <span className="visualmente-oculto"> na subcategoria,</span>
+                        <span className={s.geral}>({l.posicaoGeral}º geral)</span>
+                      </>
                     )}
                   </td>
                   <th scope="row" className={s.colPiloto}>

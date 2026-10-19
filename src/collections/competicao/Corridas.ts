@@ -26,6 +26,7 @@ const soSistema: FieldAccess = () => false
 /**
  * Corridas de cada etapa (warm-up, tomada de tempo, baterias, final…) com os resultados. A classificação é
  * calculada a partir das corridas OFICIAIS das etapas realizadas. Warm-up só mostra posições (nunca pontua).
+ * Subcategorias (opcional): para quais subcategorias a sessão vale quando cada uma tem o seu horário.
  */
 export const Corridas: CollectionConfig = comAcessoRestrito({
   slug: COLECOES.corridas,
@@ -82,6 +83,25 @@ export const Corridas: CollectionConfig = comAcessoRestrito({
           },
         },
       ],
+    },
+    {
+      // Conferido em prepararCorrida: cada nome é uma subcategoria de uma das categorias da corrida (grafia
+      // corrigida). Separa a programação e as tabelas do resultado no site; não muda posições nem pontos.
+      name: 'subcategorias',
+      label: 'Subcategorias',
+      type: 'text',
+      hasMany: true,
+      maxLength: 40,
+      maxRows: 20,
+      admin: {
+        description: 'Vazio = todas as subcategorias da categoria. Escreva os nomes exatos, um por item.',
+        components: {
+          Description: {
+            path: '/components/admin/DescricaoSubcategoria#DescricaoSubcategoria',
+            clientProps: { corrida: true },
+          },
+        },
+      },
     },
     {
       type: 'row',

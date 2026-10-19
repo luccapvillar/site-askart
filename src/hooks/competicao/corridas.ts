@@ -3,7 +3,9 @@
  * - categorias da corrida ⊆ categorias da etapa; tabela de pontos existente na regra;
  * - resultados conferidos linha a linha (inscrição única, chegada única, penalidade com motivo…)
  *   e posição oficial calculada pelo motor (src/lib/classificacao.ts), única e contínua;
- * - uma corrida por etapa + categoria + nome (chave única);
+ * - subcategorias (opcional, horário próprio de algumas subcategorias): nomes das subcategorias das
+ *   categorias da corrida, com a grafia corrigida; vazio = todas;
+ * - uma corrida por etapa + categoria + nome (+ subcategorias, quando marcadas) (chave única);
  * - etapa vira "realizada" sozinha quando todas as corridas que contam estão oficiais;
  * - temporada encerrada congelada; corrida com resultados não se exclui (use "Cancelada").
  */
@@ -30,7 +32,7 @@ import { aplicarPosicoesOficiais, validarResultados, type ErroLinha, type LinhaR
 import type { CorridaDoc, EtapaDoc, InscricaoDoc, TemporadaDoc } from './tipos'
 import type { ID } from './util'
 import { contemId, idDe, idsDe, mesmoId, mudouAlgum, docAnterior } from './util'
-import { chaveCorrida, encontrarTabela } from './validacoes'
+import { chaveCorrida, conferirSubcategoriasDaCorrida, encontrarTabela } from './validacoes'
 
 type Erro = { caminho: string; mensagem: string }
 
@@ -99,14 +101,41 @@ const paraMotor = (i: InscricaoDoc): Inscricao => ({
   status: i.status ?? 'ativa',
 })
 
+/**
+ * Subcategorias da corrida: conferidas quando são enviadas ou quando as categorias mudam (as de antes podem
+ * não existir nas novas). Vazio = todas. Grava a grafia da categoria ("novatos" → "Novatos"). Sem categoria
+ * escolhida, nada a conferir (o campo "Categoria(s)" já é obrigatório).
+ */
+async function conferirSubcategoriasNaCorrida(req: PayloadRequest, data: Partial<CorridaDoc>, anterior: CorridaDoc | undefined): Promise<Erro[]> {
+  const categorias = data.categorias !== undefined ? idsDe(data.categorias) : idsDe(anterior?.categorias)
+  const antes = idsDe(anterior?.categorias)
+  const trocouCategorias =
+    Boolean(anterior) && data.categorias !== undefined && (antes.length !== categorias.length || categorias.some((c) => !contemId(antes, c)))
+  const valor = data.subcategorias !== undefined ? data.subcategorias : trocouCategorias ? anterior?.subcategorias : undefined
+  if (valor === undefined) return []
+  const preenchidas = (Array.isArray(valor) ? valor : [valor]).filter((v) => !(typeof v === 'string' && !v.trim()) && v !== null)
+  if (!preenchidas.length) {
+    data.subcategorias = []
+    return []
+  }
+  if (!categorias.length) return []
+  const conferida = conferirSubcategoriasDaCorrida(preenchidas, await carregarCategorias(req, categorias))
+  if (!conferida.ok) return [{ caminho: 'subcategorias', mensagem: conferida.mensagem }]
+  data.subcategorias = conferida.valor
+  return []
+}
+
 export const prepararCorrida: CollectionBeforeValidateHook = async ({ data, originalDoc, req }) => {
   if (!data) return data
   const anterior = docAnterior<CorridaDoc>(originalDoc)
   // Warm-up nunca conta para a classificação (não dá pontos nem pole): a caixa fica sempre desligada.
   if ((data.tipo ?? anterior?.tipo) === 'warm-up') data.contaParaClassificacao = false
+  const erros: Erro[] = await conferirSubcategoriasNaCorrida(req, data as Partial<CorridaDoc>, anterior)
   const { etapa, temporada } = await etapaETemporada(req, data.etapa)
-  if (!etapa || !temporada) return data
-  const erros: Erro[] = []
+  if (!etapa || !temporada) {
+    if (erros.length) falharNoCampo(req, COLECOES.corridas, erros)
+    return data
+  }
 
   if (typeof data.nome === 'string') data.nome = data.nome.trim().replace(/\s+/g, ' ')
 
@@ -134,14 +163,24 @@ export const prepararCorrida: CollectionBeforeValidateHook = async ({ data, orig
     }
   } else data.tabela = null
 
-  // Uma corrida por etapa + categorias + nome ("Final" duplicada)
-  data.chaveUnica = chaveCorrida(etapa.id, categorias, data.nome)
+  // Uma corrida por etapa + categorias + nome ("Final" duplicada); com subcategorias marcadas, também elas
+  // (a "Tomada de tempo" de cada subcategoria, em horários diferentes)
+  const subcategorias = (data.subcategorias !== undefined ? data.subcategorias : anterior?.subcategorias) as string[] | null | undefined
+  data.chaveUnica = chaveCorrida(etapa.id, categorias, data.nome, Array.isArray(subcategorias) ? subcategorias : [])
   const repetida = await buscarPrimeiro<CorridaDoc>(req, COLECOES.corridas, {
     where: {
       and: [{ chaveUnica: { equals: data.chaveUnica } }, ...(anterior ? [{ id: { not_equals: anterior.id } }] : [])],
     },
   })
-  if (repetida) erros.push({ caminho: 'nome', mensagem: `Já existe "${data.nome}" para esta(s) categoria(s) nesta etapa.` })
+  if (repetida) {
+    const comSubs = Array.isArray(subcategorias) && subcategorias.length > 0
+    erros.push({
+      caminho: 'nome',
+      mensagem: comSubs
+        ? `Já existe "${data.nome}" para esta(s) categoria(s) e subcategoria(s) nesta etapa.`
+        : `Já existe "${data.nome}" para esta(s) categoria(s) nesta etapa.`,
+    })
+  }
 
   // Mudar de etapa para outra temporada, com resultados, mudaria o histórico
   if (anterior && !mesmoId(anterior.etapa, etapa.id) && corridaTemResultado(anterior)) {

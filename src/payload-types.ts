@@ -1805,6 +1805,10 @@ export interface Corrida {
    * Normalmente uma. Mais de uma quando categorias largam juntas (cada uma pontua na sua).
    */
   categorias: (number | Categoria)[];
+  /**
+   * Vazio = todas as subcategorias da categoria. Escreva os nomes exatos, um por item.
+   */
+  subcategorias?: string[] | null;
   nome: string;
   /**
    * A pole vem do 1º da tomada de tempo. Warm-up não vale pontos.
@@ -4144,6 +4148,7 @@ export interface CorridasSelect<T extends boolean = true> {
   chaveUnica?: T;
   etapa?: T;
   categorias?: T;
+  subcategorias?: T;
   nome?: T;
   tipo?: T;
   status?: T;

@@ -97,24 +97,37 @@ export function listaComOu(itens: string[]): string {
   return q.length <= 1 ? (q[0] ?? '') : `${q.slice(0, -1).join(', ')} ou ${q.at(-1)}`
 }
 
+/** "a categoria "F400"", "as categorias "F400" e "Cadete"" ou "a categoria escolhida". */
+function qualCategoria(categoria: string | string[] | null | undefined): { texto: string; plural: boolean } {
+  const nomes = (Array.isArray(categoria) ? categoria : [categoria]).map((c) => c?.trim() ?? '').filter(Boolean)
+  if (!nomes.length) return { texto: 'a categoria escolhida', plural: false }
+  if (nomes.length === 1) return { texto: `a categoria "${nomes[0]}"`, plural: false }
+  const q = nomes.map((n) => `"${n}"`)
+  return { texto: `as categorias ${q.slice(0, -1).join(', ')} e ${q.at(-1)}`, plural: true }
+}
+
 /**
  * Subcategoria de uma inscrição. Vazia é aceita (fica sem subcategoria). Preenchida, tem de ser um dos nomes
  * das subcategorias da categoria; diferenças só de maiúsculas, acentos ou espaços são corrigidas para o nome
  * como está cadastrado ("junior" → "Junior"). Devolve o valor a gravar ou a mensagem de erro.
+ * `categoria` pode ser mais de um nome (corrida de categorias que largam juntas): a mensagem fala de todas.
  */
 export function conferirSubcategoria(
   valor: unknown,
   subcategorias: Array<{ nome?: string | null } | null> | null | undefined,
-  categoria?: string | null,
+  categoria?: string | string[] | null,
 ): { ok: true; valor: string | null } | { ok: false; mensagem: string } {
   if (valor === null || valor === undefined) return { ok: true, valor: null }
   if (typeof valor !== 'string') return { ok: false, mensagem: 'Escreva o nome da subcategoria.' }
   const digitado = valor.trim().replace(/\s+/g, ' ')
   if (!digitado) return { ok: true, valor: null }
   const nomes = nomesDasSubcategorias(subcategorias)
-  const daCategoria = categoria?.trim() ? `a categoria "${categoria.trim()}"` : 'a categoria escolhida'
+  const { texto: daCategoria, plural } = qualCategoria(categoria)
   if (!nomes.length) {
-    return { ok: false, mensagem: `${daCategoria[0].toUpperCase()}${daCategoria.slice(1)} não tem subcategorias. Deixe este campo em branco.` }
+    return {
+      ok: false,
+      mensagem: `${daCategoria[0].toUpperCase()}${daCategoria.slice(1)} não ${plural ? 'têm' : 'tem'} subcategorias. Deixe este campo em branco.`,
+    }
   }
   if (nomes.includes(digitado)) return { ok: true, valor: digitado }
   const parecidos = nomes.filter((n) => normalizarBusca(n) === normalizarBusca(digitado))
@@ -123,6 +136,29 @@ export function conferirSubcategoria(
     ok: false,
     mensagem: `"${digitado}" não é uma subcategoria d${daCategoria}. Use exatamente um destes nomes: ${listaComOu(nomes)}.`,
   }
+}
+
+/**
+ * Subcategorias de uma corrida (horário próprio de algumas subcategorias). Vazio = vale para todas. Cada nome
+ * tem de ser uma subcategoria de uma das categorias da corrida (de qualquer uma, quando são várias); a grafia
+ * é corrigida como na inscrição e nomes repetidos ficam uma vez só, na ordem digitada.
+ */
+export function conferirSubcategoriasDaCorrida(
+  valor: unknown,
+  categorias: Array<{ nome?: string | null; sigla?: string | null; subcategorias?: Array<{ nome?: string | null } | null> | null } | null>,
+): { ok: true; valor: string[] } | { ok: false; mensagem: string } {
+  if (valor === null || valor === undefined) return { ok: true, valor: [] }
+  const lista = Array.isArray(valor) ? valor : [valor]
+  // Subcategorias de todas as categorias da corrida, sem repetir (ordem: a de cada categoria).
+  const todas = [...new Set(categorias.flatMap((c) => nomesDasSubcategorias(c?.subcategorias)))].map((nome) => ({ nome }))
+  const rotulos = categorias.map((c) => c?.nome?.trim() || c?.sigla?.trim() || '').filter(Boolean)
+  const saida: string[] = []
+  for (const item of lista) {
+    const conferida = conferirSubcategoria(item, todas, rotulos)
+    if (!conferida.ok) return conferida
+    if (conferida.valor && !saida.includes(conferida.valor)) saida.push(conferida.valor)
+  }
+  return { ok: true, valor: saida }
 }
 
 export type TipoAjuste = 'penalidade' | 'bonificacao' | 'correcao'
@@ -160,14 +196,24 @@ export function statusEtapaAutomatico(
   return null
 }
 
-/** Chave única de uma corrida: etapa + categorias + nome (sem acento/caixa). Impede "Final" duplicada. */
-export function chaveCorrida(etapa: unknown, categorias: unknown[], nome: string | null | undefined) {
+/**
+ * Chave única de uma corrida: etapa + categorias + nome (sem acento/caixa). Impede "Final" duplicada.
+ * Com subcategorias marcadas (horário próprio), elas entram no fim da chave: a "Tomada de tempo" dos Novatos
+ * e a dos Graduados convivem na mesma categoria. Sem subcategorias, a chave é a de sempre.
+ */
+export function chaveCorrida(
+  etapa: unknown,
+  categorias: unknown[],
+  nome: string | null | undefined,
+  subcategorias?: Array<string | null | undefined> | null,
+) {
   const ids = categorias
     .map((c) => idDe(c))
     .filter((c): c is ID => c !== null)
     .map(String)
     .sort()
-  return `${idDe(etapa) ?? ''}|${ids.join(',')}|${normalizarBusca(nome ?? '')}`
+  const subs = [...new Set((subcategorias ?? []).map((s) => normalizarBusca(s ?? '')).filter(Boolean))].sort()
+  return `${idDe(etapa) ?? ''}|${ids.join(',')}|${normalizarBusca(nome ?? '')}${subs.length ? `|${subs.join(',')}` : ''}`
 }
 
 export type TipoCorrida = 'warm-up' | 'tomada-de-tempo' | 'classificatoria' | 'bateria' | 'pre-final' | 'final'

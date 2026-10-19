@@ -58,15 +58,19 @@ export function tituloEtapa(dados: {
   return juntar([dados.ano ? String(dados.ano) : null, nome, quando])
 }
 
-/** "2026 · 3ª Etapa · Cadete · Final" (várias categorias: "Cadete + Mirim"). */
+/** "2026 · 3ª Etapa · Cadete · Final" (várias categorias: "Cadete + Mirim"; com subcategorias: "F400 (Novatos)"). */
 export function tituloCorrida(dados: {
   ano?: number | null
   etapa?: string | null
   categorias?: string[]
   nome?: string | null
+  /** Subcategorias da sessão (horário próprio): "F400 (Novatos)". Vazio = todas, nada muda no título. */
+  subcategorias?: Array<string | null | undefined> | null
 }) {
+  const subcategorias = (dados.subcategorias ?? []).map((s) => s?.trim()).filter(Boolean)
   const categorias = (dados.categorias ?? []).filter(Boolean).join(' + ')
-  return juntar([dados.ano ? String(dados.ano) : null, dados.etapa, categorias, dados.nome || 'Corrida'])
+  const comSubs = subcategorias.length ? `${categorias} (${subcategorias.join(', ')})`.trim() : categorias
+  return juntar([dados.ano ? String(dados.ano) : null, dados.etapa, comSubs, dados.nome || 'Corrida'])
 }
 
 /** "#33 João Silva · Cadete · CBK 2026" */

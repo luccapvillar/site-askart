@@ -187,7 +187,10 @@ export const lerEtapa = cache((id: number) =>
   }),
 )
 
-/** Programação: corridas de várias etapas, com horário e categorias. */
+/**
+ * Programação: corridas de várias etapas, com horário, categorias e as subcategorias de cada sessão (vazio =
+ * todas). As categorias vêm com as subcategorias, na ordem cadastrada (a ordem dos grupos na programação).
+ */
 export const lerProgramacao = cache((etapas: number[]) =>
   seguro('programação', [] as Corrida[], async () => {
     if (!etapas.length) return []
@@ -198,8 +201,8 @@ export const lerProgramacao = cache((etapas: number[]) =>
       sort: 'inicio',
       depth: 1,
       limit: 500,
-      select: { etapa: true, nome: true, tipo: true, inicio: true, categorias: true, status: true },
-      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true, modalidade: true } },
+      select: { etapa: true, nome: true, tipo: true, inicio: true, categorias: true, subcategorias: true, status: true },
+      populate: { categorias: { nome: true, sigla: true, slug: true, cor: true, modalidade: true, subcategorias: true } },
       ...PUBLICO,
     })
     return docs as Corrida[]

@@ -16,7 +16,10 @@ const VAZIO: Record<Modalidade, string> = {
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','))
 
-/** Classificação de uma área do BKS: tabela de liderança de cada categoria da modalidade (piloto e pontos). */
+/**
+ * Classificação de uma área do BKS: tabela de liderança de cada categoria da modalidade (piloto e pontos).
+ * Categoria com subcategorias (e pilotos com subcategoria na inscrição): uma tabela por subcategoria, em abas.
+ */
 export async function AreaClassificacao({ modalidade }: { modalidade: Modalidade }) {
   const [bks, textos] = await Promise.all([lerBks(), textosDaSecao('classificacao')])
   const temporada = bks?.temporada
@@ -81,7 +84,14 @@ export async function AreaClassificacao({ modalidade }: { modalidade: Modalidade
                           </p>
                         )}
                       </header>
-                      <ClassificacaoCategoria classificacao={c} nome={nome} cor={cat?.cor} />
+                      <ClassificacaoCategoria
+                        classificacao={c}
+                        nome={nome}
+                        cor={cat?.cor}
+                        subcategorias={cat?.subcategorias}
+                        idBase={`cat-${c.categoria}`}
+                        nivelTitulo={4}
+                      />
                     </section>
                   )
                 })}

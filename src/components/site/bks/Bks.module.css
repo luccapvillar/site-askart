@@ -862,6 +862,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Horários por subcategoria (cada subcategoria com o seu horário): um bloco por subcategoria, com o nome em
+   cima e a lista embaixo — no celular, tudo numa coluna; a barra à esquerda liga os horários ao nome. */
+.progSubgrupos {
+  display: grid;
+  gap: 14px;
+}
+
+.progSubgrupo {
+  display: grid;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 3px solid var(--linha-forte);
+}
+
+/* "Todas as subcategorias": barra mais clara (vale para todos; as específicas vêm depois) */
+.progSubgrupoTodas {
+  border-left-style: dashed;
+}
+
+.progSubNome {
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--texto);
+}
+
 .semProgramacao {
   padding: 12px 14px;
   border: 1px dashed var(--linha-forte);
@@ -1138,6 +1164,30 @@
 
 .notaTabela {
   font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+/* Classificação por subcategoria: título de cada tabela (nome e quantos pilotos) */
+.painelSubcategoria {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tituloSubcategoria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.contagemSubcategoria {
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--texto-2);
 }
 
