@@ -58,9 +58,13 @@ export async function semearDemonstracao(payload: Payload) {
 
   // Categorias reais (grade oficial); pilotos, equipes e resultados são exemplos
   const categorias: Id[] = []
+  // Subcategorias oficiais de cada categoria (F400 e 125cc têm; Cadete e Mirim não), para distribuir os pilotos de exemplo
+  const subcategoriasDe = new Map<Id, string[]>()
   for (const nome of ['F400', '125cc', 'Cadete', 'Mirim']) {
     const c = (await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0 })).docs[0]
-    if (c) categorias.push(c.id as Id)
+    if (!c) continue
+    categorias.push(c.id as Id)
+    subcategoriasDe.set(c.id as Id, (c.subcategorias ?? []).map((s) => s.nome?.trim() ?? '').filter(Boolean))
   }
 
   const regra = await payload.create({
@@ -116,6 +120,7 @@ export async function semearDemonstracao(payload: Payload) {
   let p = 0
   for (const [ci, categoria] of categorias.entries()) {
     const lista: Id[] = []
+    const subcategorias = subcategoriasDe.get(categoria) ?? []
     for (let i = 0; i < 8; i++) {
       p++
       const piloto = await payload.create({
@@ -131,6 +136,8 @@ export async function semearDemonstracao(payload: Payload) {
           categoria,
           piloto: piloto.id,
           numero: numeros[ci * 8 + i],
+          // Exemplo: os 8 pilotos divididos entre as subcategorias da categoria (F400: 2, 2, 1, 2, 1; 125cc: 2 em cada)
+          ...(subcategorias.length ? { subcategoria: subcategorias[Math.floor((i * subcategorias.length) / 8)] } : {}),
           equipe: equipes[(i + ci) % equipes.length],
           condicao: 'titular',
           status: 'ativa',
@@ -188,6 +195,8 @@ export async function semearDemonstracao(payload: Payload) {
                 posicaoChegada: pos + 1,
                 status: pos === ordem.length - 1 && i === 2 ? ('abandono' as const) : ('classificado' as const),
                 voltas: pos === ordem.length - 1 && i === 2 ? 12 : 20,
+                // Melhor volta de exemplo (ms): sobe com a posição, com variação — nem sempre o vencedor tem a mais rápida
+                melhorVoltaMs: 50_000 + ci * 1_500 + pos * 110 + ((pos * 7_919 + i * 104_729 + ci * 31) % 640),
               }))
             : [],
         },

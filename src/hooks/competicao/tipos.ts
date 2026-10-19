@@ -83,6 +83,7 @@ export interface CategoriaDoc extends Base {
   nome: string
   sigla?: string | null
   slug?: string | null
+  subcategorias?: { nome?: string | null }[] | null
   cor?: string | null
   visibilidade?: Visibilidade
 }
@@ -109,6 +110,7 @@ export interface InscricaoDoc extends Base {
   categoria: Rel
   piloto: Rel
   numero?: number | null
+  subcategoria?: string | null
   equipe?: Rel
   condicao?: 'titular' | 'convidado' | null
   status?: StatusInscricao | null

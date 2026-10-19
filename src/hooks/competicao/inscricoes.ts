@@ -7,7 +7,9 @@
  *   (quem desistiu libera o número);
  * - inscrição com resultados não troca de piloto, temporada ou categoria (o histórico mudaria):
  *   marca-se "Transferida" e cria-se outra;
- * - temporada encerrada: inscrições congeladas (só a observação muda).
+ * - a subcategoria (opcional) é um dos nomes das subcategorias da categoria; só separa as tabelas de
+ *   resultado no site, sem mudar pontos;
+ * - temporada encerrada: inscrições congeladas (só a observação e a subcategoria mudam).
  */
 import type {
   CollectionAfterChangeHook,
@@ -25,6 +27,7 @@ import { atualizarDerivados, derivadosInscricao } from './derivados'
 import { falharNoCampo } from './erros'
 import { bloquearExclusaoComVinculos } from './exclusao'
 import type { InscricaoDoc, PilotoDoc } from './tipos'
+import { conferirSubcategoria } from './validacoes'
 import type { ID } from './util'
 import { contemId, idDe, idsDe, mesmoId, docAnterior } from './util'
 
@@ -58,8 +61,26 @@ export const prepararInscricao: CollectionBeforeValidateHook = async ({ data, or
   const categoriaId = idDe(data.categoria)
   const pilotoId = idDe(data.piloto)
   const proprio = idDe(anterior?.id)
-  if (temporadaId === null || categoriaId === null || pilotoId === null) return data
   const erros: Erro[] = []
+
+  // Subcategoria: vazia ou um dos nomes das subcategorias da categoria ("junior" vira "Junior").
+  // Conferida quando é enviada ou quando a categoria muda (a de antes pode não existir na nova).
+  const categoriaDaSub = categoriaId ?? idDe(anterior?.categoria)
+  const trocouCategoria = Boolean(anterior) && categoriaId !== null && !mesmoId(anterior?.categoria, categoriaId)
+  const subcategoria = data.subcategoria !== undefined ? data.subcategoria : trocouCategoria ? anterior?.subcategoria : undefined
+  if (subcategoria !== undefined && subcategoria !== null && subcategoria !== '' && categoriaDaSub !== null) {
+    const [categoria] = await carregarCategorias(req, [categoriaDaSub])
+    const conferida = conferirSubcategoria(subcategoria, categoria?.subcategorias, rotuloCategoria(categoria))
+    if (conferida.ok) data.subcategoria = conferida.valor
+    else erros.push({ caminho: 'subcategoria', mensagem: conferida.mensagem })
+  } else if (data.subcategoria === '') {
+    data.subcategoria = null
+  }
+
+  if (temporadaId === null || categoriaId === null || pilotoId === null) {
+    if (erros.length) falharNoCampo(req, COLECOES.inscricoes, erros)
+    return data
+  }
 
   const temporada = await carregarTemporada(req, temporadaId)
   if (temporada && !contemId(idsDe(temporada.categorias), categoriaId)) {
@@ -121,7 +142,8 @@ export const regrasDaInscricao: CollectionBeforeChangeHook = async ({ data, orig
     operacao: operation === 'create' ? 'create' : 'update',
     data,
     originalDoc,
-    livres: ['observacao'],
+    // A subcategoria só separa as tabelas do site (não muda pontos): dá para preencher também no histórico
+    livres: ['observacao', 'subcategoria'],
   })
   Object.assign(data, await derivadosInscricao(req, data))
   return data

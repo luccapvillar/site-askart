@@ -1,18 +1,23 @@
 /**
- * Matriz do resultado de uma etapa (uma categoria) — função PURA, sem React, testada em tests/int.
+ * Matriz do resultado de uma etapa (uma categoria) — funções PURAS, sem React, testadas em tests/int.
  *
  * Colunas: Warm-up, Classificação (tomada de tempo), Corrida 1, Corrida 2 (e Corrida 3… se houver) e
  * Resultado da etapa. Linhas: todos os pilotos que aparecem em qualquer sessão, na ordem do resultado da
  * etapa; quem não tem resultado da etapa vem depois, pela classificação.
  *
- * Roxo (convenção de cronometragem) = o melhor do grid em cada coluna:
- * - Warm-up e Classificação: a volta mais rápida da sessão (sem tempos lançados, o 1º colocado);
- * - Corridas e Resultado da etapa: o vencedor (1º);
- * - além disso, a volta mais rápida de cada corrida (a oficial, quando houver; senão a menor melhor volta).
+ * Subcategorias (pedido do cliente): quando a categoria tem subcategorias e os pilotos da etapa têm a
+ * subcategoria na inscrição, sai UMA TABELA POR SUBCATEGORIA (`montarMatrizes`), na ordem cadastrada na
+ * categoria; quem está sem subcategoria vai para "Sem subcategoria". Em cada tabela, a posição de cada
+ * sessão é a posição DENTRO da subcategoria (ordem relativa pela posição geral), com a posição geral ao lado.
+ * Os pontos continuam os do motor do campeonato (a subcategoria não muda pontos).
+ *
+ * Roxo = o MELHOR TEMPO (menor melhor volta) de cada sessão dentro da tabela (da subcategoria, ou da
+ * categoria quando não há subcategorias), seja de quem for — o vencedor não fica roxo por ter vencido.
+ * Empate de tempo: todos os empatados em roxo. Sessão sem tempos lançados não tem roxo. Tempos de
+ * desclassificado e de quem não largou não contam.
  */
-import type { CorridaComResultado, LinhaCorridaExibida, ResultadoCategoriaNaEtapa } from '@/lib/carregar-competicao'
+import type { CorridaComResultado, LinhaCorridaExibida, LinhaEtapaExibida, ResultadoCategoriaNaEtapa } from '@/lib/carregar-competicao'
 import type { Id, StatusResultado } from '@/lib/classificacao'
-import type { LinhaResultadoDaEtapa } from '@/lib/estatisticas'
 
 export type TipoColuna = 'warm-up' | 'classificacao' | 'corrida' | 'etapa'
 
@@ -34,7 +39,10 @@ export interface ColunaMatriz {
 export interface CelulaMatriz {
   /** O piloto tem resultado nesta coluna. */
   tem: boolean
+  /** Posição exibida: dentro da subcategoria (tabelas por subcategoria) ou na categoria. */
   posicao: number | null
+  /** Posição geral na categoria — só nas tabelas por subcategoria (para "1º (3º geral)"). */
+  posicaoGeral: number | null
   /** Situação por extenso curto ("Abandono", "Desclassificado", "Não largou", "Não classificado", "Sem posição"). */
   situacao: string | null
   pontos: number | null
@@ -42,10 +50,8 @@ export interface CelulaMatriz {
   penalidade: number | null
   /** Melhor volta em milissegundos. */
   melhorVolta: number | null
-  /** Melhor resultado do grid nesta coluna (célula em roxo). */
-  melhorDoGrid: boolean
-  /** Volta mais rápida da corrida (volta em roxo). */
-  voltaMaisRapida: boolean
+  /** Melhor tempo da sessão dentro da tabela (célula em roxo). Empate: todos os empatados. */
+  melhorTempo: boolean
   /** Pole position da etapa (na coluna da classificação). */
   pole: boolean
 }
@@ -57,6 +63,8 @@ export interface LinhaMatriz {
   pilotoSlug: string | null
   equipeNome: string | null
   convidado: boolean
+  /** Subcategoria da inscrição (como cadastrada na categoria), ou null. */
+  subcategoria: string | null
   /** Uma célula por coluna, na ordem de `colunas`. */
   celulas: CelulaMatriz[]
 }
@@ -65,6 +73,24 @@ export interface MatrizEtapa {
   colunas: ColunaMatriz[]
   linhas: LinhaMatriz[]
 }
+
+/** Uma tabela do resultado: a de uma subcategoria, ou a da categoria inteira. */
+export interface TabelaMatriz extends MatrizEtapa {
+  /** Chave estável, boa para ids de HTML ("novatos", "gss-60", "sem-subcategoria"; "categoria" sem subcategorias). */
+  chave: string
+  /** Nome da subcategoria ("Sem subcategoria" para quem não tem); null na tabela única da categoria. */
+  nome: string | null
+  semSubcategoria: boolean
+}
+
+export interface MatrizesEtapa {
+  /** true = uma tabela por subcategoria (com posição relativa); false = uma tabela só, como antes. */
+  porSubcategoria: boolean
+  colunas: ColunaMatriz[]
+  tabelas: TabelaMatriz[]
+}
+
+export const SEM_SUBCATEGORIA = 'Sem subcategoria'
 
 const SITUACAO: Partial<Record<StatusResultado, string>> = {
   abandono: 'Abandono',
@@ -100,32 +126,12 @@ export function formatarVolta(ms: number): string {
   return `${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}.${String(mil).padStart(3, '0')}`
 }
 
-/** Linha com a menor melhor volta da sessão (desclassificado e "não largou" fora); empate: melhor posição. */
-function linhaDaMelhorVolta(linhas: LinhaCorridaExibida[]): LinhaCorridaExibida | null {
-  const candidatas = linhas.filter(
-    (l) => typeof l.melhorVolta === 'number' && l.melhorVolta > 0 && l.status !== 'desclassificado' && l.status !== 'nao-largou',
-  )
-  candidatas.sort(
-    (a, b) => (a.melhorVolta as number) - (b.melhorVolta as number) || (a.posicaoCategoria ?? Infinity) - (b.posicaoCategoria ?? Infinity),
-  )
-  return candidatas[0] ?? null
-}
+/** Melhor volta válida de uma linha (ms), ou null. */
+const voltaDa = (l: Pick<LinhaCorridaExibida, 'melhorVolta'>) =>
+  typeof l.melhorVolta === 'number' && Number.isFinite(l.melhorVolta) && l.melhorVolta > 0 ? l.melhorVolta : null
 
-/** Volta mais rápida de uma corrida: a oficial (que pontua) quando houver; senão a menor melhor volta. */
-function chaveDaVoltaMaisRapida(c: CorridaComResultado): string | null {
-  if (c.voltaMaisRapida !== null && c.voltaMaisRapida !== undefined) {
-    const oficial = c.linhas.find((l) => String(l.inscricao) === String(c.voltaMaisRapida))
-    if (oficial) return chaveDaLinha(oficial)
-  }
-  const melhor = linhaDaMelhorVolta(c.linhas)
-  return melhor ? chaveDaLinha(melhor) : null
-}
-
-/** Melhor do grid numa sessão cronometrada (warm-up, classificação): a volta mais rápida; sem tempos, o 1º. */
-function chaveDoMelhorDaSessao(c: CorridaComResultado): string | null {
-  const melhor = linhaDaMelhorVolta(c.linhas) ?? c.linhas.find((l) => l.posicaoCategoria === 1) ?? null
-  return melhor ? chaveDaLinha(melhor) : null
-}
+/** O tempo conta para o roxo? (desclassificado e "não largou" ficam fora) */
+const tempoValido = (l: LinhaCorridaExibida) => voltaDa(l) !== null && l.status !== 'desclassificado' && l.status !== 'nao-largou'
 
 type Grupo = { tipo: Exclude<TipoColuna, 'etapa'>; base: string; ausente: (n: number | null) => string; minimo: number }
 
@@ -138,14 +144,18 @@ const GRUPOS: Grupo[] = [
 const grupoDa = (c: CorridaComResultado): Grupo['tipo'] =>
   c.tipo === 'warm-up' ? 'warm-up' : c.tipo === 'tomada-de-tempo' ? 'classificacao' : 'corrida'
 
-/** Monta colunas, linhas e marcações (roxo) da matriz de UMA categoria. */
-export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corridas' | 'etapa' | 'semRegra'>): MatrizEtapa {
+type ColunaInterna = ColunaMatriz & { sessao: CorridaComResultado | null; primeiraDoGrupo: boolean }
+type Piloto = Omit<LinhaMatriz, 'celulas'>
+type Base = { colunas: ColunaInterna[]; pilotos: Piloto[]; etapaDe: Map<string, LinhaEtapaExibida> }
+type Entrada = Pick<ResultadoCategoriaNaEtapa, 'corridas' | 'etapa' | 'semRegra'>
+
+/** Colunas e pilotos (já na ordem de exibição) de uma categoria. */
+function prepararBase(resultado: Entrada): Base {
   const semRegra = resultado.semRegra === true
   const sessoes = [...(resultado.corridas ?? [])].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
-  const etapa: LinhaResultadoDaEtapa[] = semRegra ? [] : (resultado.etapa ?? [])
+  const etapa: LinhaEtapaExibida[] = semRegra ? [] : (resultado.etapa ?? [])
 
   // ── colunas ──
-  type ColunaInterna = ColunaMatriz & { sessao: CorridaComResultado | null; primeiraDoGrupo: boolean }
   const colunas: ColunaInterna[] = []
   for (const g of GRUPOS) {
     const doGrupo = sessoes.filter((c) => grupoDa(c) === g.tipo)
@@ -186,9 +196,9 @@ export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corrida
   })
 
   // ── pilotos (todos os que aparecem em alguma sessão ou no resultado da etapa) ──
-  type Piloto = Omit<LinhaMatriz, 'celulas'>
   const pilotos = new Map<string, Piloto>()
   const etapaDe = new Map(etapa.map((l) => [l.chave, l] as const))
+  const sub = (v: string | null | undefined) => (typeof v === 'string' && v.trim() ? v.trim() : null)
   for (const l of etapa) {
     pilotos.set(l.chave, {
       chave: l.chave,
@@ -197,6 +207,7 @@ export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corrida
       pilotoSlug: l.pilotoSlug ?? null,
       equipeNome: l.equipeNome ?? null,
       convidado: false,
+      subcategoria: sub(l.subcategoria),
     })
   }
   for (const c of sessoes) {
@@ -205,6 +216,7 @@ export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corrida
       const atual = pilotos.get(chave)
       if (atual) {
         atual.convidado ||= l.convidado
+        atual.subcategoria ??= sub(l.subcategoria)
         continue
       }
       pilotos.set(chave, {
@@ -214,65 +226,8 @@ export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corrida
         pilotoSlug: l.pilotoSlug ?? null,
         equipeNome: l.equipeNome ?? null,
         convidado: l.convidado,
+        subcategoria: sub(l.subcategoria),
       })
-    }
-  }
-
-  // ── marcações por sessão ──
-  const melhorDaColuna = new Map<string, string | null>()
-  const voltaRapidaDaColuna = new Map<string, string | null>()
-  for (const col of colunas) {
-    if (!col.sessao) continue
-    if (col.tipo === 'corrida') {
-      const vencedor = col.sessao.linhas.find((l) => l.posicaoCategoria === 1)
-      melhorDaColuna.set(col.chave, vencedor ? chaveDaLinha(vencedor) : null)
-      voltaRapidaDaColuna.set(col.chave, chaveDaVoltaMaisRapida(col.sessao))
-    } else {
-      melhorDaColuna.set(col.chave, chaveDoMelhorDaSessao(col.sessao))
-    }
-  }
-
-  const vazia: CelulaMatriz = {
-    tem: false,
-    posicao: null,
-    situacao: null,
-    pontos: null,
-    penalidade: null,
-    melhorVolta: null,
-    melhorDoGrid: false,
-    voltaMaisRapida: false,
-    pole: false,
-  }
-
-  const celula = (col: ColunaInterna, p: Piloto): CelulaMatriz => {
-    if (col.ausente) return vazia
-    if (col.tipo === 'etapa') {
-      const e = etapaDe.get(p.chave)
-      if (!e) return vazia
-      return {
-        ...vazia,
-        tem: true,
-        posicao: e.posicao,
-        situacao: e.posicao === null ? (e.desclassificado ? 'Desclassificado' : 'Sem posição') : null,
-        pontos: e.total,
-        penalidade: e.ajustes < 0 ? e.ajustes : null,
-        melhorDoGrid: e.posicao === 1,
-      }
-    }
-    const sessao = col.sessao as CorridaComResultado
-    const l = sessao.linhas.find((x) => chaveDaLinha(x) === p.chave)
-    if (!l) return vazia
-    const pontua = col.comPontos && !l.convidado
-    return {
-      tem: true,
-      posicao: l.posicaoCategoria,
-      situacao: SITUACAO[l.status] ?? (l.posicaoCategoria === null ? 'Sem posição' : null),
-      pontos: pontua ? l.pontos : null,
-      penalidade: pontua && l.penalidadePontos < 0 ? l.penalidadePontos : null,
-      melhorVolta: typeof l.melhorVolta === 'number' && l.melhorVolta > 0 ? l.melhorVolta : null,
-      melhorDoGrid: melhorDaColuna.get(col.chave) === p.chave,
-      voltaMaisRapida: col.tipo === 'corrida' && voltaRapidaDaColuna.get(col.chave) === p.chave,
-      pole: col.tipo === 'classificacao' && col.primeiraDoGrupo && etapaDe.get(p.chave)?.pole === true,
     }
   }
 
@@ -293,9 +248,145 @@ export function montarMatriz(resultado: Pick<ResultadoCategoriaNaEtapa, 'corrida
       a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base', numeric: true })
     )
   })
+  return { colunas, pilotos: ordenados, etapaDe }
+}
+
+/** Posição relativa: 1 + quantos do grupo estão à frente (empate na posição geral = mesma posição). */
+const relativa = (geral: number | null, gerais: number[]) => (geral === null ? null : 1 + gerais.filter((g) => g < geral).length)
+
+/**
+ * Uma tabela com os `pilotos` dados. `porSubcategoria`: posição dentro do grupo (com a geral ao lado).
+ * O roxo (melhor tempo) é sempre calculado só entre os pilotos da tabela.
+ */
+function montarTabela(base: Base, pilotos: Piloto[], porSubcategoria: boolean): MatrizEtapa {
+  const doGrupo = new Set(pilotos.map((p) => p.chave))
+
+  // Por sessão: posições gerais do grupo (para a relativa) e o melhor tempo do grupo.
+  const posicoesDaColuna = new Map<string, number[]>()
+  const melhorDaColuna = new Map<string, number | null>()
+  for (const col of base.colunas) {
+    if (col.tipo === 'etapa') {
+      const gerais = pilotos.map((p) => base.etapaDe.get(p.chave)?.posicao ?? null).filter((n): n is number => n !== null)
+      posicoesDaColuna.set(col.chave, gerais)
+      continue
+    }
+    if (!col.sessao) continue
+    const linhas = col.sessao.linhas.filter((l) => doGrupo.has(chaveDaLinha(l)))
+    posicoesDaColuna.set(
+      col.chave,
+      linhas.map((l) => l.posicaoCategoria).filter((n): n is number => typeof n === 'number'),
+    )
+    const tempos = linhas.filter(tempoValido).map((l) => voltaDa(l) as number)
+    melhorDaColuna.set(col.chave, tempos.length ? Math.min(...tempos) : null)
+  }
+
+  const vazia: CelulaMatriz = {
+    tem: false,
+    posicao: null,
+    posicaoGeral: null,
+    situacao: null,
+    pontos: null,
+    penalidade: null,
+    melhorVolta: null,
+    melhorTempo: false,
+    pole: false,
+  }
+  const posicoes = (col: ColunaInterna, geral: number | null) =>
+    porSubcategoria
+      ? { posicao: relativa(geral, posicoesDaColuna.get(col.chave) ?? []), posicaoGeral: geral }
+      : { posicao: geral, posicaoGeral: null }
+
+  const celula = (col: ColunaInterna, p: Piloto): CelulaMatriz => {
+    if (col.ausente) return vazia
+    if (col.tipo === 'etapa') {
+      const e = base.etapaDe.get(p.chave)
+      if (!e) return vazia
+      return {
+        ...vazia,
+        tem: true,
+        ...posicoes(col, e.posicao),
+        situacao: e.posicao === null ? (e.desclassificado ? 'Desclassificado' : 'Sem posição') : null,
+        pontos: e.total,
+        penalidade: e.ajustes < 0 ? e.ajustes : null,
+      }
+    }
+    const sessao = col.sessao as CorridaComResultado
+    const l = sessao.linhas.find((x) => chaveDaLinha(x) === p.chave)
+    if (!l) return vazia
+    const pontua = col.comPontos && !l.convidado
+    const melhor = melhorDaColuna.get(col.chave) ?? null
+    return {
+      tem: true,
+      ...posicoes(col, l.posicaoCategoria),
+      situacao: SITUACAO[l.status] ?? (l.posicaoCategoria === null ? 'Sem posição' : null),
+      pontos: pontua ? l.pontos : null,
+      penalidade: pontua && l.penalidadePontos < 0 ? l.penalidadePontos : null,
+      melhorVolta: voltaDa(l),
+      melhorTempo: melhor !== null && tempoValido(l) && voltaDa(l) === melhor,
+      pole: col.tipo === 'classificacao' && col.primeiraDoGrupo && base.etapaDe.get(p.chave)?.pole === true,
+    }
+  }
 
   return {
-    colunas: colunas.map(({ sessao: _s, primeiraDoGrupo: _p, ...c }) => c),
-    linhas: ordenados.map((p) => ({ ...p, celulas: colunas.map((col) => celula(col, p)) })),
+    colunas: base.colunas.map(({ sessao: _s, primeiraDoGrupo: _p, ...c }) => c),
+    linhas: pilotos.map((p) => ({ ...p, celulas: base.colunas.map((col) => celula(col, p)) })),
   }
+}
+
+/** Monta colunas, linhas e o roxo de UMA categoria numa tabela só (posições e melhor tempo da categoria). */
+export function montarMatriz(resultado: Entrada): MatrizEtapa {
+  const base = prepararBase(resultado)
+  return montarTabela(base, base.pilotos, false)
+}
+
+/** Chave para ids de HTML: "GSS/60+" → "gss-60". */
+const chaveDe = (nome: string) => normalizar(nome).replace(/ /g, '-') || 'subcategoria'
+
+/**
+ * Tabelas do resultado de uma categoria: uma por subcategoria (as que têm piloto na etapa, na ordem
+ * cadastrada na categoria; subcategoria gravada que não está mais na lista vem depois, pelo nome; quem não
+ * tem subcategoria fica em "Sem subcategoria", no fim). Categoria sem subcategorias — ou nenhum piloto com
+ * subcategoria — tem uma tabela só, como antes.
+ */
+export function montarMatrizes(
+  resultado: Entrada,
+  subcategorias: Array<{ nome?: string | null } | string | null | undefined> | null | undefined = [],
+): MatrizesEtapa {
+  const base = prepararBase(resultado)
+  const cadastradas = (subcategorias ?? [])
+    .map((s) => (typeof s === 'string' ? s : s?.nome)?.trim() ?? '')
+    .filter((n, i, todas) => n && todas.indexOf(n) === i)
+  // Grafia como está na categoria ("junior" gravado antes de uma correção → "Junior").
+  const oficial = (nome: string | null) => {
+    if (!nome) return null
+    return cadastradas.find((c) => c === nome) ?? cadastradas.find((c) => normalizar(c) === normalizar(nome)) ?? nome
+  }
+  const pilotos = base.pilotos.map((p) => ({ ...p, subcategoria: oficial(p.subcategoria) }))
+  const colunas = base.colunas.map(({ sessao: _s, primeiraDoGrupo: _p, ...c }) => c)
+
+  const porSubcategoria = cadastradas.length > 0 && pilotos.some((p) => p.subcategoria !== null)
+  if (!porSubcategoria) {
+    return {
+      porSubcategoria: false,
+      colunas,
+      tabelas: [{ chave: 'categoria', nome: null, semSubcategoria: false, ...montarTabela(base, pilotos, false) }],
+    }
+  }
+
+  const extras = [...new Set(pilotos.map((p) => p.subcategoria).filter((s): s is string => s !== null && !cadastradas.includes(s)))].sort(
+    (a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base', numeric: true }),
+  )
+  const grupos: { nome: string | null; pilotos: Piloto[] }[] = [...cadastradas, ...extras, null]
+    .map((nome) => ({ nome, pilotos: pilotos.filter((p) => p.subcategoria === nome) }))
+    .filter((g) => g.pilotos.length > 0)
+
+  const usadas = new Set<string>()
+  const tabelas = grupos.map((g, i) => {
+    const nome = g.nome ?? SEM_SUBCATEGORIA
+    let chave = g.nome === null ? 'sem-subcategoria' : chaveDe(g.nome)
+    if (usadas.has(chave)) chave = `${chave}-${i + 1}`
+    usadas.add(chave)
+    return { chave, nome, semSubcategoria: g.nome === null, ...montarTabela(base, g.pilotos, true) }
+  })
+  return { porSubcategoria: true, colunas, tabelas }
 }

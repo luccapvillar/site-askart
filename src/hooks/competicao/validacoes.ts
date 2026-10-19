@@ -87,6 +87,44 @@ export function encontrarTabela(nome: string | null | undefined, tabelas: Array<
   return achada?.nome ?? null
 }
 
+/** Nomes das subcategorias de uma categoria, na ordem cadastrada (sem vazios). */
+export const nomesDasSubcategorias = (subcategorias: Array<{ nome?: string | null } | null> | null | undefined): string[] =>
+  (subcategorias ?? []).map((s) => s?.nome?.trim() ?? '').filter(Boolean)
+
+/** Lista entre aspas, por extenso: "A", "B" ou "C". */
+export function listaComOu(itens: string[]): string {
+  const q = itens.map((i) => `"${i}"`)
+  return q.length <= 1 ? (q[0] ?? '') : `${q.slice(0, -1).join(', ')} ou ${q.at(-1)}`
+}
+
+/**
+ * Subcategoria de uma inscrição. Vazia é aceita (fica sem subcategoria). Preenchida, tem de ser um dos nomes
+ * das subcategorias da categoria; diferenças só de maiúsculas, acentos ou espaços são corrigidas para o nome
+ * como está cadastrado ("junior" → "Junior"). Devolve o valor a gravar ou a mensagem de erro.
+ */
+export function conferirSubcategoria(
+  valor: unknown,
+  subcategorias: Array<{ nome?: string | null } | null> | null | undefined,
+  categoria?: string | null,
+): { ok: true; valor: string | null } | { ok: false; mensagem: string } {
+  if (valor === null || valor === undefined) return { ok: true, valor: null }
+  if (typeof valor !== 'string') return { ok: false, mensagem: 'Escreva o nome da subcategoria.' }
+  const digitado = valor.trim().replace(/\s+/g, ' ')
+  if (!digitado) return { ok: true, valor: null }
+  const nomes = nomesDasSubcategorias(subcategorias)
+  const daCategoria = categoria?.trim() ? `a categoria "${categoria.trim()}"` : 'a categoria escolhida'
+  if (!nomes.length) {
+    return { ok: false, mensagem: `${daCategoria[0].toUpperCase()}${daCategoria.slice(1)} não tem subcategorias. Deixe este campo em branco.` }
+  }
+  if (nomes.includes(digitado)) return { ok: true, valor: digitado }
+  const parecidos = nomes.filter((n) => normalizarBusca(n) === normalizarBusca(digitado))
+  if (parecidos.length === 1) return { ok: true, valor: parecidos[0] }
+  return {
+    ok: false,
+    mensagem: `"${digitado}" não é uma subcategoria d${daCategoria}. Use exatamente um destes nomes: ${listaComOu(nomes)}.`,
+  }
+}
+
 export type TipoAjuste = 'penalidade' | 'bonificacao' | 'correcao'
 
 /**

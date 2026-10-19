@@ -305,6 +305,7 @@ export function paraInscricao(d: Doc, nomes: Nomes, publico: boolean): Inscricao
     numero: (num(d.numero) ?? texto(d.numero)) as number | string | null,
     equipe,
     equipeNome: nomeEquipe(e),
+    subcategoria: texto(d.subcategoria)?.trim() ?? null,
     condicao: de<CondicaoInscricao>(d.condicao, CONDICOES) ?? 'titular',
     status: de<StatusInscricao>(d.status, STATUS_INSCRICAO) ?? 'ativa',
   }
@@ -368,6 +369,8 @@ const SELECT_CORRIDA = {
   voltaMaisRapidaManual: true,
 } as const
 const SELECT_INSCRICAO = { categoria: true, piloto: true, numero: true, equipe: true, condicao: true, status: true } as const
+/** No resultado da etapa, também a subcategoria (só para separar as tabelas; os pontos não mudam). */
+const SELECT_INSCRICAO_ETAPA = { ...SELECT_INSCRICAO, subcategoria: true } as const
 const SELECT_PILOTO = { nome: true, nomeExibicao: true, slug: true, visibilidade: true } as const
 const SELECT_EQUIPE = { nome: true, sigla: true } as const
 const SELECT_CATEGORIA = { nome: true, sigla: true, slug: true } as const
@@ -812,8 +815,18 @@ export async function classificacoesParaEstatisticas(opcoes: {
 /**
  * Linha de uma corrida no site: posição na categoria (`posicaoCategoria`), status, pontos, número e nome do
  * piloto, `melhorVolta` (ms, quando lançada) e `voltaMaisRapida` (a oficial, que pontua) vêm do motor.
+ * `subcategoria` vem da inscrição (opcional: ausente/null = sem subcategoria). O resultado da etapa é
+ * calculado a cada leitura (nada fica gravado), então inscrições antigas sem o campo continuam funcionando
+ * e a subcategoria aparece assim que é preenchida na inscrição.
  */
-export type LinhaCorridaExibida = LinhaResultadoCalculada & { pilotoSlug: string | null; equipeNome: string | null }
+export type LinhaCorridaExibida = LinhaResultadoCalculada & {
+  pilotoSlug: string | null
+  equipeNome: string | null
+  subcategoria?: string | null
+}
+
+/** Linha do resultado somado da etapa, com a subcategoria da inscrição (opcional, como em LinhaCorridaExibida). */
+export type LinhaEtapaExibida = LinhaResultadoDaEtapa & { subcategoria?: string | null }
 
 export interface CorridaComResultado {
   id: Id
@@ -841,7 +854,7 @@ export interface ResultadoCategoriaNaEtapa {
    * desempate do campeonato: total, critérios da regra, ordem alfabética. Sem convidados. Quem correu mas
    * não tem posição oficial em nenhuma corrida que conta vem no fim, com `posicao` nula.
    */
-  etapa: LinhaResultadoDaEtapa[]
+  etapa: LinhaEtapaExibida[]
   /** A categoria ainda não tem regra de pontuação: posições aparecem, pontos ficam zerados. */
   semRegra: boolean
 }
@@ -920,7 +933,7 @@ export async function resultadosDaEtapa(opcoes: {
   // Regra de cada categoria (a própria da classificação, senão a da temporada) e ordem do painel.
   const [classificacoes, docsInscricoes] = await emSequenciaOuParalelo(ctx, [
     () => buscar(ctx, SLUGS.temporadaCategorias, { temporada: { equals: temporada.id } }, { categoria: true, ordem: true, regra: true }),
-    () => buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO),
+    () => buscar(ctx, SLUGS.inscricoes, { temporada: { equals: temporada.id } }, SELECT_INSCRICAO_ETAPA),
   ])
   const classificacaoDa = new Map(classificacoes.map((c) => [String(idDe(c.categoria)), c] as const))
   const idsRegras = unicos([idDe(temporada.regra), ...classificacoes.map((c) => idDe(c.regra))].filter((x): x is Id => x !== null))
@@ -966,7 +979,7 @@ export async function resultadosDaEtapa(opcoes: {
         voltaMaisRapida: r.voltaMaisRapida,
         linhas: r.linhas.map((l) => {
           const ins = mapaIns.get(String(l.inscricao))
-          return { ...l, pilotoSlug: ins?.pilotoSlug ?? null, equipeNome: ins?.equipeNome ?? null }
+          return { ...l, pilotoSlug: ins?.pilotoSlug ?? null, equipeNome: ins?.equipeNome ?? null, subcategoria: ins?.subcategoria ?? null }
         }),
       }
     })
@@ -987,7 +1000,10 @@ export async function resultadosDaEtapa(opcoes: {
       categoriaNome: texto(cat?.nome) ?? texto(cat?.sigla),
       categoriaSlug: texto(cat?.slug),
       corridas: corridasExibidas,
-      etapa: resultadoSomadoDaEtapa(soma, etapa.id),
+      etapa: resultadoSomadoDaEtapa(soma, etapa.id).map((l) => ({
+        ...l,
+        subcategoria: l.inscricao === null ? null : (mapaIns.get(String(l.inscricao))?.subcategoria ?? null),
+      })),
       semRegra: !doc,
     })
   }

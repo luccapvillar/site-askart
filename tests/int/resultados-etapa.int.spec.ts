@@ -16,8 +16,8 @@ import {
   type Regra,
 } from '@/lib/classificacao'
 import { resultadoSomadoDaEtapa } from '@/lib/estatisticas'
-import { corridaContaPontos, planejarCorridas, statusEtapaAutomatico } from '@/hooks/competicao/validacoes'
-import { formatarPontos, formatarVolta, montarMatriz } from '@/components/site/resultados/matriz'
+import { conferirSubcategoria, corridaContaPontos, planejarCorridas, statusEtapaAutomatico } from '@/hooks/competicao/validacoes'
+import { formatarPontos, formatarVolta, montarMatriz, montarMatrizes, type MatrizEtapa } from '@/components/site/resultados/matriz'
 
 vi.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children: unknown }) => createElement('a', { href }, children as never),
@@ -227,8 +227,9 @@ const linha = (inscricao: number, posicaoChegada: number | null, melhorVoltaMs: 
 /**
  * Etapa de teste: A=101, B=102, C=103, D=104 (convidado), E=105 (só fez o warm-up).
  * Corridas cadastradas fora de ordem (a ordem vem do horário).
+ * Com `subcategorias`, cada inscrição recebe a subcategoria indicada (A=101 → subcategorias[101]…).
  */
-function dadosEtapa(): Record<string, Doc[]> {
+function dadosEtapa(subcategorias: Record<number, string> = {}): Record<string, Doc[]> {
   const base = { etapa: 11, categorias: [3], status: 'oficial', tabela: null, fator: 1, voltaMaisRapidaManual: { inscricao: null, motivo: null } }
   return {
     temporadas: [{ id: 1, nome: 'Teste', ano: 2026, status: 'em-andamento', regra: 7 }],
@@ -281,7 +282,7 @@ function dadosEtapa(): Record<string, Doc[]> {
       { id: 103, temporada: 1, categoria: 3, piloto: 203, numero: 12, condicao: 'titular', status: 'ativa' },
       { id: 104, temporada: 1, categoria: 3, piloto: 204, numero: 99, condicao: 'convidado', status: 'ativa' },
       { id: 105, temporada: 1, categoria: 3, piloto: 205, numero: 5, condicao: 'titular', status: 'ativa' },
-    ],
+    ].map((i) => (subcategorias[i.id] ? { ...i, subcategoria: subcategorias[i.id] } : i)),
     pilotos: [
       { id: 201, nome: 'Piloto A', slug: 'piloto-a', visibilidade: 'visivel' },
       { id: 202, nome: 'Piloto B', slug: 'piloto-b', visibilidade: 'visivel' },
@@ -294,8 +295,8 @@ function dadosEtapa(): Record<string, Doc[]> {
   }
 }
 
-async function resultadoDeTeste(): Promise<ResultadoCategoriaNaEtapa> {
-  const r = await resultadosDaEtapa({ payload: banco(dadosEtapa()), etapa: 11, publico: true })
+async function resultadoDeTeste(subcategorias: Record<number, string> = {}): Promise<ResultadoCategoriaNaEtapa> {
+  const r = await resultadosDaEtapa({ payload: banco(dadosEtapa(subcategorias)), etapa: 11, publico: true })
   expect(r?.categorias).toHaveLength(1)
   return r!.categorias[0]
 }
@@ -320,6 +321,9 @@ describe('resultadosDaEtapa com warm-up', () => {
   })
 })
 
+/** Nomes em roxo em cada coluna. */
+const roxos = (m: MatrizEtapa) => m.colunas.map((_, i) => m.linhas.filter((l) => l.celulas[i].melhorTempo).map((l) => l.nome))
+
 describe('montarMatriz', () => {
   it('colunas fixas, todos os pilotos e a ordem do resultado da etapa (depois, pela classificação)', async () => {
     const m = montarMatriz(await resultadoDeTeste())
@@ -340,29 +344,26 @@ describe('montarMatriz', () => {
     ])
   })
 
-  it('roxo: volta mais rápida no warm-up e na classificação, vencedor nas corridas e na etapa, volta mais rápida de cada corrida', async () => {
+  it('roxo: só o melhor tempo de cada sessão (não o vencedor); resultado da etapa, sem tempos, não tem roxo', async () => {
     const m = montarMatriz(await resultadoDeTeste())
-    const roxos = m.colunas.map((_, i) => m.linhas.filter((l) => l.celulas[i].melhorDoGrid).map((l) => l.nome))
-    expect(roxos).toEqual([
+    expect(roxos(m)).toEqual([
       ['Piloto A'], // warm-up: E chegou em 1º, mas A fez a volta mais rápida
       ['Piloto B'],
-      ['Piloto A'],
+      ['Piloto C'], // Corrida 1: A venceu, mas C fez a melhor volta (49.900)
       ['Piloto B'],
-      ['Piloto B'],
+      [],
     ])
-    const voltas = m.colunas.map((_, i) => m.linhas.filter((l) => l.celulas[i].voltaMaisRapida).map((l) => l.nome))
-    expect(voltas).toEqual([[], [], ['Piloto C'], ['Piloto B'], []])
 
     const b = m.linhas[0]
-    expect(b.celulas[1]).toEqual(expect.objectContaining({ posicao: 1, melhorVolta: 49_800, pole: true, pontos: null }))
-    expect(b.celulas[4]).toEqual(expect.objectContaining({ posicao: 1, pontos: 20, melhorDoGrid: true }))
+    expect(b.celulas[1]).toEqual(expect.objectContaining({ posicao: 1, posicaoGeral: null, melhorVolta: 49_800, pole: true, pontos: null }))
+    expect(b.celulas[4]).toEqual(expect.objectContaining({ posicao: 1, pontos: 20, melhorTempo: false }))
     const d = m.linhas[3]
     expect(d.celulas[0].tem).toBe(false) // não fez o warm-up
     expect(d.celulas[2]).toEqual(expect.objectContaining({ posicao: 2, pontos: null })) // convidado não pontua
     expect(d.celulas[3]).toEqual(expect.objectContaining({ posicao: null, situacao: 'Não largou' }))
     expect(d.celulas[4].tem).toBe(false)
     const e = m.linhas[4]
-    expect(e.celulas[0]).toEqual(expect.objectContaining({ posicao: 1, melhorDoGrid: false, melhorVolta: 50_500 }))
+    expect(e.celulas[0]).toEqual(expect.objectContaining({ posicao: 1, melhorTempo: false, melhorVolta: 50_500 }))
     expect(e.celulas.slice(1).every((c) => !c.tem)).toBe(true)
   })
 
@@ -413,15 +414,213 @@ describe('MatrizEtapa (HTML do servidor)', () => {
       createElement(MatrizEtapa, { categoria: { id: 3, nome: 'Categoria Teste', cor: '#1A7F37' }, resultado: await resultadoDeTeste() }),
     )
     expect(html).toContain('<caption')
-    expect(html).toContain('Em roxo: o melhor do grid em cada sessão.')
+    expect(html).toContain('Em roxo: o melhor tempo da categoria em cada sessão.')
+    expect(html.match(/<table/g)).toHaveLength(1)
     expect(html.match(/scope="col"/g)).toHaveLength(6)
     expect(html.match(/scope="row"/g)).toHaveLength(5)
-    // 5 colunas com um "melhor do grid" cada (texto para leitor de tela, além da cor).
-    expect(html.match(/\(melhor do grid/g)?.length).toBeGreaterThanOrEqual(5)
-    expect(html).toContain('(melhor do grid: volta mais rápida da sessão)')
-    expect(html).toContain('(volta mais rápida da corrida)')
+    // 4 sessões com tempo, um melhor tempo em cada (texto para leitor de tela, além da cor).
+    expect(html.match(/\(melhor tempo da categoria nesta sessão\)/g)).toHaveLength(4)
+    expect(html).not.toContain('geral)')
+    expect(html).not.toContain('role="tablist"')
     expect(html).toContain('00:49.800')
     expect(html).toContain('href="/pilotos/piloto-b"')
     expect(html).not.toContain('<script')
+  })
+
+  it('com subcategorias: uma tabela por subcategoria, com título, id próprio e links (sem JavaScript: todas empilhadas)', async () => {
+    const { MatrizEtapa } = await import('@/components/site/resultados/MatrizEtapa')
+    const html = renderToStaticMarkup(
+      createElement(MatrizEtapa, {
+        categoria: { id: 3, nome: 'Categoria Teste', subcategorias: [{ nome: 'Novatos' }, { nome: 'Junior' }, { nome: 'Graduados' }] },
+        resultado: await resultadoDeTeste(SUBS),
+      }),
+    )
+    expect(html).toContain('Em roxo: o melhor tempo da subcategoria em cada sessão.')
+    expect(html.match(/<table/g)).toHaveLength(3)
+    for (const id of ['novatos', 'junior', 'sem-subcategoria']) {
+      expect(html).toContain(`id="matriz-etapa-3-${id}"`)
+      expect(html).toContain(`href="#matriz-etapa-3-${id}"`)
+      expect(html).toContain(`id="matriz-etapa-3-${id}-titulo"`)
+    }
+    expect(html).not.toContain('Graduados') // sem piloto na etapa: sem aba nem tabela
+    expect(html).toContain('<h5 id="matriz-etapa-3-novatos-titulo"')
+    expect(html).toContain('subcategoria Novatos')
+    expect(html).toContain('(4º geral)')
+    expect(html).toContain('(melhor tempo da subcategoria nesta sessão)')
+    expect(html).not.toContain('role="tablist"') // as abas só aparecem com JavaScript
+    expect(html).not.toContain('<script')
+  })
+})
+
+// ───────── subcategorias ─────────
+
+/** A e C: Novatos; B e D (convidado): Junior; E: sem subcategoria. */
+const SUBS: Record<number, string> = { 101: 'Novatos', 102: 'Junior', 103: 'Novatos', 104: 'Junior' }
+const SUBCATEGORIAS = [{ nome: 'Novatos' }, { nome: 'Junior' }, { nome: 'Graduados' }]
+
+describe('subcategorias no resultado da etapa', () => {
+  it('o resultado da etapa traz a subcategoria da inscrição em cada linha (null quando não há)', async () => {
+    const cat = await resultadoDeTeste(SUBS)
+    const corrida1 = cat.corridas.find((c) => c.nome === 'Corrida 1')!
+    expect(corrida1.linhas.map((l) => [l.nome, l.subcategoria])).toEqual([
+      ['Piloto A', 'Novatos'],
+      ['Piloto D', 'Junior'],
+      ['Piloto B', 'Junior'],
+      ['Piloto C', 'Novatos'],
+    ])
+    expect(cat.corridas[0].linhas.find((l) => l.nome === 'Piloto E')?.subcategoria).toBeNull()
+    expect(cat.etapa.map((l) => [l.nome, l.subcategoria])).toEqual([
+      ['Piloto B', 'Junior'],
+      ['Piloto A', 'Novatos'],
+      ['Piloto C', 'Novatos'],
+    ])
+    // Inscrições antigas, sem o campo: tudo continua igual, sem subcategoria.
+    const antigo = await resultadoDeTeste()
+    expect(antigo.corridas.every((c) => c.linhas.every((l) => l.subcategoria === null))).toBe(true)
+  })
+
+  it('agrupa por subcategoria na ordem da categoria; só as que têm piloto; "Sem subcategoria" no fim', async () => {
+    const r = montarMatrizes(await resultadoDeTeste(SUBS), SUBCATEGORIAS)
+    expect(r.porSubcategoria).toBe(true)
+    expect(r.tabelas.map((t) => [t.chave, t.nome, t.semSubcategoria, t.linhas.map((l) => l.nome)])).toEqual([
+      ['novatos', 'Novatos', false, ['Piloto A', 'Piloto C']],
+      ['junior', 'Junior', false, ['Piloto B', 'Piloto D']],
+      ['sem-subcategoria', 'Sem subcategoria', true, ['Piloto E']],
+    ])
+    // Todas as tabelas com as mesmas colunas.
+    expect(r.tabelas.every((t) => t.colunas.map((c) => c.titulo).join() === r.colunas.map((c) => c.titulo).join())).toBe(true)
+  })
+
+  it('posição dentro da subcategoria em cada sessão e na etapa, com a posição geral ao lado; pontos do campeonato', async () => {
+    const [novatos, junior] = montarMatrizes(await resultadoDeTeste(SUBS), SUBCATEGORIAS).tabelas
+    const pos = (t: MatrizEtapa) => t.linhas.map((l) => [l.nome, ...l.celulas.map((c) => (c.tem ? `${c.posicao ?? '-'}/${c.posicaoGeral ?? '-'}` : ''))])
+    //                     warm-up  classif. corrida 1 corrida 2 etapa
+    expect(pos(novatos)).toEqual([
+      ['Piloto A', '1/2', '1/2', '1/1', '1/2', '1/2'],
+      ['Piloto C', '2/4', '2/3', '2/4', '2/3', '2/3'],
+    ])
+    expect(pos(junior)).toEqual([
+      ['Piloto B', '1/3', '1/1', '2/3', '1/1', '1/1'],
+      ['Piloto D', '', '2/4', '1/2', '-/-', ''], // convidado: sem resultado da etapa; não largou na Corrida 2
+    ])
+    expect(junior.linhas[1].celulas[3].situacao).toBe('Não largou')
+    // Os pontos são os do motor (iguais aos da tabela única).
+    expect(novatos.linhas.map((l) => l.celulas[4].pontos)).toEqual([18, 13])
+    expect(junior.linhas[0].celulas[4].pontos).toBe(20)
+  })
+
+  it('roxo: o menor tempo de cada sessão DENTRO da subcategoria, mesmo quando o mais rápido não venceu', async () => {
+    const [novatos, junior, sem] = montarMatrizes(await resultadoDeTeste(SUBS), SUBCATEGORIAS).tabelas
+    expect(roxos(novatos)).toEqual([['Piloto A'], ['Piloto A'], ['Piloto C'], ['Piloto A'], []])
+    // Corrida 1 dos Novatos: A venceu (1º geral), C fez 49.900 — o roxo é de C.
+    expect(novatos.linhas[0].celulas[2]).toEqual(expect.objectContaining({ posicao: 1, melhorTempo: false }))
+    expect(novatos.linhas[1].celulas[2]).toEqual(expect.objectContaining({ posicao: 2, melhorVolta: 49_900, melhorTempo: true }))
+    // Junior: B tem o melhor tempo da subcategoria no warm-up (51.000), embora A e C (Novatos) tenham sido mais rápidos.
+    expect(roxos(junior)).toEqual([['Piloto B'], ['Piloto B'], ['Piloto D'], ['Piloto B'], []])
+    expect(roxos(sem)).toEqual([['Piloto E'], [], [], [], []])
+  })
+
+  it('empate de tempo: todos os empatados em roxo; sessão sem tempos: sem roxo', async () => {
+    const cat = await resultadoDeTeste(SUBS)
+    const empatado: ResultadoCategoriaNaEtapa = {
+      ...cat,
+      corridas: cat.corridas.map((c) =>
+        c.nome === 'Corrida 2'
+          ? { ...c, linhas: c.linhas.map((l) => (l.nome === 'Piloto C' ? { ...l, melhorVolta: 50_050 } : l)) }
+          : c.nome === 'Classificação'
+            ? { ...c, linhas: c.linhas.map((l) => ({ ...l, melhorVolta: null })) }
+            : c,
+      ),
+    }
+    const [novatos] = montarMatrizes(empatado, SUBCATEGORIAS).tabelas
+    expect(roxos(novatos)).toEqual([['Piloto A'], [], ['Piloto C'], ['Piloto A', 'Piloto C'], []])
+  })
+
+  it('categoria sem subcategorias (ou nenhum piloto com subcategoria): uma tabela só, com posição e roxo da categoria', async () => {
+    const semSubs = montarMatrizes(await resultadoDeTeste(SUBS), [])
+    expect(semSubs.porSubcategoria).toBe(false)
+    expect(semSubs.tabelas).toHaveLength(1)
+    expect(semSubs.tabelas[0]).toEqual(expect.objectContaining({ chave: 'categoria', nome: null }))
+    const unica = montarMatriz(await resultadoDeTeste())
+    expect(semSubs.tabelas[0].linhas.map((l) => l.celulas)).toEqual(unica.linhas.map((l) => l.celulas))
+    expect(semSubs.tabelas[0].linhas.every((l) => l.celulas.every((c) => c.posicaoGeral === null))).toBe(true)
+
+    const ninguem = montarMatrizes(await resultadoDeTeste(), SUBCATEGORIAS)
+    expect(ninguem.porSubcategoria).toBe(false)
+    expect(roxos(ninguem.tabelas[0])).toEqual(roxos(unica))
+  })
+
+  it('grafia diferente vira a da categoria; subcategoria que saiu da lista vem depois das cadastradas', async () => {
+    const r = montarMatrizes(await resultadoDeTeste({ 101: 'novatos', 102: 'Antiga', 103: 'Novatos', 104: 'Junior', 105: 'Junior' }), SUBCATEGORIAS)
+    expect(r.tabelas.map((t) => [t.nome, t.linhas.map((l) => l.nome)])).toEqual([
+      ['Novatos', ['Piloto A', 'Piloto C']],
+      ['Junior', ['Piloto D', 'Piloto E']],
+      ['Antiga', ['Piloto B']],
+    ])
+  })
+
+  it('inscrição: subcategoria vazia ou um dos nomes da categoria (corrige maiúsculas e acentos)', () => {
+    const f400 = [{ nome: 'Novatos' }, { nome: 'Junior' }, { nome: 'Sênior' }, { nome: 'GSS/60+' }]
+    expect(conferirSubcategoria(undefined, f400, 'F400')).toEqual({ ok: true, valor: null })
+    expect(conferirSubcategoria('  ', f400, 'F400')).toEqual({ ok: true, valor: null })
+    expect(conferirSubcategoria('Junior', f400, 'F400')).toEqual({ ok: true, valor: 'Junior' })
+    expect(conferirSubcategoria(' senior ', f400, 'F400')).toEqual({ ok: true, valor: 'Sênior' })
+    expect(conferirSubcategoria('gss/60+', f400, 'F400')).toEqual({ ok: true, valor: 'GSS/60+' })
+    expect(conferirSubcategoria('Veteranos', f400, 'F400')).toEqual({
+      ok: false,
+      mensagem: '"Veteranos" não é uma subcategoria da categoria "F400". Use exatamente um destes nomes: "Novatos", "Junior", "Sênior" ou "GSS/60+".',
+    })
+    expect(conferirSubcategoria('Novatos', [], 'Cadete')).toEqual({
+      ok: false,
+      mensagem: 'A categoria "Cadete" não tem subcategorias. Deixe este campo em branco.',
+    })
+  })
+})
+
+describe('abas das subcategorias (navegador)', () => {
+  it('abas acessíveis: primeira ativa, clique e setas trocam a tabela mostrada', async () => {
+    ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+    const { act } = await import('react')
+    const { createRoot } = await import('react-dom/client')
+    const { AbasSubcategorias } = await import('@/components/site/resultados/AbasSubcategorias')
+    const abas = ['Novatos', 'Junior', 'Sem subcategoria'].map((nome, i) => ({
+      id: `p${i}`,
+      rotulo: nome,
+      painel: createElement('p', null, `Tabela ${nome}`),
+    }))
+    const caixa = document.body.appendChild(document.createElement('div'))
+    const raiz = createRoot(caixa)
+    await act(async () => raiz.render(createElement(AbasSubcategorias, { rotulo: 'Subcategorias de F400', abas })))
+
+    const lista = caixa.querySelector('[role="tablist"]')
+    expect(lista?.getAttribute('aria-label')).toBe('Subcategorias de F400')
+    const tabs = [...caixa.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false'])
+    expect(tabs.map((t) => t.tabIndex)).toEqual([0, -1, -1])
+    expect(tabs.map((t) => t.getAttribute('aria-controls'))).toEqual(['p0', 'p1', 'p2'])
+    const paineis = [...caixa.querySelectorAll('[role="tabpanel"]')]
+    expect(paineis).toHaveLength(3)
+    const visivel = () => paineis.filter((p) => !(p as HTMLElement).hidden).map((p) => p.textContent)
+    expect(visivel()).toEqual(['Tabela Novatos'])
+    expect(paineis[0].getAttribute('aria-labelledby')).toBe('p0-aba')
+
+    const tecla = (alvo: HTMLElement, key: string) =>
+      act(async () => {
+        alvo.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }))
+      })
+    await act(async () => tabs[2].click())
+    expect(visivel()).toEqual(['Tabela Sem subcategoria'])
+    await tecla(tabs[2], 'ArrowRight')
+    expect(visivel()).toEqual(['Tabela Novatos'])
+    expect(document.activeElement).toBe(tabs[0])
+    await tecla(tabs[0], 'ArrowLeft')
+    expect(visivel()).toEqual(['Tabela Sem subcategoria'])
+    await tecla(tabs[2], 'Home')
+    expect(visivel()).toEqual(['Tabela Novatos'])
+    await tecla(tabs[0], 'End')
+    expect(tabs[2].getAttribute('aria-selected')).toBe('true')
+    expect(tabs.map((t) => t.tabIndex)).toEqual([-1, -1, 0])
+    await act(async () => raiz.unmount())
+    caixa.remove()
   })
 })

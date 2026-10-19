@@ -18,8 +18,9 @@ const lerInscricao: Access = ({ req }) =>
   ehMembro(req.user) ? true : { 'temporada.visibilidade': { in: ['visivel', 'arquivado'] } }
 
 /**
- * Inscrições: o piloto em cada temporada e categoria, com número do kart, equipe e condição.
- * É daqui que saem o número e a equipe nas tabelas de resultados e de classificação.
+ * Inscrições: o piloto em cada temporada e categoria, com número do kart, subcategoria, equipe e condição.
+ * É daqui que saem o número e a equipe nas tabelas de resultados e de classificação, e a subcategoria que
+ * separa as tabelas do resultado da etapa no site.
  */
 export const Inscricoes: CollectionConfig = comAcessoRestrito({
   slug: COLECOES.inscricoes,
@@ -28,10 +29,10 @@ export const Inscricoes: CollectionConfig = comAcessoRestrito({
   admin: {
     group: 'Competição',
     useAsTitle: 'titulo',
-    defaultColumns: ['titulo', 'equipe', 'condicao', 'status'],
+    defaultColumns: ['titulo', 'subcategoria', 'equipe', 'condicao', 'status'],
     listSearchableFields: ['titulo'],
     description:
-      'Piloto × temporada × categoria: número do kart, equipe e condição. Um piloto que corre duas categorias tem duas inscrições. Para tirar alguém do campeonato sem apagar o histórico, mude o status.',
+      'Piloto × temporada × categoria: número do kart, subcategoria, equipe e condição. Um piloto que corre duas categorias tem duas inscrições. Para tirar alguém do campeonato sem apagar o histórico, mude o status.',
   },
   access: {
     read: lerInscricao,
@@ -86,8 +87,20 @@ export const Inscricoes: CollectionConfig = comAcessoRestrito({
           index: true,
           validate: validarInteiro(0, 999, 'O número'),
           admin: {
-            width: '30%',
+            width: '25%',
             description: 'Não pode repetir entre as inscrições ativas da categoria.',
+          },
+        },
+        {
+          // Conferida em prepararInscricao: vazia ou um dos nomes das subcategorias da categoria.
+          name: 'subcategoria',
+          label: 'Subcategoria',
+          type: 'text',
+          maxLength: 40,
+          admin: {
+            width: '30%',
+            description: 'Opcional. Escreva exatamente o nome de uma subcategoria da categoria (ex.: Novatos).',
+            components: { Description: '/components/admin/DescricaoSubcategoria#DescricaoSubcategoria' },
           },
         },
         {
@@ -95,7 +108,7 @@ export const Inscricoes: CollectionConfig = comAcessoRestrito({
           label: 'Equipe',
           type: 'relationship',
           relationTo: REL.equipes,
-          admin: { width: '70%', allowCreate: true, description: 'Opcional.' },
+          admin: { width: '45%', allowCreate: true, description: 'Opcional.' },
         },
       ],
     },

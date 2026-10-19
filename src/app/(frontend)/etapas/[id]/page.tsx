@@ -41,7 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Página da etapa. Antes da etapa, nesta ordem: comprar a etapa, comprar os treinos livres, a grade horária
  * dos treinos livres e a transmissão (karts profissionais e karts indoor). Depois da etapa as compras somem
  * sozinhas e aparece "Esta etapa já ocorreu em …"; a transmissão continua (a gravação fica no link) e
- * entra o resultado (matriz com o melhor do grid em roxo). A regra está em situacaoDaEtapa (src/lib/site.ts).
+ * entra o resultado (matriz por subcategoria, com o melhor tempo de cada sessão em roxo). A regra está em
+ * situacaoDaEtapa (src/lib/site.ts).
  */
 export default async function PaginaEtapa({ params }: Props) {
   const id = Number((await params).id)
@@ -219,7 +220,7 @@ export default async function PaginaEtapa({ params }: Props) {
           rotulo={resultado?.parcial ? 'Resultado parcial' : 'Resultado oficial'}
           titulo="Resultado da etapa"
           fundo={proximoFundo() ? 'branco' : 'papel'}
-          intro="Warm-up, classificação, corridas e o resultado da etapa de cada piloto. Em roxo, o melhor do grid em cada sessão."
+          intro="Warm-up, classificação, corridas e o resultado da etapa de cada piloto, por subcategoria quando a categoria tem. Em roxo, o melhor tempo de cada sessão."
         >
           <div className={e.pilhaModalidades}>
             {modalidadesResultado.map((m) => (

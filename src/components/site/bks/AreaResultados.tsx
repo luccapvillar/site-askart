@@ -156,7 +156,10 @@ export async function MatrizesDaModalidade({
                 <Titulo id={id} className={`titulo-marca h3 ${s.tituloCategoria}`}>
                   <TextoDemo texto={cat?.nome ?? c.categoriaNome} />
                 </Titulo>
-                <Subcategorias itens={cat?.subcategorias} rotulo={`Subcategorias de ${nome}`} />
+                {/* Com pilotos separados por subcategoria, as abas da tabela já mostram os nomes */}
+                {!c.corridas.some((k) => k.linhas.some((l) => l.subcategoria)) && (
+                  <Subcategorias itens={cat?.subcategorias} rotulo={`Subcategorias de ${nome}`} />
+                )}
               </div>
               {resultado?.parcial && <p className={s.parcial}>Resultado parcial</p>}
             </header>
@@ -170,6 +173,7 @@ export async function MatrizesDaModalidade({
               }}
               resultado={c}
               parcial={resultado?.parcial ?? false}
+              nivelTitulo={nivelTitulo === 3 ? 4 : 5}
             />
           </section>
         )

@@ -374,6 +374,63 @@ async function atualizarEventoPublico(payload: Payload): Promise<string> {
   return [data.textoEventoPublico && 'texto atualizado', data.itensEventoPublico && 'itens atualizados'].filter(Boolean).join(' e ')
 }
 
+/**
+ * Só na prévia com exemplos: os pilotos de demonstração ganham subcategorias e as corridas de exemplo ganham
+ * melhor volta, para os resultados por subcategoria aparecerem. Não toca em dado real.
+ */
+async function exemplosComSubcategorias(payload: Payload): Promise<string> {
+  const DEMO = '[DEMONSTRAÇÃO]'
+  const { docs: categorias } = await payload.find({ collection: 'categorias', limit: 100, depth: 0, overrideAccess: true })
+  const subsDe = new Map(
+    (categorias as { id: number; subcategorias?: { nome?: string | null }[] | null }[]).map((c) => [
+      c.id,
+      (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean),
+    ]),
+  )
+  const { docs } = await payload.find({ collection: 'inscricoes', limit: 2000, depth: 1, sort: 'id', overrideAccess: true, pagination: false })
+  type Insc = { id: number; categoria?: number | { id: number }; subcategoria?: string | null; piloto?: { nome?: string } | number }
+  const demo = (docs as Insc[]).filter((d) => typeof d.piloto === 'object' && String(d.piloto?.nome ?? '').startsWith(DEMO))
+  const idsDemo = new Set(demo.map((d) => d.id))
+  let inscricoes = 0
+  const porCategoria = new Map<number, Insc[]>()
+  for (const d of demo) {
+    const cat = typeof d.categoria === 'object' ? d.categoria?.id : d.categoria
+    if (cat) porCategoria.set(cat, [...(porCategoria.get(cat) ?? []), d])
+  }
+  for (const [cat, lista] of porCategoria) {
+    const subs = subsDe.get(cat) ?? []
+    if (!subs.length) continue
+    for (const [i, d] of lista.entries()) {
+      if (d.subcategoria) continue
+      await payload.update({
+        collection: 'inscricoes',
+        id: d.id,
+        data: { subcategoria: subs[Math.floor((i * subs.length) / lista.length)] } as never,
+        overrideAccess: true,
+        context: { ...contexto },
+      })
+      inscricoes++
+    }
+  }
+  let corridas = 0
+  const { docs: lista } = await payload.find({ collection: 'corridas', limit: 1000, depth: 0, overrideAccess: true, pagination: false })
+  type Res = { inscricao?: number | { id: number }; melhorVoltaMs?: number | null }
+  for (const [ci, c] of (lista as { id: number; resultados?: Res[] }[]).entries()) {
+    const res = c.resultados ?? []
+    const soDemo = res.length > 0 && res.every((r) => idsDemo.has(Number(typeof r.inscricao === 'object' ? r.inscricao?.id : r.inscricao)))
+    if (!soDemo || res.some((r) => r.melhorVoltaMs)) continue
+    await payload.update({
+      collection: 'corridas',
+      id: c.id,
+      data: { resultados: res.map((r, pos) => ({ ...r, melhorVoltaMs: 50_000 + (ci % 4) * 1_500 + pos * 110 + ((pos * 7_919 + ci * 104_729) % 640) })) } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+    corridas++
+  }
+  return `${inscricoes} inscrição(ões) de exemplo com subcategoria; ${corridas} corrida(s) de exemplo com melhor volta`
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -384,6 +441,7 @@ const ATUALIZACOES: Atualizacao[] = [
   { chave: 'atualizacao:2026-10-categorias-indoor', descricao: 'Categorias de kart indoor', aplicar: criarCategoriasIndoor },
   { chave: 'atualizacao:2026-10-evento-publico', descricao: 'Texto do evento aberto ao público', aplicar: atualizarEventoPublico },
   { chave: 'atualizacao:2026-10-kart-indoor-subcategorias', descricao: 'Kart indoor com subcategorias', aplicar: unificarKartIndoor },
+  { chave: 'atualizacao:2026-10-exemplos-por-subcategoria', descricao: 'Exemplos com subcategorias e melhor volta', aplicar: exemplosComSubcategorias },
 ]
 
 async function principal() {

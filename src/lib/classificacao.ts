@@ -189,6 +189,8 @@ export interface Inscricao {
   numero?: number | string | null
   equipe?: Id | null
   equipeNome?: string | null
+  /** Subcategoria da inscrição (ex.: "Novatos"), só para exibir os resultados separados; não muda pontos. */
+  subcategoria?: string | null
   /** Padrão: titular. */
   condicao?: CondicaoInscricao | null
   /** Padrão: ativa. */

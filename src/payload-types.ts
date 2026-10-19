@@ -1272,7 +1272,7 @@ export interface Piloto {
   createdAt: string;
 }
 /**
- * Piloto × temporada × categoria: número do kart, equipe e condição. Um piloto que corre duas categorias tem duas inscrições. Para tirar alguém do campeonato sem apagar o histórico, mude o status.
+ * Piloto × temporada × categoria: número do kart, subcategoria, equipe e condição. Um piloto que corre duas categorias tem duas inscrições. Para tirar alguém do campeonato sem apagar o histórico, mude o status.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "inscricoes".
@@ -1299,6 +1299,10 @@ export interface Inscricoe {
    * Não pode repetir entre as inscrições ativas da categoria.
    */
   numero?: number | null;
+  /**
+   * Opcional. Escreva exatamente o nome de uma subcategoria da categoria (ex.: Novatos).
+   */
+  subcategoria?: string | null;
   /**
    * Opcional.
    */
@@ -4273,6 +4277,7 @@ export interface InscricoesSelect<T extends boolean = true> {
   categoria?: T;
   piloto?: T;
   numero?: T;
+  subcategoria?: T;
   equipe?: T;
   condicao?: T;
   status?: T;
