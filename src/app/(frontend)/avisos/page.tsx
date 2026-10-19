@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ListaAvisos } from '@/components/site/avisos/ListaAvisos'
 import s from '@/components/site/avisos/Avisos.module.css'
+import { SeloNivel } from '@/components/site/avisos/SeloNivel'
+import { Paginacao } from '@/components/site/conteudo/Paginacao'
 import { EstadoVazio } from '@/components/site/EstadoVazio'
 import { TopoPagina } from '@/components/site/paginas/TopoPagina'
 import { comoDoc, lerAvisos, textosDaSecao } from '@/lib/publico'
@@ -35,36 +37,72 @@ export default async function Avisos({ searchParams }: { searchParams: Promise<{
   return (
     <>
       <TopoPagina
-        rotulo="ASKART · Kartódromo · BKS"
+        trilha={[{ rotulo: 'Avisos' }]}
+        rotulo="Comunicados oficiais da ASKART"
         titulo={textos?.titulo || 'Avisos'}
         intro={
           textos?.introducao ||
-          'Comunicados oficiais e avisos sobre treinos, etapas e o kartódromo. Os mais recentes aparecem primeiro.'
+          'Mudanças de treino, de etapa e de horário, cancelamentos e comunicados oficiais. Os mais recentes aparecem primeiro.'
         }
         foto={comoDoc<Midia>(textos?.imagem)}
       />
 
-      <section className="secao-compacta" aria-label="Avisos no ar">
-        <div className="conteiner">
-          {!avisos.length ? (
-            <EstadoVazio texto={textos?.textoVazio || 'Nenhum aviso no momento.'} />
-          ) : (
-            <>
-              <p className={s.contagem}>
-                {avisos.length === 1 ? '1 aviso no momento.' : `${avisos.length} avisos no momento.`}
-              </p>
+      <section className="secao-compacta fundo-papel" aria-labelledby="avisos-no-ar">
+        <div className={`conteiner ${s.pagina}`}>
+          <div className={s.principal}>
+            <h2 id="avisos-no-ar" className={s.contagem}>
+              {!avisos.length
+                ? 'Avisos no ar'
+                : avisos.length === 1
+                  ? '1 aviso no ar'
+                  : `${avisos.length} avisos no ar`}
+              {total > 1 && <span className="texto-2"> · página {pagina} de {total}</span>}
+            </h2>
+            {!avisos.length ? (
+              <EstadoVazio
+                texto={textos?.textoVazio || 'Nenhum aviso no momento.'}
+                acao={
+                  <Link className="link-seta" href="/noticias">
+                    Ver as notícias
+                  </Link>
+                }
+              />
+            ) : (
               <ListaAvisos avisos={daPagina} />
-            </>
-          )}
-          {total > 1 && (
-            <nav className={s.paginas} aria-label="Páginas de avisos">
-              {pagina > 1 && <Link href={`/avisos?pagina=${pagina - 1}`}>← Mais recentes</Link>}
-              <span className="texto-2" aria-current="page">
-                Página {pagina} de {total}
-              </span>
-              {pagina < total && <Link href={`/avisos?pagina=${pagina + 1}`}>Mais antigos →</Link>}
-            </nav>
-          )}
+            )}
+            <Paginacao pagina={pagina} total={total} base="/avisos" rotulo="Páginas de avisos" />
+          </div>
+
+          <aside className={s.lateral} aria-labelledby="sobre-avisos">
+            <h2 id="sobre-avisos" className={s.lateralTitulo}>
+              Como ler os avisos
+            </h2>
+            <p className="texto-2 texto-pequeno">Cada aviso traz o nível em texto e em ícone, do mais leve ao mais importante:</p>
+            <ul className={s.legenda} aria-label="Níveis dos avisos">
+              <li>
+                <SeloNivel nivel="informativo" />
+              </li>
+              <li>
+                <SeloNivel nivel="atencao" />
+              </li>
+              <li>
+                <SeloNivel nivel="urgente" />
+              </li>
+            </ul>
+            <p className="texto-2 texto-pequeno">Antes de ir ao kartódromo, confira também:</p>
+            <ul className={s.atalhos}>
+              <li>
+                <Link className="link-seta" href="/kartodromo#grade">
+                  Grade de treinos
+                </Link>
+              </li>
+              <li>
+                <Link className="link-seta" href="/bks">
+                  Calendário do BKS
+                </Link>
+              </li>
+            </ul>
+          </aside>
         </div>
       </section>
     </>

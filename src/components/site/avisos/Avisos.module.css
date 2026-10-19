@@ -1,17 +1,16 @@
-/* Aba de avisos (/avisos) e página de um aviso. Cores de nível com contraste AA sobre o fundo claro. */
+/* Aba de avisos (/avisos) e página de um aviso. Pares de cor do sistema (AA); o nível sempre aparece em texto. */
 
 /* ---------- Etiqueta do nível ---------- */
-
 .nivel {
-  --fundo-icone: #fff;
+  --fundo-icone: var(--info-fundo);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 3px 10px 3px 8px;
-  border-radius: 999px;
-  font-family: var(--fonte-mono);
+  border-radius: var(--raio-p);
+  font-family: var(--fonte);
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1.5;
@@ -22,51 +21,107 @@
   flex: none;
 }
 
-/* Texto escuro sobre fundo claro (≥ 7:1) */
 .informativo {
-  --fundo-icone: #e6eef8;
-  background: #e6eef8;
-  color: #1d4f8a;
+  --fundo-icone: var(--info-fundo);
+  background: var(--info-fundo);
+  color: var(--info-texto);
 }
 
 .atencao {
-  --fundo-icone: #fbf0d4;
-  background: #fbf0d4;
-  color: #6b4700;
+  --fundo-icone: var(--atencao-fundo);
+  background: var(--atencao-fundo);
+  color: var(--atencao-texto);
 }
 
 /* Urgente: cheio, texto branco (≥ 7:1) */
 .urgente {
-  --fundo-icone: #a32a1d;
-  background: #a32a1d;
+  --fundo-icone: var(--perigo-texto);
+  background: var(--perigo-texto);
   color: #fff;
 }
 
-/* ---------- Lista ---------- */
+/* ---------- Página: lista + coluna lateral ---------- */
+.pagina {
+  display: grid;
+  gap: 32px;
+}
 
+@media (min-width: 1040px) {
+  .pagina {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 48px;
+    align-items: start;
+  }
+}
+
+.principal {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.contagem {
+  font-size: 1.125rem;
+  font-weight: 750;
+}
+
+.lateral {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--linha);
+  border-top: 4px solid var(--verde);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
+@media (min-width: 1040px) {
+  .lateral {
+    position: sticky;
+    top: calc(var(--cabecalho) + 24px);
+  }
+}
+
+.lateralTitulo {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.atalhos {
+  display: grid;
+  border-top: 1px solid var(--linha);
+}
+
+/* ---------- Lista ---------- */
 .lista {
   display: grid;
   gap: 14px;
-  max-width: 880px;
 }
 
 .cartao {
-  --cor: #2f6db3;
+  --cor: var(--info);
   position: relative;
   background: var(--branco);
   border: 1px solid var(--linha);
   border-inline-start: 6px solid var(--cor);
   border-radius: var(--raio-g);
+  box-shadow: var(--sombra-1);
 }
 
 .cartao-atencao {
-  --cor: #c98a00;
+  --cor: var(--atencao);
 }
 
 .cartao-urgente {
-  --cor: #c23b2b;
-  background: #fdf4f2;
-  border-color: color-mix(in oklab, #c23b2b 35%, transparent);
+  --cor: var(--perigo);
+  background: color-mix(in oklab, var(--perigo-fundo) 55%, white);
+  border-color: color-mix(in oklab, var(--perigo) 35%, transparent);
   border-inline-start-color: var(--cor);
 }
 
@@ -78,7 +133,7 @@
 
 @media (min-width: 700px) {
   .conteudo {
-    padding: 22px 26px 22px 22px;
+    padding: 22px 28px 22px 24px;
   }
 }
 
@@ -87,28 +142,26 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 12px;
-  margin: 0;
 }
 
 .tipo {
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--texto);
 }
 
 .data {
-  font-family: var(--fonte-mono);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--texto-2);
 }
 
 .titulo {
-  margin: 0;
   font-variation-settings: 'wdth' 106;
-  font-weight: 780;
+  font-weight: 800;
   font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
   line-height: 1.25;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
@@ -130,29 +183,31 @@
 }
 
 .cartao:has(.link:focus-visible) {
-  outline: 3px solid var(--marca-escuro);
+  outline: 3px solid var(--foco);
   outline-offset: 3px;
 }
 
 @supports not selector(:has(*)) {
   .link:focus-visible {
-    outline: 3px solid var(--marca-escuro);
+    outline: 3px solid var(--foco);
     outline-offset: 3px;
   }
 }
 
 .cartao:hover .link {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
 }
 
 .cartao:hover {
   border-color: color-mix(in oklab, var(--cor) 55%, transparent);
   border-inline-start-color: var(--cor);
+  box-shadow: var(--sombra);
 }
 
 .resumo {
-  margin: 0;
+  max-width: 70ch;
   color: var(--texto-2);
 }
 
@@ -160,16 +215,19 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
   font-size: 0.875rem;
   color: var(--texto-2);
 }
 
+.extras li::before {
+  content: '•';
+  margin-right: 6px;
+  color: var(--texto-2);
+}
+
 .ler {
-  font-size: 0.875rem;
-  font-weight: 650;
+  font-size: 0.9375rem;
+  font-weight: 750;
   color: var(--verde-escuro);
 }
 
@@ -179,44 +237,14 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .cartao {
-    transition: border-color 0.18s var(--curva);
+    transition: border-color var(--duracao) var(--curva), box-shadow var(--duracao) var(--curva);
   }
 
   .seta {
-    transition: transform 0.18s var(--curva);
+    transition: transform var(--duracao) var(--curva);
   }
 
   .cartao:hover .seta {
     transform: translateX(3px);
   }
-}
-
-/* ---------- Contagem e páginas ---------- */
-
-.contagem {
-  margin: 0 0 18px;
-  font-size: 0.9375rem;
-  color: var(--texto-2);
-}
-
-.paginas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  align-items: center;
-  justify-content: center;
-  max-width: 880px;
-  margin-top: 36px;
-}
-
-.paginas a {
-  color: var(--verde-escuro);
-  font-weight: 650;
-}
-
-/* ---------- Página do aviso ---------- */
-
-.voltar {
-  font-weight: 650;
-  color: var(--verde-escuro);
 }

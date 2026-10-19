@@ -50,6 +50,6 @@ export function relacionadosDoAviso(a: Pick<Aviso, 'etapa' | 'treino'>): Relacio
   const etapa = comoDoc<Etapa>(a.etapa)
   if (etapa?.id) lista.push({ rotulo: semDemo(etapa.nome) || `${etapa.numero}ª etapa`, href: `/etapas/${etapa.id}` })
   const treino = comoDoc<Treino>(a.treino)
-  if (treino?.data) lista.push({ rotulo: `Treino de ${formatarData(treino.data)}`, href: '/kartodromo#treinos' })
+  if (treino?.data) lista.push({ rotulo: `Treino de ${formatarData(treino.data)}`, href: '/kartodromo#grade' })
   return lista
 }

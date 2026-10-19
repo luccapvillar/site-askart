@@ -7,33 +7,46 @@
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  padding: 14px 16px;
+  padding: 16px 18px;
   background: var(--branco);
   border: 1px solid var(--linha);
   border-radius: var(--raio-g);
+  box-shadow: var(--sombra-1);
 }
 
 .escuro .canal {
   background: rgb(255 255 255 / 0.05);
   border-color: var(--linha-clara);
+  box-shadow: none;
 }
 
 .icone {
   flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--marca-primaria);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
+}
+
+.escuro .icone {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--amarelo);
 }
 
 .textos {
   display: grid;
   gap: 2px;
   min-width: 0;
+  padding-top: 1px;
 }
 
 .rotulo {
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--texto-2);
 }
@@ -45,19 +58,50 @@
 
 .valor {
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
+}
+
+a.valor {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo);
+  margin-block: -8px;
+  color: var(--verde-escuro);
+  text-underline-offset: 3px;
+}
+
+.escuro a.valor {
+  color: var(--amarelo);
 }
 
 .provisorio {
   justify-self: start;
-  margin-top: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: #fff4c2;
-  color: #4a3b00;
-  font-size: 0.75rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: var(--raio-p);
+  background: var(--atencao-fundo);
+  color: var(--atencao-texto);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.provisorio::before {
+  content: '!';
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--atencao-texto);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .obs {

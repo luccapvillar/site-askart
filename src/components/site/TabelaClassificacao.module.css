@@ -1,48 +1,98 @@
 /*
- * Classificação estilo folha de cronometragem.
- * Celular: colunas fixas (posição, piloto, pontos) + detalhes expansíveis por piloto.
- * Telas maiores: tabela completa com colunas por etapa (rolagem horizontal se necessário).
+ * Tabela de liderança de uma categoria.
+ * Celular: posição, piloto e pontos (vitórias, pódios, corridas e etapas ficam em "Detalhes").
+ * Telas maiores: tabela completa com a pontuação de cada etapa (rolagem horizontal se precisar).
  */
+.moldura {
+  position: relative;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
 .tabela {
   font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .tabela th,
 .tabela td {
-  padding: 12px 10px;
+  padding: 12px 12px;
   border-bottom: 1px solid var(--linha);
   text-align: left;
   vertical-align: middle;
   white-space: nowrap;
 }
 
+.tabela tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
 .tabela thead th {
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
+  background: var(--papel);
+  font-size: var(--fs-mini);
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--texto-2);
-  border-bottom: 2px solid var(--texto);
+  border-bottom: 1px solid var(--linha-forte);
+}
+
+.tabela abbr {
+  text-decoration: none;
 }
 
 .num {
   text-align: right !important;
-  font-family: var(--fonte-mono);
   font-variant-numeric: tabular-nums;
 }
 
-.pos {
+.colPos {
   width: 1%;
-  font-family: var(--fonte);
-  font-variation-settings: 'wdth' 118;
-  font-style: italic;
-  font-weight: 850;
-  font-size: 1.125rem;
+  padding-right: 4px !important;
+}
+
+.colPiloto {
+  font-weight: 400;
+  width: 100%;
+}
+
+.colEtapa {
+  min-width: 3.25rem;
+}
+
+.colPontos {
+  width: 1%;
+}
+
+/* Posição: número em bloco; pódio com a placa amarela (1º) e cinzas (2º e 3º) */
+.pos {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 6px;
+  border-radius: var(--raio-p);
+  font-variation-settings: 'wdth' 110;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.p1 {
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
+}
+
+.p2,
+.p3 {
+  background: var(--papel-2);
+  color: var(--texto);
 }
 
 .pontos {
-  font-weight: 700;
+  font-variation-settings: 'wdth' 106;
+  font-weight: 800;
   font-size: 1.0625rem;
 }
 
@@ -54,44 +104,60 @@
   white-space: normal;
 }
 
-.piloto a {
-  font-weight: 650;
+.pilotoTextos {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.piloto a,
+.nome {
+  font-weight: 700;
+  color: var(--texto);
   text-decoration: none;
 }
 
 .piloto a:hover {
   text-decoration: underline;
+  text-decoration-thickness: 2px;
 }
 
 .equipe {
-  display: block;
   font-size: 0.8125rem;
   color: var(--texto-2);
   font-weight: 400;
 }
 
-.lider td {
-  background: color-mix(in oklab, var(--amarelo) 16%, transparent);
+.convidado {
+  margin-top: 2px;
+}
+
+/* Líder: faixa amarela suave em toda a linha */
+.lider > * {
+  background: color-mix(in oklab, var(--amarelo) 14%, white);
 }
 
 .variacao {
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.6875rem;
+  vertical-align: middle;
 }
 
-.sobe { color: var(--ok); }
-.desce { color: var(--perigo); }
+.sobe {
+  color: var(--ok-texto);
+}
+
+.desce {
+  color: var(--perigo-texto);
+}
 
 .descartado {
   text-decoration: line-through;
   color: var(--texto-2);
 }
 
-.convidado {
-  margin-left: 6px;
-}
-
-/* Celular: só posição, piloto e pontos; o resto vai para "detalhes" */
+/* Celular: só posição, piloto e pontos; o resto vai para "Detalhes" */
 .detalhe {
   display: none;
 }
@@ -103,7 +169,7 @@
 
   .tabela th,
   .tabela td {
-    padding: 10px 6px;
+    padding: 10px 8px;
   }
 
   .detalhe {
@@ -111,37 +177,68 @@
   }
 
   .detalhe td {
-    padding: 0 6px 12px;
-    border-bottom: 1px solid var(--linha);
+    padding: 0 8px 4px 52px;
   }
 
-  .comDetalhe td {
+  .comDetalhe > * {
+    border-bottom: 0 !important;
+  }
+
+  .detalhe:last-child td {
     border-bottom: 0;
   }
 
+  .lider + .detalhe td {
+    background: color-mix(in oklab, var(--amarelo) 14%, white);
+  }
+
   .detalhes summary {
-    font-family: var(--fonte-mono);
-    font-size: 0.75rem;
-    color: var(--texto-2);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: var(--alvo);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--verde-escuro);
     cursor: pointer;
+    list-style: none;
+  }
+
+  .detalhes summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .detalhes summary::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-top: -3px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+  }
+
+  .detalhes[open] summary::after {
+    margin-top: 3px;
+    transform: rotate(-135deg);
   }
 
   .detalhes dl {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-top: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 12px;
+    padding: 4px 0 6px;
   }
 
   .detalhes dt {
     font-size: 0.6875rem;
-    font-family: var(--fonte-mono);
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--texto-2);
   }
 
   .detalhes dd {
-    font-family: var(--fonte-mono);
-    font-weight: 600;
+    font-weight: 750;
   }
 }

@@ -32,8 +32,8 @@
   width: 100%;
   padding: 16px;
   border: 0;
-  border-bottom: 4px solid var(--camp-p, var(--marca-primaria));
-  background: var(--asfalto);
+  border-bottom: 4px solid var(--vermelho);
+  background: radial-gradient(120% 90% at 50% 40%, var(--noite-2), var(--noite));
   color: var(--texto-claro);
   font: inherit;
   text-align: center;
@@ -51,8 +51,8 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--camp-p, var(--marca-primaria));
-  color: var(--camp-sobre-p, var(--sobre-primaria, #fff));
+  background: var(--vermelho);
+  color: #fff;
   box-shadow: 0 0 0 4px rgb(255 255 255 / 0.14);
 }
 
@@ -78,7 +78,11 @@
 
 .link {
   justify-self: start;
-  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--alvo);
+  font-weight: 700;
   color: var(--verde-escuro);
 }
 

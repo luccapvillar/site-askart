@@ -55,12 +55,19 @@
 
 /* ---------- Tabela ---------- */
 .rolagem {
+  /* Contém os textos só para leitor de tela (posição absoluta) dentro da rolagem: sem isso eles "vazam" e a página rola para o lado */
+  position: relative;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   border: 1px solid var(--linha);
-  border-radius: var(--raio);
+  border-radius: var(--raio-g);
   background: var(--branco);
+}
+
+.rolagem:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
 }
 
 .matriz {
@@ -85,15 +92,16 @@
 }
 
 .matriz thead th {
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  background: var(--papel);
+  font-family: var(--fonte);
+  font-size: var(--fs-mini);
+  font-weight: 750;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--texto-2);
   white-space: nowrap;
   vertical-align: bottom;
-  border-bottom: 2px solid var(--texto);
+  border-bottom: 1px solid var(--linha-forte);
 }
 
 .subtitulo {
@@ -119,6 +127,7 @@
 
 .matriz thead .colPiloto {
   z-index: 2;
+  background: var(--papel);
 }
 
 .piloto {
@@ -158,7 +167,13 @@
 }
 
 .colEtapa {
-  background: var(--papel);
+  background: color-mix(in oklab, var(--papel) 70%, white);
+  box-shadow: inset 1px 0 0 var(--linha);
+}
+
+.matriz thead .colEtapa {
+  background: var(--papel-2);
+  color: var(--texto);
 }
 
 .conteudo {
@@ -173,8 +188,9 @@
 }
 
 .posicao {
-  font-size: 1rem;
-  font-weight: 800;
+  font-variation-settings: 'wdth' 108;
+  font-size: 1.0625rem;
+  font-weight: 850;
   font-variant-numeric: tabular-nums;
 }
 

@@ -1,12 +1,9 @@
-import type { ClassificacaoCarregada, ResultadoCategoriaNaEtapa } from '@/lib/carregar-competicao'
+import type { ClassificacaoCarregada } from '@/lib/carregar-competicao'
 import { ROTULOS_CRITERIO } from '@/lib/classificacao'
 import { EstadoVazio } from '../EstadoVazio'
-import { PlacaNumero } from '../PlacaNumero'
 import { TabelaClassificacao, type LinhaTabela } from '../TabelaClassificacao'
 import { separarDemo } from '../TextoDemo'
 import s from './Bks.module.css'
-
-const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','))
 
 /** Linhas do motor de classificação → linhas da tabela do site (prefixo de demonstração retirado). */
 export function linhasDaTabela(c: ClassificacaoCarregada): { linhas: LinhaTabela[]; demo: boolean } {
@@ -34,8 +31,16 @@ export function linhasDaTabela(c: ClassificacaoCarregada): { linhas: LinhaTabela
   return { linhas, demo }
 }
 
+/** Aviso de que a tabela tem dados de demonstração (com o selo "Exemplo", como no resto do site). */
 export function AvisoExemplo() {
-  return <p className={s.avisoExemplo}>Nomes, equipes e pontos desta tabela são exemplos de demonstração.</p>
+  return (
+    <p className={s.avisoExemplo}>
+      <span className={s.avisoExemploSelo} aria-hidden="true">
+        Exemplo
+      </span>
+      Nomes, equipes e pontos desta tabela são exemplos de demonstração.
+    </p>
+  )
 }
 
 /** Classificação de uma categoria (tabela de liderança: piloto e pontos). */
@@ -73,60 +78,6 @@ export function ClassificacaoCategoria({
           {classificacao.fonte === 'manual' ? ' Classificação lançada pela organização.' : ''}
         </p>
       )}
-    </div>
-  )
-}
-
-/** Resultado de uma categoria numa etapa: cada sessão oficial (as que não valem pontos, como o warm-up, sem a coluna de pontos). */
-export function ResultadoCategoria({ resultado, cor }: { resultado: ResultadoCategoriaNaEtapa; cor?: string | null }) {
-  const nomeCat = separarDemo(resultado.categoriaNome).texto || 'Categoria'
-  if (!resultado.corridas.length) return null
-  const demo = resultado.corridas.some((c) => c.linhas.some((l) => separarDemo(l.nome).demo))
-  return (
-    <div className={s.blocoTabela}>
-      {demo && <AvisoExemplo />}
-      {resultado.corridas.map((corrida) => (
-        <div key={String(corrida.id)} className="rolagem-x">
-          <table className={s.resultado}>
-            <caption>
-              {separarDemo(corrida.nome).texto}
-              <span className="visualmente-oculto"> — {nomeCat}</span>
-              {!corrida.conta && <span className={s.equipe}>Não vale pontos</span>}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Pos.</th>
-                <th scope="col">Piloto</th>
-                {corrida.conta && <th scope="col" className={s.num}>Pontos</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {corrida.linhas.map((l) => {
-                const nome = separarDemo(l.nome).texto
-                const situacao =
-                  l.status === 'abandono' ? 'Abandono' : l.status === 'desclassificado' ? 'Desclassificado' : l.status === 'nao-largou' ? 'Não largou' : l.status === 'nao-classificado' ? 'Não classificado' : null
-                return (
-                  <tr key={`${l.indice}`}>
-                    <td className={s.pos}>{l.posicaoCategoria ?? '—'}</td>
-                    <td>
-                      <span className={s.pilotoLinha}>
-                        <PlacaNumero numero={l.numero} cor={cor} tamanho="p" />
-                        <span>
-                          <strong>{nome}</strong>
-                          {l.equipeNome && <span className={s.equipe}>{separarDemo(l.equipeNome).texto}</span>}
-                          {situacao && <span className={s.situacao}>{situacao}</span>}
-                          {l.voltaMaisRapida && <span className={s.situacao}>Volta mais rápida</span>}
-                        </span>
-                      </span>
-                    </td>
-                    {corrida.conta && <td className={`${s.num} ${s.pontosCel}`}>{fmt(l.pontos)}</td>}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
     </div>
   )
 }

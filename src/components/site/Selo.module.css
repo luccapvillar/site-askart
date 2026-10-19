@@ -1,36 +1,69 @@
+/* Etiqueta de status. Pares de cor texto/fundo com contraste AA; o texto sempre diz o status. */
 .selo {
   --cor: var(--neutro);
+  --selo-texto: var(--neutro-texto);
+  --selo-fundo: var(--neutro-fundo);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 3px 9px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--cor) 14%, transparent);
-  color: color-mix(in oklab, var(--cor) 82%, black);
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
+  border-radius: var(--raio-p);
+  background: var(--selo-fundo);
+  color: var(--selo-texto);
+  font-family: var(--fonte);
+  font-size: 0.71875rem;
+  font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  line-height: 1.5;
+  line-height: 1.45;
   white-space: nowrap;
 }
 
 :global(.escuro) .selo {
-  color: color-mix(in oklab, var(--cor) 50%, white);
-  background: color-mix(in oklab, var(--cor) 26%, transparent);
+  background: color-mix(in oklab, var(--cor) 28%, transparent);
+  color: color-mix(in oklab, var(--cor) 40%, white);
 }
 
 .ponto {
-  width: 6px;
-  height: 6px;
+  flex: none;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: var(--cor);
 }
 
-.ok { --cor: var(--ok); }
-.atencao { --cor: var(--atencao); }
-.perigo { --cor: var(--perigo); }
-.info { --cor: var(--info); }
-.neutro { --cor: var(--neutro); }
-.marca { --cor: var(--verde); }
+.ok {
+  --cor: var(--ok);
+  --selo-texto: var(--ok-texto);
+  --selo-fundo: var(--ok-fundo);
+}
+
+.atencao {
+  --cor: var(--atencao);
+  --selo-texto: var(--atencao-texto);
+  --selo-fundo: var(--atencao-fundo);
+}
+
+.perigo {
+  --cor: var(--perigo);
+  --selo-texto: var(--perigo-texto);
+  --selo-fundo: var(--perigo-fundo);
+}
+
+.info {
+  --cor: var(--info);
+  --selo-texto: var(--info-texto);
+  --selo-fundo: var(--info-fundo);
+}
+
+.neutro {
+  --cor: var(--neutro);
+  --selo-texto: var(--neutro-texto);
+  --selo-fundo: var(--neutro-fundo);
+}
+
+.marca {
+  --cor: var(--verde);
+  --selo-texto: var(--verde-escuro);
+  --selo-fundo: var(--verde-tinta);
+}
