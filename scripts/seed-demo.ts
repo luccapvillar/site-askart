@@ -10,7 +10,7 @@
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
-import { contexto, DEMO, emBrasilia, fotosOficiais, type Id, publicarPorPadrao } from './comum'
+import { contexto, criarSessoesDeExemplo, DEMO, emBrasilia, fotosOficiais, type Id, publicarPorPadrao } from './comum'
 
 const d = (texto: string) => `${DEMO} ${texto}`
 const ANO = 2026
@@ -172,7 +172,14 @@ export async function semearDemonstracao(payload: Payload) {
       },
     })
     etapas.push(etapa.id as Id)
+    // Etapas futuras: F400 e 125cc com Warm-up, Classificação, Corrida 1 e Corrida 2 de cada subcategoria, cada
+    // uma no seu horário (exemplo para o seletor "Escolha a subcategoria"); as demais categorias, a Final
+    const porSubcategoria = realizada
+      ? []
+      : categorias.map((id) => ({ id, subcategorias: subcategoriasDe.get(id) ?? [] })).filter((c) => c.subcategorias.length > 0)
+    if (porSubcategoria.length) await criarSessoesDeExemplo(payload, { id: etapa.id as Id, inicio: etapa.inicio as string }, porSubcategoria)
     for (const [ci, categoria] of categorias.entries()) {
+      if (porSubcategoria.some((c) => c.id === categoria)) continue
       const inscritos = inscricoesPorCategoria.get(categoria) ?? []
       const ordem = embaralhar(inscritos, (i + 1) * 31 + ci * 7)
       await payload.create({

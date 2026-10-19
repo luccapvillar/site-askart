@@ -3,7 +3,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { MatrizesDaModalidade, resultadoComCategorias } from '@/components/site/bks/AreaResultados'
 import b from '@/components/site/bks/Bks.module.css'
-import { DataEtapa, dataPorExtenso, LinkMapa, mapaDeSubcategorias, NomeEtapa, nomeDaEtapa, Programacao, SeloEtapa } from '@/components/site/bks/pecas'
+import {
+  chaveDaCategoria,
+  DataEtapa,
+  dataPorExtenso,
+  LinkMapa,
+  mapaDeSubcategorias,
+  NomeEtapa,
+  nomeDaEtapa,
+  opcoesDeSubcategoria,
+  Programacao,
+  SeloEtapa,
+} from '@/components/site/bks/pecas'
+import { SeletorSubcategoria } from '@/components/site/bks/SeletorSubcategoria'
 import { Etiquetas } from '@/components/site/base/Etiquetas'
 import { Botao } from '@/components/site/Botao'
 import { CartaoNoticia, GradeCartoes } from '@/components/site/Cartoes'
@@ -18,7 +30,7 @@ import { TextoRico } from '@/components/site/TextoRico'
 import { formatarData, formatarHora } from '@/lib/datas'
 import { creditosDasFotos, fotosDaGaleria } from '@/lib/galeria'
 import { comoDoc, lerBks, lerConfiguracoes, lerContato, lerConteudoDaEtapa, lerEtapa, lerProgramacao, lerResultadosEtapa } from '@/lib/publico'
-import { caminhoDaArea, corridaNaModalidade, eventoPublico, mapaDaEtapa, modalidadesDaEtapa, ROTULO_MODALIDADE, situacaoDaEtapa } from '@/lib/site'
+import { caminhoDaArea, corridaNaModalidade, eventoPublico, mapaDaEtapa, modalidadeDe, modalidadesDaEtapa, ROTULO_MODALIDADE, situacaoDaEtapa } from '@/lib/site'
 import type { Campeonato, Categoria, CategoriasNoticia, Midia, Temporada } from '@/payload-types'
 
 export const revalidate = 60
@@ -71,6 +83,10 @@ export default async function PaginaEtapa({ params }: Props) {
   const temDescricao = Boolean((etapa.descricao as { root?: { children?: unknown[] } } | null)?.root?.children?.length)
   const categorias = (etapa.categorias ?? []).filter((c): c is Categoria => typeof c === 'object' && c !== null)
   const subcategorias = mapaDeSubcategorias(categorias)
+  // Seletor "Escolha a subcategoria": as categorias da etapa (e as das corridas, se a etapa não as listar)
+  const categoriasDasCorridas = programacao.flatMap((c) => (c.categorias ?? []).filter((x): x is Categoria => typeof x === 'object' && x !== null))
+  const opcoesSeletor = opcoesDeSubcategoria([...categorias, ...categoriasDasCorridas])
+  const comSeletor = programacao.length > 0 && opcoesSeletor.flatMap((g) => g.opcoes).length > 1
   const areaPrincipal = modalidadesProgramacao.includes('profissional') ? 'profissional' : 'indoor'
   const sigla = semDemo(campeonato?.sigla) || 'BKS'
   const mapa = mapaDaEtapa(etapa, contato)
@@ -190,11 +206,18 @@ export default async function PaginaEtapa({ params }: Props) {
       )}
 
       <Secao id="programacao" rotulo="Horários" titulo="Programação por categoria" fundo={proximoFundo() ? 'branco' : 'papel'}>
-        <div className={e.programacao}>
+        {comSeletor && (
+          <SeletorSubcategoria
+            alvo="programacao-horarios"
+            grupos={opcoesSeletor}
+            ajuda="A programação abaixo passa a mostrar só os horários da subcategoria escolhida."
+          />
+        )}
+        <div className={e.programacao} id="programacao-horarios">
           {modalidadesProgramacao.map((m) => {
             const corridas = programacao.filter((c) => corridaNaModalidade(c, m))
             return (
-              <section key={m} aria-labelledby={`programacao-${m}`} className={e.blocoModalidade}>
+              <section key={m} aria-labelledby={`programacao-${m}`} className={e.blocoModalidade} data-programacao-modalidade={m}>
                 <h3 id={`programacao-${m}`} className={`titulo-marca h3 ${e.tituloModalidade}`}>
                   {ROTULO_MODALIDADE[m]}
                 </h3>
@@ -202,6 +225,8 @@ export default async function PaginaEtapa({ params }: Props) {
                   corridas={corridas}
                   subcategorias={subcategorias}
                   vazio={`A programação dos ${ROTULO_MODALIDADE[m].toLowerCase()} nesta etapa ainda não foi publicada.`}
+                  // Etapa sem categorias escolhidas = todas as da temporada: não dá para dizer "não corre"
+                  categoriasDaEtapa={categorias.length ? categorias.filter((c) => modalidadeDe(c) === m).map(chaveDaCategoria) : null}
                 />
               </section>
             )

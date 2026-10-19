@@ -30,7 +30,19 @@ import { semDemo } from '../TextoDemo'
 import { NavegacaoBks } from './AbasBks'
 import { fotosDoBks } from './fotos'
 import { CabecalhoArea, CategoriasDaArea } from './Modalidades'
-import { DataEtapa, dataPorExtenso, LinkEtapa, LinkMapa, mapaDeSubcategorias, NomeEtapa, Programacao, SeloEtapa } from './pecas'
+import {
+  chaveDaCategoria,
+  DataEtapa,
+  dataPorExtenso,
+  LinkEtapa,
+  LinkMapa,
+  mapaDeSubcategorias,
+  NomeEtapa,
+  opcoesDeSubcategoria,
+  Programacao,
+  SeloEtapa,
+} from './pecas'
+import { SeletorSubcategoria } from './SeletorSubcategoria'
 import { FaixaFotosBks, VenhaAssistir } from './VenhaAssistir'
 import s from './Bks.module.css'
 
@@ -42,8 +54,10 @@ const VAZIO: Record<Modalidade, string> = {
 /**
  * Calendário de uma área do BKS (karts profissionais ou indoor): as etapas que têm categoria da
  * modalidade, em cartões; tocar no cartão abre os horários de cada categoria, a compra, os treinos livres,
- * a transmissão e o local (sem JavaScript: <details>). Depois, as categorias da área com as subcategorias,
- * as fotos do campeonato e o bloco geral "Venha assistir".
+ * a transmissão e o local (sem JavaScript: <details>). No topo, o seletor "Escolha a subcategoria": todos os
+ * cartões passam a mostrar só os horários da subcategoria escolhida (Warm-up, Classificação, Corrida 1,
+ * Corrida 2…). Depois, as categorias da área com as subcategorias, as fotos do campeonato e o bloco geral
+ * "Venha assistir".
  */
 export async function AreaCalendario({ modalidade }: { modalidade: Modalidade }) {
   const [bks, config, contato, textos, todasDaModalidade, idsDeTreino, fotos] = await Promise.all([
@@ -63,6 +77,11 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
   const publico = eventoPublico(config)
   const categorias = categoriasDaArea(todasDaModalidade, modalidade, idsDasCategorias([...todasAsEtapas, ...corridas]), new Set(idsDeTreino))
   const subcategorias = mapaDeSubcategorias(todasDaModalidade)
+  // Seletor "Escolha a subcategoria": as categorias da área, cada uma com as suas subcategorias
+  const opcoesSeletor = opcoesDeSubcategoria(categorias)
+  // Só com alguma sessão publicada (sem programação nenhuma, o seletor só mostraria avisos)
+  const comSeletor = corridas.length > 0 && opcoesSeletor.flatMap((g) => g.opcoes).length > 1
+  const idEtapas = `etapas-${modalidade}`
   // O texto "vazio" personalizado no painel vale para a área dos karts profissionais (a que existia antes)
   const textoVazio = modalidade === 'profissional' ? textos?.textoVazio || VAZIO.profissional : VAZIO.indoor
   const realizadas = etapas.filter((e) => situacaoDaEtapa(e).jaOcorreu).length
@@ -102,15 +121,23 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
                   </>
                 )}
               </p>
-              <ol className={s.calendario}>
+              {comSeletor && (
+                <SeletorSubcategoria
+                  alvo={idEtapas}
+                  grupos={opcoesSeletor}
+                  ajuda="Os horários de todas as etapas abaixo passam a mostrar só a subcategoria escolhida."
+                />
+              )}
+              <ol className={s.calendario} id={idEtapas}>
                 {etapas.map((etapa) => {
                   const programacao = corridas.filter((c) => idDe(c.etapa) === etapa.id)
                   // Compra, treinos livres e grade somem sozinhos depois da etapa (página revalidada a cada minuto)
                   const situacao = situacaoDaEtapa(etapa)
                   const ehProxima = proxima?.id === etapa.id
-                  const nomesCategorias = (etapa.categorias ?? [])
-                    .filter((c): c is Categoria => typeof c === 'object' && c !== null && modalidadeDe(c) === modalidade)
-                    .map((c) => semDemo(c.nome))
+                  const categoriasDaEtapa = (etapa.categorias ?? []).filter(
+                    (c): c is Categoria => typeof c === 'object' && c !== null && modalidadeDe(c) === modalidade,
+                  )
+                  const nomesCategorias = categoriasDaEtapa.map((c) => semDemo(c.nome))
                   const classes = [s.etapa, ehProxima && s.etapaProxima, situacao.jaOcorreu && s.etapaPassada, situacao.cancelada && s.etapaCancelada]
                   return (
                     <li key={etapa.id}>
@@ -140,7 +167,12 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
                         <div className={s.etapaCorpo}>
                           <div className={s.etapaHorarios}>
                             <h3 className={`rotulo ${s.corpoRotulo}`}>Horários por categoria</h3>
-                            <Programacao corridas={programacao} subcategorias={subcategorias} />
+                            <Programacao
+                              corridas={programacao}
+                              subcategorias={subcategorias}
+                              // Etapa sem categorias escolhidas = todas as da temporada: não dá para dizer "não corre"
+                              categoriasDaEtapa={etapa.categorias?.length ? categoriasDaEtapa.map(chaveDaCategoria) : null}
+                            />
                             {nomesCategorias.length > 0 && !programacao.length && <p className="texto-2">Categorias: {nomesCategorias.join(', ')}.</p>}
                           </div>
                           <div className={s.etapaLado}>

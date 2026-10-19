@@ -433,7 +433,7 @@
 }
 
 @media (min-width: 1040px) {
-  .programacao:has(> .blocoModalidade + .blocoModalidade) {
+  .programacao:has(> .blocoModalidade:not([hidden]) + .blocoModalidade:not([hidden])) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
   }
@@ -444,6 +444,11 @@
   display: grid;
   gap: 14px;
   min-width: 0;
+}
+
+/* Escolhida uma subcategoria de outra modalidade no seletor, o bloco some */
+.blocoModalidade[hidden] {
+  display: none;
 }
 
 .tituloModalidade {

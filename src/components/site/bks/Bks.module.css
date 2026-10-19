@@ -897,6 +897,35 @@
   color: var(--texto-2);
 }
 
+/* Programação de uma etapa: a lista agrupada e, escondidos, os horários de cada subcategoria (o seletor
+   "Escolha a subcategoria" mostra só o da escolha) */
+.progArea {
+  display: grid;
+  min-width: 0;
+}
+
+/* Nome da sessão escrito no painel, quando acrescenta algo ao rótulo ("junto com Mirim") */
+.progNota {
+  color: var(--texto-2);
+}
+
+/* Horários da subcategoria escolhida: Warm-up, Classificação, Corrida 1, Corrida 2… */
+.progEscolha {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--amarelo);
+  border-radius: var(--raio);
+  background: var(--branco);
+}
+
+/* As classes acima definem display; sem isto o atributo hidden não esconderia */
+.progArea [hidden],
+.progArea[hidden] {
+  display: none;
+}
+
 /* ==========================================================================
    Categorias da área (com subcategorias)
    ========================================================================== */

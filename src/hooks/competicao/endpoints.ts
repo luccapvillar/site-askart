@@ -7,7 +7,8 @@
  *   POST /api/temporadas/:id/encerrar       grava a classificação final e os campeões; congela a temporada
  *   POST /api/temporadas/:id/criar-proxima  { ano?, tornarAtual? } nova temporada com categorias, regra e formato
  *   POST /api/regras-pontuacao/:id/duplicar cópia editável da regra
- *   POST /api/etapas/:id/gerar-corridas     corridas do formato da temporada × categorias da etapa
+ *   POST /api/etapas/:id/gerar-corridas     corridas do formato da temporada × categorias da etapa (categoria com
+ *                                           subcategorias: as sessões de cada subcategoria)
  */
 import {
   commitTransaction,
@@ -21,7 +22,7 @@ import {
 import { ehEditorOuAdmin } from '../../access'
 import { slugificar } from '../../fields/slug'
 import { buscar, buscarPorId, buscarPrimeiro, COLECOES, type SlugCompeticao } from './api'
-import { carregarTemporada } from './consultas'
+import { carregarCategorias, carregarTemporada, rotuloCategoria } from './consultas'
 import { estaEncerrada, mensagemCongelada } from './congelamento'
 import { categoriasPermitidas } from './corridas'
 import { falhar } from './erros'
@@ -283,18 +284,24 @@ const gerarCorridas: PayloadHandler = async (req) => {
     if (estaEncerrada(temporada)) falhar(mensagemCongelada(temporada.nome, 'etapas, corridas e resultados'), 409)
     if (etapa.status === 'cancelada') falhar('Esta etapa está cancelada: não há corridas para gerar.', 409)
 
-    const formato = temporada.formatoEtapa ?? []
-    if (!formato.length) {
+    const categorias = categoriasPermitidas(etapa, temporada)
+    if (!categorias.length) falhar('Escolha as categorias da etapa (ou da temporada) antes de gerar as corridas.', 400)
+
+    // Categoria com subcategorias: as sessões de cada subcategoria (as do formato ou, sem formato, Warm-up,
+    // Classificação, Corrida 1 e Corrida 2). Sem subcategorias, só o formato da temporada.
+    const docsCategorias = await carregarCategorias(req, categorias)
+    const subcategoriasDe = new Map(docsCategorias.map((c) => [String(c.id), c.subcategorias ?? []] as const))
+    const comSubcategorias = docsCategorias.filter((c) => (c.subcategorias ?? []).some((s) => s?.nome?.trim()))
+    const formato = (temporada.formatoEtapa ?? []).filter((f) => f.nome?.trim())
+    if (!formato.length && !comSubcategorias.length) {
       falhar(
         `A temporada "${temporada.nome}" ainda não tem o "Formato padrão das etapas". Cadastre as corridas (ex.: Bateria 1, Final) na aba "Pontuação e formato" da temporada.`,
         400,
       )
     }
-    const categorias = categoriasPermitidas(etapa, temporada)
-    if (!categorias.length) falhar('Escolha as categorias da etapa (ou da temporada) antes de gerar as corridas.', 400)
 
     const existentes = await buscar<CorridaDoc>(req, COLECOES.corridas, { where: { etapa: { equals: id } } })
-    const plano = planejarCorridas(etapa.id, formato, categorias, new Set(existentes.map((c) => c.chaveUnica ?? '')))
+    const plano = planejarCorridas(etapa.id, formato, categorias, new Set(existentes.map((c) => c.chaveUnica ?? '')), subcategoriasDe)
     for (const corrida of plano.criar) {
       const { chaveUnica: _calculadaNoHook, ...dados } = corrida
       await req.payload.create({
@@ -305,13 +312,20 @@ const gerarCorridas: PayloadHandler = async (req) => {
       })
     }
     const criadas = plano.criar.length
-    return {
-      mensagem: criadas
-        ? `${criadas} corrida(s) criada(s)${plano.jaExistiam ? `; ${plano.jaExistiam} já existiam e foram mantidas` : ''}.`
-        : 'Todas as corridas do formato já existem nesta etapa. Nada foi criado.',
-      criadas,
-      jaExistiam: plano.jaExistiam,
-    }
+    const porSubcategoria = plano.criar.filter((c) => c.subcategorias?.length).length
+    // Sem formato, as categorias sem subcategorias ficam sem corridas: o moderador precisa saber
+    const semFormato = formato.length ? [] : docsCategorias.filter((c) => !comSubcategorias.includes(c)).map(rotuloCategoria).filter(Boolean)
+    const mensagem = [
+      criadas
+        ? `${criadas} corrida(s) criada(s)${porSubcategoria ? `, ${porSubcategoria} delas por subcategoria (cada uma com o seu horário, a preencher)` : ''}${plano.jaExistiam ? `; ${plano.jaExistiam} já existiam e foram mantidas` : ''}.`
+        : 'Todas as corridas já existem nesta etapa. Nada foi criado.',
+      semFormato.length
+        ? `Sem o "Formato padrão das etapas" na temporada, ${semFormato.length === 1 ? 'a categoria' : 'as categorias'} ${semFormato.join(', ')} (sem subcategorias) ${semFormato.length === 1 ? 'ficou' : 'ficaram'} sem corridas.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return { mensagem, criadas, jaExistiam: plano.jaExistiam }
   })
   return Response.json(resposta, { status: 201 })
 }

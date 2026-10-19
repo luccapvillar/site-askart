@@ -11,6 +11,8 @@
  * 3. Texto do evento aberto ao público ("Venha assistir"), se ainda for o padrão antigo.
  * 4. Kart indoor como UMA categoria com subcategorias (o cliente informou que o indoor também tem
  *    subcategorias): cria "Kart indoor" e exclui as 4 categorias indoor separadas que não estão em uso.
+ * 5. Só na prévia com exemplos: horários de exemplo por subcategoria (Warm-up, Classificação, Corrida 1 e
+ *    Corrida 2) nas etapas futuras de demonstração, para o seletor de subcategoria do calendário.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -22,7 +24,7 @@ import {
   TEXTO_EVENTO_PUBLICO_ANTIGO,
   TEXTO_EVENTO_PUBLICO_PADRAO,
 } from '../src/globals/Configuracoes'
-import { contexto, SUBCATEGORIAS, publicarPorPadrao } from './comum'
+import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
 
@@ -379,7 +381,6 @@ async function atualizarEventoPublico(payload: Payload): Promise<string> {
  * melhor volta, para os resultados por subcategoria aparecerem. Não toca em dado real.
  */
 async function exemplosComSubcategorias(payload: Payload): Promise<string> {
-  const DEMO = '[DEMONSTRAÇÃO]'
   const { docs: categorias } = await payload.find({ collection: 'categorias', limit: 100, depth: 0, overrideAccess: true })
   const subsDe = new Map(
     (categorias as { id: number; subcategorias?: { nome?: string | null }[] | null }[]).map((c) => [
@@ -431,6 +432,86 @@ async function exemplosComSubcategorias(payload: Payload): Promise<string> {
   return `${inscricoes} inscrição(ões) de exemplo com subcategoria; ${corridas} corrida(s) de exemplo com melhor volta`
 }
 
+/* ─────────────────── 5. Exemplos: horários por subcategoria ─────────────────── */
+
+type IdRel = number | { id: number } | null | undefined
+const idDaRel = (r: IdRel) => (typeof r === 'object' && r !== null ? r.id : (r ?? null))
+
+/**
+ * Só na prévia com exemplos: nas etapas FUTURAS de demonstração (etapa ou temporada com "[DEMONSTRAÇÃO]"
+ * no nome), F400 e 125cc ganham as sessões de cada subcategoria — Warm-up, Classificação, Corrida 1 e
+ * Corrida 2, em rascunho, sem resultados — com horários de exemplo no dia da etapa, para o seletor
+ * "Escolha a subcategoria" do calendário ter o que mostrar. A "Final" de exemplo dessas duas categorias
+ * (para a categoria inteira, em rascunho e sem resultados) sai dessas etapas: cada subcategoria passa a ter
+ * as suas corridas. Etapas reais, etapas que já aconteceram e qualquer outra sessão ficam como estão.
+ */
+async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<string> {
+  const { docs: cats } = await payload.find({
+    collection: 'categorias',
+    where: { nome: { in: Object.keys(SUBCATEGORIAS) } },
+    limit: 20,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const categorias = cats
+    .map((c) => ({ id: c.id, subcategorias: (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean) }))
+    .filter((c) => c.subcategorias.length > 0)
+  if (!categorias.length) return 'nada a fazer: F400 e 125cc ainda sem subcategorias'
+
+  const { docs: etapas } = await payload.find({ collection: 'etapas', limit: 500, depth: 1, pagination: false, overrideAccess: true })
+  const agora = Date.now()
+  let etapasDeExemplo = 0
+  let criadas = 0
+  let removidas = 0
+  const mantidas: string[] = []
+  for (const etapa of etapas) {
+    const temporada = typeof etapa.temporada === 'object' ? etapa.temporada : null
+    const demo = String(etapa.nome ?? '').includes(DEMO) || String(temporada?.nome ?? '').includes(DEMO)
+    const futura =
+      Boolean(etapa.inicio) && new Date(etapa.inicio as string).getTime() > agora && etapa.status !== 'realizada' && etapa.status !== 'cancelada'
+    if (!demo || !futura || temporada?.status === 'encerrada') continue
+    const daEtapa = categorias.filter((c) => (etapa.categorias ?? []).some((x) => idDaRel(x as IdRel) === c.id))
+    if (!daEtapa.length) continue
+    etapasDeExemplo++
+    criadas += await criarSessoesDeExemplo(payload, { id: etapa.id, inicio: etapa.inicio as string }, daEtapa)
+
+    const { docs: corridas } = await payload.find({
+      collection: 'corridas',
+      where: { etapa: { equals: etapa.id } },
+      limit: 1000,
+      depth: 0,
+      pagination: false,
+      overrideAccess: true,
+    })
+    for (const c of corridas) {
+      const categoriasDaCorrida = (c.categorias ?? []).map((x) => idDaRel(x as IdRel))
+      const finalDeExemplo =
+        c.nome === 'Final' &&
+        c.tipo === 'final' &&
+        c.status === 'rascunho' &&
+        !c.subcategorias?.length &&
+        !c.resultados?.length &&
+        categoriasDaCorrida.length === 1 &&
+        daEtapa.some((x) => x.id === categoriasDaCorrida[0])
+      if (!finalDeExemplo) continue
+      try {
+        await payload.delete({ collection: 'corridas', id: c.id, overrideAccess: true, context: { ...contexto } })
+        removidas++
+      } catch (erro) {
+        mantidas.push(`${c.titulo ?? c.id} (${(erro as Error).message})`)
+      }
+    }
+  }
+  if (!etapasDeExemplo) return 'nenhuma etapa futura de demonstração: nada a fazer'
+  return [
+    `${criadas} sessão(ões) de exemplo por subcategoria em ${etapasDeExemplo} etapa(s) futura(s) de demonstração`,
+    removidas ? `${removidas} "Final" de exemplo da categoria inteira removida(s)` : null,
+    mantidas.length ? `mantidas: ${mantidas.join('; ')}` : null,
+  ]
+    .filter(Boolean)
+    .join('; ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -442,6 +523,11 @@ const ATUALIZACOES: Atualizacao[] = [
   { chave: 'atualizacao:2026-10-evento-publico', descricao: 'Texto do evento aberto ao público', aplicar: atualizarEventoPublico },
   { chave: 'atualizacao:2026-10-kart-indoor-subcategorias', descricao: 'Kart indoor com subcategorias', aplicar: unificarKartIndoor },
   { chave: 'atualizacao:2026-10-exemplos-por-subcategoria', descricao: 'Exemplos com subcategorias e melhor volta', aplicar: exemplosComSubcategorias },
+  {
+    chave: 'atualizacao:2026-10-exemplos-horarios-por-subcategoria',
+    descricao: 'Exemplos de horários por subcategoria',
+    aplicar: exemplosDeHorariosPorSubcategoria,
+  },
 ]
 
 async function principal() {

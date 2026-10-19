@@ -236,6 +236,8 @@ export interface ItemFormato {
 export interface CorridaPlanejada {
   etapa: ID
   categorias: ID[]
+  /** Só nas sessões de uma subcategoria (horário próprio). */
+  subcategorias?: string[]
   nome: string
   tipo: TipoCorrida
   tabela: string | null
@@ -246,40 +248,83 @@ export interface CorridaPlanejada {
 }
 
 /**
+ * Sessões de cada subcategoria quando a temporada não tem o "Formato padrão das etapas" (pedido do cliente:
+ * cada subcategoria tem warm-up, classificação, corrida 1 e corrida 2, cada um num horário). Warm-up não dá
+ * pontos; a classificação (tomada de tempo) vale para a pole, sem pontos de tabela; as corridas pontuam pela
+ * regra da temporada (tabela vazia = a primeira da regra).
+ */
+export const FORMATO_POR_SUBCATEGORIA: readonly Required<Pick<ItemFormato, 'nome' | 'tipo' | 'contaParaClassificacao'>>[] = [
+  { nome: 'Warm-up', tipo: 'warm-up', contaParaClassificacao: false },
+  { nome: 'Classificação', tipo: 'tomada-de-tempo', contaParaClassificacao: false },
+  { nome: 'Corrida 1', tipo: 'bateria', contaParaClassificacao: true },
+  { nome: 'Corrida 2', tipo: 'bateria', contaParaClassificacao: true },
+]
+
+/**
  * "Gerar corridas": formato da temporada × categorias da etapa, sem repetir as que já existem.
  * Cada categoria ganha suas corridas (uma categoria por corrida).
+ *
+ * Categoria COM subcategorias (`subcategoriasDe`): cada subcategoria ganha as suas sessões, com horário
+ * próprio (corrida.subcategorias = [nome]) — as do formato da temporada ou, sem formato, Warm-up,
+ * Classificação, Corrida 1 e Corrida 2 (FORMATO_POR_SUBCATEGORIA). Não repete a sessão que já existe para a
+ * subcategoria nem a que já existe com o mesmo nome para a categoria inteira (vale para todas).
+ * Categoria sem subcategorias: o formato da temporada, como sempre (sem formato, nada).
  */
 export function planejarCorridas(
   etapa: ID,
   formato: ItemFormato[],
   categorias: ID[],
   chavesExistentes: Set<string>,
+  subcategoriasDe?: Map<string, Array<{ nome?: string | null } | string | null> | null | undefined>,
 ): { criar: CorridaPlanejada[]; jaExistiam: number } {
   const criar: CorridaPlanejada[] = []
   let jaExistiam = 0
   const vistas = new Set(chavesExistentes)
+  const doFormato = formato.filter((item) => item.nome?.trim())
+  const planejar = (categoria: ID, item: ItemFormato, subcategoria: string | null) => {
+    const nome = item.nome!.trim()
+    const chave = chaveCorrida(etapa, [categoria], nome, subcategoria ? [subcategoria] : [])
+    vistas.add(chave)
+    criar.push({
+      etapa,
+      categorias: [categoria],
+      ...(subcategoria ? { subcategorias: [subcategoria] } : {}),
+      nome,
+      tipo: item.tipo || 'bateria',
+      tabela: item.tabela?.trim() || null,
+      // Warm-up nasce sem contar para a classificação (o motor o ignora de qualquer forma).
+      contaParaClassificacao: corridaContaPontos({ tipo: item.tipo, contaParaClassificacao: item.contaParaClassificacao }),
+      fator: typeof item.fator === 'number' && item.fator > 0 ? item.fator : 1,
+      status: 'rascunho',
+      chaveUnica: chave,
+    })
+  }
   for (const categoria of categorias) {
-    for (const item of formato) {
-      const nome = item.nome?.trim()
-      if (!nome) continue
-      const chave = chaveCorrida(etapa, [categoria], nome)
-      if (vistas.has(chave)) {
+    const subcategorias = [
+      ...new Set(
+        (subcategoriasDe?.get(String(categoria)) ?? [])
+          .map((s) => (typeof s === 'string' ? s : s?.nome)?.trim() ?? '')
+          .filter(Boolean),
+      ),
+    ]
+    if (!subcategorias.length) {
+      for (const item of doFormato) {
+        if (vistas.has(chaveCorrida(etapa, [categoria], item.nome))) jaExistiam++
+        else planejar(categoria, item, null)
+      }
+      continue
+    }
+    const sessoes: ItemFormato[] = doFormato.length ? doFormato : FORMATO_POR_SUBCATEGORIA.map((item) => ({ ...item }))
+    for (const item of sessoes) {
+      // Já existe para a categoria inteira (sem subcategoria): vale para todas, não cria uma por subcategoria
+      if (vistas.has(chaveCorrida(etapa, [categoria], item.nome))) {
         jaExistiam++
         continue
       }
-      vistas.add(chave)
-      criar.push({
-        etapa,
-        categorias: [categoria],
-        nome,
-        tipo: item.tipo || 'bateria',
-        tabela: item.tabela?.trim() || null,
-        // Warm-up nasce sem contar para a classificação (o motor o ignora de qualquer forma).
-        contaParaClassificacao: corridaContaPontos({ tipo: item.tipo, contaParaClassificacao: item.contaParaClassificacao }),
-        fator: typeof item.fator === 'number' && item.fator > 0 ? item.fator : 1,
-        status: 'rascunho',
-        chaveUnica: chave,
-      })
+      for (const subcategoria of subcategorias) {
+        if (vistas.has(chaveCorrida(etapa, [categoria], item.nome, [subcategoria]))) jaExistiam++
+        else planejar(categoria, item, subcategoria)
+      }
     }
   }
   return { criar, jaExistiam }

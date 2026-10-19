@@ -2,6 +2,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Payload } from 'payload'
+import { chaveCorrida, FORMATO_POR_SUBCATEGORIA, planejarCorridas } from '../src/hooks/competicao/validacoes'
+import { chaveDia } from '../src/lib/datas'
 
 export const DEMO = '[DEMONSTRAÇÃO]'
 export const contexto = { semRevalidar: true, semRegistro: true }
@@ -62,6 +64,68 @@ export async function fotosOficiais(payload: Payload) {
 export const SUBCATEGORIAS: Record<string, string[]> = {
   F400: ['Novatos', 'Junior', 'Graduados', 'Sênior', 'GSS/60+'],
   '125cc': ['Novatos', 'Junior', 'Graduados', 'Sênior'],
+}
+
+/**
+ * Horários de EXEMPLO (só na prévia) das sessões de cada subcategoria no dia da etapa: uma rodada por sessão
+ * — os warm-ups de todas as subcategorias, depois as classificações, a Corrida 1 e a Corrida 2 —, com as
+ * subcategorias em sequência dentro da rodada. Nove subcategorias (F400 e 125cc) vão das 8h às 13h36.
+ */
+const RODADAS_DE_EXEMPLO = [
+  { inicio: 8 * 60, passo: 6 }, // Warm-up: 08:00, 08:06…
+  { inicio: 9 * 60, passo: 8 }, // Classificação: 09:00, 09:08…
+  { inicio: 10 * 60 + 15, passo: 12 }, // Corrida 1: 10:15, 10:27…
+  { inicio: 12 * 60, passo: 12 }, // Corrida 2: 12:00, 12:12…
+]
+
+/** "HH:MM" de exemplo da sessão `rodada` (0 = Warm-up … 3 = Corrida 2) da subcategoria de posição `indice`. */
+export function horaDeExemplo(rodada: number, indice: number): string {
+  const r = RODADAS_DE_EXEMPLO[Math.max(0, Math.min(rodada, RODADAS_DE_EXEMPLO.length - 1))]
+  const minutos = r.inicio + indice * r.passo
+  return `${String(Math.floor(minutos / 60) % 24).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}`
+}
+
+/**
+ * Exemplos (só na prévia): cria na etapa, para cada subcategoria das categorias dadas, Warm-up,
+ * Classificação, Corrida 1 e Corrida 2 (em rascunho, sem resultados) com horários de exemplo no dia da etapa.
+ * Não repete as que já existem. Devolve quantas criou.
+ */
+export async function criarSessoesDeExemplo(
+  payload: Payload,
+  etapa: { id: Id; inicio: string },
+  categorias: { id: Id; subcategorias: string[] }[],
+): Promise<number> {
+  const { docs } = await payload.find({
+    collection: 'corridas',
+    where: { etapa: { equals: etapa.id } },
+    limit: 1000,
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+  })
+  // Chave de cada corrida existente, calculada como o hook calcula (o campo gravado não é lido fora do sistema)
+  const existentes = new Set(docs.map((c) => chaveCorrida(etapa.id, c.categorias ?? [], c.nome, c.subcategorias ?? [])))
+  const plano = planejarCorridas(
+    etapa.id,
+    [],
+    categorias.map((c) => c.id),
+    existentes,
+    new Map(categorias.map((c) => [String(c.id), c.subcategorias])),
+  )
+  const posicao = new Map(categorias.flatMap((c) => c.subcategorias.map((s) => `${c.id}|${s}`)).map((chave, i) => [chave, i]))
+  const dia = chaveDia(etapa.inicio)
+  for (const corrida of plano.criar) {
+    const { chaveUnica: _calculadaNoHook, ...dados } = corrida
+    const rodada = FORMATO_POR_SUBCATEGORIA.findIndex((f) => f.nome === corrida.nome)
+    const indice = posicao.get(`${corrida.categorias[0]}|${corrida.subcategorias?.[0] ?? ''}`) ?? 0
+    await payload.create({
+      collection: 'corridas',
+      data: { ...dados, inicio: emBrasilia(dia, horaDeExemplo(rodada, indice)) } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+  }
+  return plano.criar.length
 }
 
 /**

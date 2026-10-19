@@ -3,11 +3,12 @@ import type { ReactNode } from 'react'
 import type { Categoria, Corrida, Etapa } from '@/payload-types'
 import { formatarDataExtenso } from '@/lib/datas'
 import { dataDaEtapa } from '@/lib/site'
+import { chaveDeSubcategoria } from '@/lib/subcategorias'
 import { Subcategorias } from '../base/Subcategorias'
 import { Botao } from '../Botao'
 import { Selo, STATUS_ETAPA } from '../Selo'
 import { semDemo, TextoDemo } from '../TextoDemo'
-import { agruparProgramacao, type MapaSubcategorias, type SessaoProgramada } from './programacao'
+import { agruparProgramacao, horariosPorEscolha, type MapaSubcategorias, type SessaoProgramada } from './programacao'
 import s from './Bks.module.css'
 
 /**
@@ -77,7 +78,15 @@ export const nomeDaEtapa = (etapa: Pick<Etapa, 'nome' | 'numero'>) => etapa.nome
 
 export const dataPorExtenso = (etapa: Pick<Etapa, 'inicio'>) => (etapa.inicio ? formatarDataExtenso(etapa.inicio) : 'Data a definir')
 
-export { agruparProgramacao, type GrupoCategoria, type MapaSubcategorias } from './programacao'
+export {
+  agruparProgramacao,
+  chaveDaCategoria,
+  horariosPorEscolha,
+  opcoesDeSubcategoria,
+  type GrupoCategoria,
+  type GrupoOpcoes,
+  type MapaSubcategorias,
+} from './programacao'
 
 export const mapaDeSubcategorias = (categorias: unknown[] | null | undefined): MapaSubcategorias =>
   new Map(
@@ -86,16 +95,36 @@ export const mapaDeSubcategorias = (categorias: unknown[] | null | undefined): M
       .map((c) => [String(c.id), c.subcategorias]),
   )
 
-/** Lista de horários (hora e nome da sessão). */
-function Horarios({ sessoes, rotulo }: { sessoes: SessaoProgramada[]; rotulo: string }) {
+/** Hora da sessão; sem horário cadastrado, um traço (o leitor de tela ouve "horário a definir"). */
+function Hora({ hora }: { hora: string | null }) {
+  return (
+    <span className={s.progHora}>
+      {hora ?? (
+        <>
+          <span aria-hidden="true">—</span>
+          <span className="visualmente-oculto">Horário a definir</span>
+        </>
+      )}
+    </span>
+  )
+}
+
+/** Lista de horários (hora e rótulo claro da sessão: Warm-up, Classificação, Corrida 1…). */
+function Horarios({ sessoes, rotulo }: { sessoes: (SessaoProgramada & { juntoCom?: string | null })[]; rotulo: string }) {
   return (
     <ul className={s.progHorarios} aria-label={rotulo}>
-      {sessoes.map((c, i) => (
-        <li key={i}>
-          <span className={s.progHora}>{c.hora ?? '—'}</span>
-          <span>{c.nome}</span>
-        </li>
-      ))}
+      {sessoes.map((c, i) => {
+        const notas = [c.nota, c.juntoCom ? `junto com ${c.juntoCom}` : null].filter(Boolean)
+        return (
+          <li key={i} data-sessao={c.tipo}>
+            <Hora hora={c.hora} />
+            <span>
+              {c.rotulo}
+              {notas.length > 0 && <span className={s.progNota}> · {notas.join(' · ')}</span>}
+            </span>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -105,50 +134,83 @@ function Horarios({ sessoes, rotulo }: { sessoes: SessaoProgramada[]; rotulo: st
  * subcategorias junto do nome da categoria. Quando cada subcategoria tem o seu horário (sessões marcadas no
  * painel), os horários saem separados: "Todas as subcategorias" e depois cada uma, na ordem da categoria.
  * Listas (não tabela) para ler bem no celular.
+ *
+ * Para o seletor "Escolha a subcategoria" (SeletorSubcategoria), o HTML já traz, escondidos, os horários de
+ * cada subcategoria em ordem (Warm-up, Classificação, Corrida 1, Corrida 2…), com data-escolha, e um aviso
+ * vazio (data-aviso) para quando a etapa não tem horários da escolha. `categoriasDaEtapa` (chaves) diz quais
+ * categorias correm a etapa, para o aviso "não corre nesta etapa"; sem a lista, o aviso é o de horários
+ * ainda não divulgados. Sem JavaScript, só a programação agrupada aparece.
  */
 export function Programacao({
   corridas,
   vazio = 'A programação desta etapa ainda não foi publicada.',
   subcategorias,
+  categoriasDaEtapa,
 }: {
   corridas: Corrida[]
   vazio?: string
   subcategorias?: MapaSubcategorias
+  categoriasDaEtapa?: string[] | null
 }) {
   const grupos = agruparProgramacao(corridas, subcategorias)
-  if (!grupos.length) return <p className={s.semProgramacao}>{vazio}</p>
+  const escolhas = horariosPorEscolha(corridas, subcategorias)
   return (
-    <ul className={s.programacao} aria-label="Horários por categoria">
-      {grupos.map((g) => {
-        const subs = g.ids.length === 1 ? subcategorias?.get(g.ids[0]) : null
-        return (
-          <li key={g.categoria} className={s.progItem}>
-            <div className={s.progCategoria}>
-              <span className={s.progNome}>
-                <span className={s.corCategoria} style={{ background: g.cor ?? 'var(--verde)' }} aria-hidden="true" />
-                {g.categoria}
-              </span>
-              {/* Separada por subcategoria, os nomes já aparecem em cada grupo de horários */}
-              {!g.subcategorias && <Subcategorias itens={subs} rotulo={`Subcategorias de ${g.categoria}`} />}
-            </div>
-            {g.subcategorias ? (
-              <ul className={s.progSubgrupos} aria-label={`Horários de ${g.categoria} por subcategoria`}>
-                {g.subcategorias.map((sg) => (
-                  <li key={sg.chave} className={`${s.progSubgrupo} ${sg.nome === null ? s.progSubgrupoTodas : ''}`}>
-                    <span className={s.progSubNome}>
-                      <TextoDemo texto={sg.rotulo} />
-                    </span>
-                    <Horarios sessoes={sg.sessoes} rotulo={`Horários de ${g.categoria} — ${semDemo(sg.rotulo)}`} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Horarios sessoes={g.corridas} rotulo={`Horários de ${g.categoria}`} />
-            )}
-          </li>
-        )
-      })}
-    </ul>
+    <div className={s.progArea} data-programacao="" data-categorias={categoriasDaEtapa ? categoriasDaEtapa.join(' ') : undefined}>
+      {!grupos.length ? (
+        <p className={s.semProgramacao} data-visao="geral">
+          {vazio}
+        </p>
+      ) : (
+        <ul className={s.programacao} aria-label="Horários por categoria" data-visao="geral">
+          {grupos.map((g) => {
+            const subs = g.ids.length === 1 ? subcategorias?.get(g.ids[0]) : null
+            return (
+              <li key={g.categoria} className={s.progItem} data-categoria={g.chaves.join(' ') || undefined}>
+                <div className={s.progCategoria}>
+                  <span className={s.progNome}>
+                    <span className={s.corCategoria} style={{ background: g.cor ?? 'var(--verde)' }} aria-hidden="true" />
+                    {g.categoria}
+                  </span>
+                  {/* Separada por subcategoria, os nomes já aparecem em cada grupo de horários */}
+                  {!g.subcategorias && <Subcategorias itens={subs} rotulo={`Subcategorias de ${g.categoria}`} />}
+                </div>
+                {g.subcategorias ? (
+                  <ul className={s.progSubgrupos} aria-label={`Horários de ${g.categoria} por subcategoria`}>
+                    {g.subcategorias.map((sg) => (
+                      <li key={sg.chave} className={`${s.progSubgrupo} ${sg.nome === null ? s.progSubgrupoTodas : ''}`} data-subcategoria={sg.chave}>
+                        <span className={s.progSubNome}>
+                          <TextoDemo texto={sg.rotulo} />
+                        </span>
+                        <Horarios sessoes={sg.sessoes} rotulo={`Horários de ${g.categoria} — ${semDemo(sg.rotulo)}`} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Horarios sessoes={g.corridas} rotulo={`Horários de ${g.categoria}`} />
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {escolhas.map((e) => (
+        <div
+          key={e.valor}
+          className={s.progEscolha}
+          data-escolha={e.valor}
+          data-categoria={e.chaveCategoria}
+          data-subcategoria={e.subcategoria ? chaveDeSubcategoria(e.subcategoria) : undefined}
+          hidden
+        >
+          <p className={s.progNome}>
+            <span className={s.corCategoria} style={{ background: e.cor ?? 'var(--verde)' }} aria-hidden="true" />
+            <TextoDemo texto={e.rotulo} />
+          </p>
+          <Horarios sessoes={e.sessoes} rotulo={`Horários de ${semDemo(e.rotulo)}`} />
+        </div>
+      ))}
+      <p className={s.semProgramacao} data-aviso="" hidden />
+    </div>
   )
 }
 

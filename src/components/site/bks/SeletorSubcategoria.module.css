@@ -1,0 +1,62 @@
+/* Seletor "Escolha a subcategoria" (calendário do BKS e página da etapa). */
+.seletor {
+  display: grid;
+  gap: 6px;
+  max-width: 30rem;
+  margin-bottom: 20px;
+}
+
+.rotulo {
+  font-weight: 800;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+
+/* Seta do campo (decorativa): o select nativo segue acessível pelo teclado e pelos leitores de tela */
+.campo {
+  position: relative;
+  display: block;
+}
+
+.campo::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 46px 10px 14px;
+  /* Borda com contraste de 4,6:1 sobre o branco (componente de interface: mínimo 3:1) */
+  border: 1.5px solid color-mix(in oklab, var(--texto) 55%, white);
+  border-radius: var(--raio);
+  background: var(--branco);
+  font-weight: 650;
+  line-height: 1.3;
+  cursor: pointer;
+  appearance: none;
+}
+
+.select:hover {
+  border-color: var(--texto);
+}
+
+.ajuda {
+  font-size: var(--fs-pequeno);
+  color: var(--texto-2);
+}
+
+/* Sem JavaScript o seletor não funcionaria: some, e a programação aparece toda, agrupada por categoria */
+@media (scripting: none) {
+  .seletor {
+    display: none;
+  }
+}
