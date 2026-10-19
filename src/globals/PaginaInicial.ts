@@ -2,6 +2,7 @@ import type { Block, Field, GlobalConfig } from 'payload'
 import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { campoLink } from '../fields/link'
 import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
+import { SUBTITULO_TOPO_PADRAO, TITULO_TOPO_PADRAO } from '../lib/topo-inicio'
 import { ORDEM_PADRAO_INICIO } from './ordem-inicio'
 
 export { ORDEM_PADRAO_INICIO }
@@ -46,7 +47,13 @@ export const SECOES_INICIO: Block[] = [
   secao('proxima-etapa', 'Próxima etapa', [
     { name: 'contagem', label: 'Mostrar contagem regressiva', type: 'checkbox', defaultValue: true },
   ]),
-  secao('lideres', 'Líderes por categoria', [quantidade(6, 12)]),
+  secao('lideres', 'Líderes por categoria', [
+    {
+      ...quantidade(6, 12),
+      label: 'Quantidade de categorias',
+      admin: { step: 1, description: 'Cada categoria aparece inteira: F400 e 125cc com todas as subcategorias, um cartão para cada.' },
+    } as Field,
+  ]),
   secao('calendario', 'Calendário do BKS', [], 'Calendário da temporada'),
   // Slug antigo mantido ("treinos"): agora é a chamada curta do kartódromo, sem listar os horários do dia
   secao('treinos', 'Kartódromo: chamada dos treinos', [], 'Treino quase todos os dias'),
@@ -97,30 +104,36 @@ export const PaginaInicial: GlobalConfig = comAcessoRestrito(
         name: 'topo',
         label: 'Topo da página',
         type: 'group',
+        admin: {
+          description:
+            'O topo apresenta a ASKART (logo, sigla e nome das Configurações) e mostra dois caminhos fixos, lado a lado: "Brasília Kart Series (BKS)" e "Kartódromo do Guará". A próxima etapa vem logo abaixo.',
+        },
         fields: [
           {
             name: 'titulo',
             label: 'Título',
             type: 'text',
             maxLength: 90,
-            admin: { description: 'Vazio = nome do campeonato principal e da temporada atual.' },
+            admin: { description: `Vazio = a sigla da associação (${TITULO_TOPO_PADRAO}), com o nome por extenso embaixo.` },
           },
           {
             name: 'subtitulo',
             label: 'Subtítulo',
             type: 'textarea',
             maxLength: 220,
-            admin: { description: 'Vazio = frase padrão sobre o campeonato e o kartódromo.' },
+            admin: { description: `Vazio = "${SUBTITULO_TOPO_PADRAO}"` },
           },
-          campoImagem('imagem', 'Foto de fundo', 'Foto larga e deitada (mínimo 1920 px). Vazio = foto do campeonato principal.'),
+          campoImagem('imagem', 'Foto de fundo', 'Foto larga e deitada (mínimo 1920 px). Vazio = uma foto larga das galerias.'),
           {
             name: 'botoes',
-            label: 'Botões',
-            labels: { singular: 'Botão', plural: 'Botões' },
+            label: 'Links extras',
+            labels: { singular: 'Link', plural: 'Links' },
             type: 'array',
             maxRows: 2,
-            admin: { description: 'Até dois. Vazio = "Calendário" e "Classificação".' },
-            fields: [campoLink({ name: 'link', label: 'Botão', required: true, rotuloTexto: 'Texto do botão' })],
+            admin: {
+              description: 'Opcional: até dois links discretos abaixo dos caminhos BKS e Kartódromo (que são fixos). Vazio = "Sobre a ASKART".',
+            },
+            fields: [campoLink({ name: 'link', label: 'Link', required: true, rotuloTexto: 'Texto do link' })],
           },
         ],
       },

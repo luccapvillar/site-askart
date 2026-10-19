@@ -20,56 +20,127 @@ import s from './Inicio.module.css'
 
 export type BotaoTopo = { href: string; texto: string; externo?: boolean }
 
+/** Um dos dois caminhos do topo (BKS e Kartódromo): mesmo tamanho e o mesmo peso visual. */
+export type CaminhoTopo = {
+  href: string
+  titulo: string
+  texto: string
+  /** Logo (o do BKS); sem logo, o ícone de local. */
+  logo?: Midia | null
+  /** Cor do capacete na borda do cartão. */
+  tom: 'vermelho' | 'verde'
+}
+
+/** Ícone de local (cartão do kartódromo, que não tem logo próprio). */
+function IconeLocal() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M12 21s-7-6.1-7-11a7 7 0 1 1 14 0c0 4.9-7 11-7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  )
+}
+
 /**
- * Topo da página inicial: foto real em tela cheia, manchete, botões e, ao lado (no computador) ou logo
- * abaixo (no celular), o cartão da próxima etapa. Sem JavaScript, exceto a contagem regressiva.
+ * Topo da página inicial: apresenta a ASKART (logo, sigla, nome e o texto aprovado) sobre uma foto real e,
+ * logo abaixo, os dois caminhos equivalentes — o campeonato (BKS) e o Kartódromo do Guará. A próxima etapa
+ * vem depois do topo (FaixaProximaEtapa). Sem JavaScript.
  */
 export function TopoInicio({
   foto,
   logo,
   rotulo,
   titulo,
+  nome,
   subtitulo,
-  botoes,
-  proxima,
+  caminhos,
+  links = [],
 }: {
   foto: Midia | null
+  /** Logo da ASKART (Configurações), sobre uma placa branca: a logo é feita para fundo claro. */
   logo: Midia | null
   rotulo: string
   titulo: string
+  nome: string
   subtitulo: string
-  botoes: BotaoTopo[]
-  /** Cartão da próxima etapa (null = seção desligada no painel). */
-  proxima: ReactNode
+  caminhos: CaminhoTopo[]
+  /** Links extras, discretos, abaixo dos caminhos (ex.: "Sobre a ASKART" ou os botões do painel). */
+  links?: BotaoTopo[]
 }) {
   return (
     <section className={`${s.topo} ${foto ? s.topoComFoto : ''}`} aria-labelledby="titulo-inicio">
       {foto && <Foto midia={foto} className={s.topoFoto} prioridade sizes="100vw" alt="" />}
-      <div className={`conteiner ${s.topoGrade} ${proxima ? '' : s.topoSemLateral}`}>
+      <div className={`conteiner ${s.topoGrade}`}>
         <div className={s.topoTextos}>
           {logo && (
-            <Foto midia={logo} ate="card" sizes="(min-width: 960px) 280px, 200px" className={s.topoLogo} alt="" />
-          )}
-          <p className={`rotulo ${s.topoRotulo}`}>{rotulo}</p>
-          <h1 id="titulo-inicio" className={`titulo-display ${s.topoTitulo}`}>
-            <TextoDemo texto={titulo} />
-          </h1>
-          <p className={s.topoSub}>{subtitulo}</p>
-          {botoes.length > 0 && (
-            <div className={s.topoBotoes}>
-              {botoes.map((b, i) => (
-                <Botao key={`${b.href}-${i}`} href={b.href} variante={i === 0 ? 'destaque' : 'claro'} externo={b.externo} seta={i === 0} grande>
-                  {b.texto}
-                </Botao>
-              ))}
+            <div className={s.topoMarca}>
+              <Foto midia={logo} ate="card" sizes="(min-width: 1040px) 200px, 152px" className={s.topoLogo} alt="" prioridade />
             </div>
           )}
+          <p className={`rotulo ${s.topoRotulo}`}>{rotulo}</p>
+          <h1 id="titulo-inicio" className={s.topoTitulo}>
+            <span className={`titulo-display ${s.topoSigla}`}>
+              <TextoDemo texto={titulo} />
+            </span>{' '}
+            <span className={s.topoNome}>{nome}</span>
+          </h1>
+          <p className={s.topoSub}>{subtitulo}</p>
         </div>
-        {proxima && <div className={s.topoLateral}>{proxima}</div>}
+        <nav className={s.topoCaminhos} aria-label="Por onde começar">
+          <ul className={s.caminhos}>
+            {caminhos.map((c) => (
+              <li key={c.href} className={`${s.caminho} ${c.tom === 'vermelho' ? s.caminhoVermelho : s.caminhoVerde}`}>
+                <span className={s.caminhoMarca}>
+                  {c.logo?.url ? (
+                    <Foto midia={c.logo} ate="card" sizes="190px" className={s.caminhoLogo} alt="" />
+                  ) : (
+                    <span className={s.caminhoIcone}>
+                      <IconeLocal />
+                    </span>
+                  )}
+                </span>
+                <h2 className={s.caminhoTitulo}>
+                  <Link href={c.href}>{c.titulo}</Link>
+                </h2>
+                <p className={s.caminhoTexto}>{c.texto}</p>
+                <span className={s.caminhoSeta} aria-hidden="true">
+                  →
+                </span>
+              </li>
+            ))}
+          </ul>
+          {links.length > 0 && (
+            <ul className={s.topoLinks}>
+              {links.map((b, i) => (
+                <li key={`${b.href}-${i}`}>
+                  {b.externo || /^https?:/.test(b.href) ? (
+                    <a className="link-seta" href={b.href} target="_blank" rel="noopener noreferrer">
+                      {b.texto}
+                      <span className="visualmente-oculto"> (abre em nova aba)</span>
+                    </a>
+                  ) : (
+                    <Link className="link-seta" href={b.href}>
+                      {b.texto}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </nav>
       </div>
       {foto?.credito && <p className={s.topoCredito}>Foto: {foto.credito}</p>}
       <div className={`faixa-marca ${s.topoFaixa}`} aria-hidden="true" />
     </section>
+  )
+}
+
+/** Faixa logo abaixo do topo com o cartão da próxima etapa (largo no computador). */
+export function FaixaProximaEtapa({ children }: { children: ReactNode }) {
+  return (
+    <div className={s.faixaProxima}>
+      <div className="conteiner">{children}</div>
+    </div>
   )
 }
 
@@ -117,16 +188,20 @@ export function CartaoProximaEtapa({
   mapa,
   contagem,
   rotulo = 'Próxima etapa',
+  largo = false,
 }: {
   etapa: Etapa | null
   situacao: SituacaoEtapa | null
   mapa: string | null
   contagem: boolean
   rotulo?: string
+  /** Cartão largo (faixa abaixo do topo): no computador, data e nome | contagem | compra, lado a lado. */
+  largo?: boolean
 }) {
+  const classe = `${s.proxima} ${largo ? s.proximaLarga : ''}`
   if (!etapa || !situacao) {
     return (
-      <aside className={s.proxima} aria-labelledby="proxima-etapa">
+      <aside className={`${classe} ${s.proximaSemData}`} aria-labelledby="proxima-etapa">
         <p className={`rotulo ${s.proximaRotulo}`}>{rotulo}</p>
         <h2 id="proxima-etapa" className={`h3 ${s.proximaVazio}`}>
           A data da próxima etapa ainda não foi divulgada.
@@ -143,7 +218,7 @@ export function CartaoProximaEtapa({
   const restante = etapa.inicio ? Math.max(0, Math.floor((new Date(etapa.inicio).getTime() - Date.now()) / 1000)) : null
 
   return (
-    <aside className={s.proxima} aria-labelledby="proxima-etapa">
+    <aside className={classe} aria-labelledby="proxima-etapa">
       <div className={s.proximaTopo}>
         <p className={`rotulo ${s.proximaRotulo}`}>{rotulo}</p>
         <Selo tom={tom}>{rotuloStatus}</Selo>
@@ -171,10 +246,12 @@ export function CartaoProximaEtapa({
         </div>
       </div>
 
-      <Etiquetas rotulo="Áreas desta etapa" tom="marca" itens={modalidades.map((m) => ROTULO_MODALIDADE[m])} />
+      <Etiquetas rotulo="Áreas desta etapa" tom="marca" itens={modalidades.map((m) => ROTULO_MODALIDADE[m])} className={s.proximaAreas} />
 
       {contagem && etapa.inicio && (
-        <ContagemRegressiva alvo={etapa.inicio} textoAlternativo={periodoPorExtenso(etapa) ?? ''} inicial={restante} claro />
+        <div className={s.proximaContagem}>
+          <ContagemRegressiva alvo={etapa.inicio} textoAlternativo={periodoPorExtenso(etapa) ?? ''} inicial={restante} claro />
+        </div>
       )}
 
       <div className={s.proximaCompra}>

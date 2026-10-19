@@ -2,7 +2,7 @@
    Página inicial. Só tokens do sistema visual (globals.css); sem efeitos gratuitos.
    ========================================================================== */
 
-/* ---------- Topo (foto real em tela cheia + próxima etapa) ---------- */
+/* ---------- Topo: a ASKART sobre foto real + os dois caminhos (BKS e Kartódromo) ---------- */
 .topo {
   --foco: var(--amarelo);
   position: relative;
@@ -21,62 +21,215 @@
   object-fit: cover;
 }
 
-/* Véu para leitura: forte à esquerda e embaixo (onde fica o texto), leve no resto da foto */
+/* Véu para leitura: forte à esquerda e embaixo (onde ficam o texto e os caminhos), leve no resto da foto */
 .topoComFoto::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgb(8 14 10 / 0.86) 0%, rgb(8 14 10 / 0.55) 48%, rgb(8 14 10 / 0.18) 100%),
-    linear-gradient(0deg, rgb(8 14 10 / 0.9) 0%, rgb(8 14 10 / 0.2) 45%, rgb(8 14 10 / 0.1) 100%);
+    linear-gradient(90deg, rgb(8 14 10 / 0.88) 0%, rgb(8 14 10 / 0.6) 50%, rgb(8 14 10 / 0.22) 100%),
+    linear-gradient(0deg, rgb(8 14 10 / 0.92) 0%, rgb(8 14 10 / 0.3) 50%, rgb(8 14 10 / 0.12) 100%);
 }
 
 .topoGrade {
   display: grid;
   gap: 28px;
-  padding-block: clamp(32px, 6vw, 72px) clamp(40px, 6vw, 80px);
+  padding-block: clamp(28px, 5vw, 64px) clamp(40px, 5vw, 72px);
 }
 
 .topoTextos {
   display: grid;
-  gap: 16px;
-  align-content: end;
-  max-width: 46rem;
-  min-height: clamp(340px, 62vh, 520px);
+  gap: 14px;
+  justify-items: start;
+  max-width: 44rem;
+}
+
+/* A logo da ASKART é feita para fundo claro: vai numa placa branca */
+.topoMarca {
+  display: inline-grid;
+  padding: 10px 14px;
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
 }
 
 .topoLogo {
-  width: clamp(168px, 20vw, 260px);
+  width: clamp(124px, 14vw, 172px);
   height: auto;
-  margin-bottom: 8px;
 }
 
 .topoRotulo {
+  margin-top: 6px;
   color: var(--amarelo);
 }
 
 .topoTitulo {
-  font-size: clamp(2.25rem, 1.05rem + 4.6vw, 4.75rem);
+  display: grid;
+  gap: 8px;
+}
+
+.topoSigla {
+  display: block;
+  font-size: clamp(2.75rem, 1.4rem + 5.4vw, 5.25rem);
+  color: var(--branco);
+}
+
+.topoNome {
+  display: block;
+  font-variation-settings: 'wdth' 104;
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.75rem);
+  font-weight: 750;
+  line-height: 1.2;
+  text-wrap: balance;
   color: var(--branco);
 }
 
 .topoSub {
-  max-width: 56ch;
+  max-width: 58ch;
   font-size: var(--fs-lead);
   line-height: 1.55;
   color: rgb(255 255 255 / 0.9);
 }
 
-.topoBotoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
+/* Os dois caminhos: mesmo tamanho, mesma estrutura, lado a lado a partir do tablet */
+.topoCaminhos {
+  display: grid;
+  gap: 14px;
+  max-width: 52rem;
 }
 
-.topoLateral {
-  min-width: 0;
+.caminhos {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .caminhos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.caminho {
+  --tom: var(--verde);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+  padding: 18px 48px 20px 20px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-top: 5px solid var(--tom);
+  border-radius: var(--raio-g);
+  background: rgb(10 16 12 / 0.82);
+  transition: border-color var(--duracao) var(--curva), background-color var(--duracao) var(--curva);
+}
+
+.caminhoVermelho {
+  --tom: var(--vermelho);
+}
+
+.caminhoVerde {
+  --tom: var(--verde);
+}
+
+.caminho:hover {
+  border-color: rgb(255 255 255 / 0.45);
+  border-top-color: var(--tom);
+  background: rgb(10 16 12 / 0.94);
+}
+
+.caminho:has(a:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* Mesma altura para o logo do BKS e o ícone do kartódromo */
+.caminhoMarca {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  margin-bottom: 2px;
+}
+
+.caminhoLogo {
+  width: auto;
+  height: 36px;
+}
+
+.caminhoIcone {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio);
+  background: rgb(255 255 255 / 0.1);
+  color: var(--amarelo);
+}
+
+.caminhoTitulo {
+  font-variation-settings: 'wdth' 106;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--branco);
+}
+
+.caminhoTitulo a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.caminhoTitulo a:focus-visible {
+  outline: none;
+}
+
+/* O cartão inteiro é o link (alvo grande no celular) */
+.caminhoTitulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.caminho:hover .caminhoTitulo a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.caminhoTexto {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--texto-claro-2);
+}
+
+.caminhoSeta {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--amarelo);
+  transform: translateY(-50%);
+  transition: transform var(--duracao) var(--curva);
+}
+
+.caminho:hover .caminhoSeta {
+  transform: translate(3px, -50%);
+}
+
+.topoLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.topoLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo);
+  color: var(--branco);
 }
 
 .topoCredito {
@@ -98,26 +251,22 @@
 
 @media (min-width: 1040px) {
   .topoGrade {
-    grid-template-columns: minmax(0, 1fr) minmax(380px, 430px);
-    align-items: end;
-    gap: 48px;
-    min-height: clamp(600px, 78vh, 760px);
-    padding-block: 72px 88px;
-  }
-
-  .topoSemLateral {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .topoTextos {
-    min-height: 0;
-    padding-bottom: 8px;
+    align-content: end;
+    gap: 36px;
+    min-height: clamp(560px, 74vh, 720px);
+    padding-block: 64px 80px;
   }
 
   .topoCredito {
     top: auto;
     bottom: 16px;
   }
+}
+
+/* ---------- Faixa da próxima etapa (logo abaixo do topo) ---------- */
+.faixaProxima {
+  padding-block: clamp(24px, 3.5vw, 40px);
+  background: var(--papel);
 }
 
 /* ---------- Cartão da próxima etapa ---------- */
@@ -262,6 +411,64 @@
   text-decoration: underline;
 }
 
+/*
+ * Cartão largo (faixa abaixo do topo). No computador: data e nome | contagem | compra e links, lado a lado;
+ * no celular e no tablet, empilhado como o cartão normal.
+ */
+.proximaLarga {
+  box-shadow: var(--sombra-2);
+}
+
+@media (min-width: 1040px) {
+  .proximaLarga {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 0.95fr);
+    grid-template-areas:
+      'topo contagem compra'
+      'cabeca contagem compra'
+      'areas contagem links';
+    gap: 12px 36px;
+    align-items: start;
+  }
+
+  .proximaLarga .proximaTopo {
+    grid-area: topo;
+    justify-content: flex-start;
+    gap: 8px 14px;
+  }
+
+  .proximaLarga .proximaCabeca {
+    grid-area: cabeca;
+  }
+
+  .proximaLarga .proximaAreas {
+    grid-area: areas;
+  }
+
+  .proximaLarga .proximaContagem {
+    grid-area: contagem;
+    align-self: center;
+  }
+
+  .proximaLarga .proximaCompra {
+    grid-area: compra;
+    align-self: end;
+  }
+
+  .proximaLarga .proximaLinks {
+    grid-area: links;
+    padding-top: 0;
+    border-top: 0;
+    gap: 0 16px;
+  }
+
+  /* Sem etapa marcada: só a mensagem e o link, numa linha */
+  .proximaLarga.proximaSemData {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: none;
+    align-items: center;
+  }
+}
+
 /* ---------- Avisos no ar ---------- */
 .avisos {
   border-bottom: 1px solid var(--linha);
@@ -400,7 +607,8 @@
   gap: 12px;
 }
 
-@media (min-width: 640px) {
+/* Duas colunas só no tablet: no computador a coluna de texto é estreita para as subcategorias */
+@media (min-width: 640px) and (max-width: 1039px) {
   .bksAreas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -455,6 +663,24 @@
   text-decoration: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 0.18em;
+}
+
+.bksCategorias {
+  display: grid;
+  gap: 8px;
+}
+
+/* Categoria e, ao lado (ou embaixo), as subcategorias dela */
+.bksCategoria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.bksCategoriaNome {
+  min-width: 4.5rem;
+  font-weight: 800;
 }
 
 .bksAreaTexto {
@@ -526,23 +752,95 @@
   color: var(--verde-escuro);
 }
 
-/* ---------- Líderes ---------- */
+/* ---------- Líderes (agrupados por categoria; uma por subcategoria) ---------- */
+.lideresGrupos {
+  display: grid;
+  gap: clamp(28px, 3.5vw, 44px);
+}
+
+.lideresCategoria {
+  display: grid;
+  gap: 14px;
+}
+
+.lideresCategoriaCabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--linha-forte);
+}
+
+.lideresCategoriaNome {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-variation-settings: 'wdth' 106;
+  font-size: var(--fs-h3);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Marca na cor da categoria (a cor nunca é a única informação: o nome está ao lado) */
+.lideresCategoriaNome::before {
+  content: '';
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--cor-cat, var(--verde));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+}
+
+.lideresDestaque {
+  flex-basis: 100%;
+  font-size: var(--fs-pequeno);
+}
+
+.lideresDestaqueRotulo {
+  font-weight: 750;
+  color: var(--verde-escuro);
+}
+
 .lideres {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
 }
 
 .lider {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: start;
-  padding: 20px;
+  padding: 16px 18px;
   border: 1px solid var(--linha);
-  border-top: 5px solid var(--cor-cat, var(--verde));
+  border-top: 4px solid var(--cor-cat, var(--verde));
   border-radius: var(--raio-g);
   background: var(--branco);
   box-shadow: var(--sombra-1);
+}
+
+.liderSemPontos {
+  border-style: dashed;
+  border-top-style: solid;
+  background: transparent;
+  box-shadow: none;
+}
+
+.liderSub {
+  font-variation-settings: 'wdth' 104;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.liderVazio {
+  align-self: center;
+}
+
+.liderCategoriaInteira {
+  gap: 14px;
 }
 
 .liderCabeca {
@@ -570,23 +868,24 @@
 }
 
 .liderNome strong {
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 750;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .liderPontos {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 8px;
-  padding-top: 12px;
+  gap: 2px 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--linha);
 }
 
 .liderNumero {
   font-variation-settings: 'wdth' 110;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -602,6 +901,36 @@
   margin-left: auto;
   font-size: var(--fs-pequeno);
   color: var(--texto-2);
+}
+
+/* Celular: pontos à direita do piloto, para os cartões das subcategorias ficarem baixos */
+@media (max-width: 639px) {
+  .lider:has(.liderPontos) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 14px;
+  }
+
+  .liderSub,
+  .liderCabeca {
+    grid-column: 1 / -1;
+  }
+
+  .lider:has(.liderPontos) .liderPontos {
+    display: grid;
+    justify-items: end;
+    align-content: center;
+    gap: 2px;
+    max-width: 7rem;
+    padding-top: 0;
+    border-top: 0;
+    text-align: right;
+  }
+
+  .liderVantagem {
+    margin-left: 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
 }
 
 /* ---------- Calendário ---------- */

@@ -15,9 +15,9 @@ import {
   NoticiasInicio,
   PerguntasInicio,
   PilotosDestaque,
-  type LiderInicio,
 } from '@/components/site/inicio/Secoes'
-import { CartaoProximaEtapa, TopoInicio, type BotaoTopo } from '@/components/site/inicio/Topo'
+import { montarLideres } from '@/components/site/inicio/lideres'
+import { CartaoProximaEtapa, FaixaProximaEtapa, TopoInicio, type BotaoTopo, type CaminhoTopo } from '@/components/site/inicio/Topo'
 import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { atributosDoLink, type ValorLink } from '@/fields/link'
 import { ORDEM_PADRAO_INICIO } from '@/globals/ordem-inicio'
@@ -49,7 +49,7 @@ import {
   ROTULO_MODALIDADE,
   situacaoDaEtapa,
 } from '@/lib/site'
-import { separarClassificacao } from '@/lib/subcategorias'
+import { NOME_TOPO_PADRAO, SUBTITULO_TOPO_PADRAO, TITULO_TOPO_PADRAO } from '@/lib/topo-inicio'
 import type { Galeria, Midia, PaginaInicial, Piloto } from '@/payload-types'
 
 export const revalidate = 60
@@ -107,23 +107,40 @@ export default async function Inicio() {
   const fotosKartodromo = fotosDasGalerias(kartodromo.galerias ?? [])
   const blocoNoticias = bloco('noticias')
   const noticias = blocoNoticias ? (await lerNoticias(quantidadeDe(blocoNoticias, 3))).docs : []
-  // A foto escolhida no painel para o topo vale sempre que estiver deitada; senão, a primeira foto larga disponível
+  // A foto escolhida no painel para o topo vale sempre que estiver deitada; senão, a primeira foto larga das
+  // galerias e do kartódromo (o banner do campeonato fica por último: o topo é da ASKART, não só do BKS)
   const topoPainel = comoDoc<Midia>(inicio.topo?.imagem)
   const topoDeitada = Boolean(topoPainel?.url && (topoPainel.width ?? 0) > (topoPainel.height ?? 0))
   const fotoTopo = topoDeitada
     ? escolher([topoPainel], { largaObrigatoria: false })
-    : escolher([bks?.campeonato.banner, ...fotosGaleria, topoPainel], { largaObrigatoria: false })
+    : escolher([...fotosGaleria, kartodromo.imagemTopo, ...fotosKartodromo, bks?.campeonato.banner, topoPainel], { largaObrigatoria: false })
   reservar(noticias.map((n) => n.capa)) // as capas das notícias já aparecem na página
   const fotoBks = escolher([bks?.campeonato.banner, ...fotosGaleria, ...fotosKartodromo])
   const fotoKartodromo = escolher([kartodromo.imagemTopo, ...fotosKartodromo, ...fotosGaleria])
 
-  /* ── topo ── */
+  /* ── topo: a ASKART e os dois caminhos (BKS e Kartódromo) ── */
   const nomeCampeonato = semDemo(bks?.campeonato.nome) || 'Brasília Kart Series'
   const nomeKartodromo = kartodromo.nome || 'Kartódromo Ayrton Senna do Guará'
-  const titulo = inicio.topo?.titulo?.trim() || `${nomeCampeonato}${temporada?.ano ? ` ${temporada.ano}` : ''}`
-  const subtitulo =
-    inicio.topo?.subtitulo?.trim() ||
-    `Calendário, classificação e resultados do campeonato organizado pela ${config.sigla || 'ASKART'} no ${nomeKartodromo}, em Brasília.`
+  const siglaCampeonato = semDemo(bks?.campeonato.sigla) || 'BKS'
+  const titulo = inicio.topo?.titulo?.trim() || config.sigla?.trim() || TITULO_TOPO_PADRAO
+  const nomeAssociacao = config.nome?.trim() || NOME_TOPO_PADRAO
+  const subtitulo = inicio.topo?.subtitulo?.trim() || SUBTITULO_TOPO_PADRAO
+  const caminhos: CaminhoTopo[] = [
+    {
+      href: '/bks',
+      titulo: `${nomeCampeonato} (${siglaCampeonato})`,
+      texto: 'O campeonato de kart organizado pela ASKART: calendário, classificação e resultados.',
+      logo: bks?.logo ?? null,
+      tom: 'vermelho',
+    },
+    {
+      href: '/kartodromo',
+      titulo: 'Kartódromo do Guará',
+      texto: `O ${nomeKartodromo}: treinos, taxas, como treinar e como chegar.`,
+      tom: 'verde',
+    },
+  ]
+  // Links discretos abaixo dos caminhos: os botões do painel ou, sem eles, "Sobre a ASKART"
   const botoesPainel: BotaoTopo[] = (inicio.topo?.botoes ?? [])
     .map((b): BotaoTopo | null => {
       const link = b.link as ValorLink
@@ -131,12 +148,7 @@ export default async function Inicio() {
       return attrs ? { href: attrs.href, texto: link?.rotulo?.trim() || 'Saiba mais', externo: attrs.target === '_blank' } : null
     })
     .filter((b): b is BotaoTopo => b !== null)
-  const botoes: BotaoTopo[] = botoesPainel.length
-    ? botoesPainel
-    : [
-        { href: '/bks', texto: temporada?.ano ? `Calendário ${temporada.ano}` : 'Calendário' },
-        { href: '/bks/classificacao', texto: 'Classificação' },
-      ]
+  const linksTopo: BotaoTopo[] = botoesPainel.length ? botoesPainel : [{ href: '/sobre', texto: `Sobre a ${config.sigla?.trim() || 'ASKART'}` }]
   const blocoProxima = bloco('proxima-etapa') as (Bloco & { contagem?: boolean | null }) | undefined
   const cartaoProxima = blocoProxima ? (
     <CartaoProximaEtapa
@@ -145,6 +157,7 @@ export default async function Inicio() {
       mapa={proxima ? mapaDaEtapa(proxima, contato) : null}
       contagem={blocoProxima.contagem !== false}
       rotulo={tituloDe(blocoProxima, 'Próxima etapa')}
+      largo
     />
   ) : null
 
@@ -173,70 +186,37 @@ export default async function Inicio() {
   ]
   const publico = eventoPublico(config)
 
-  /* ── avisos no ar: na posição do bloco "Comunicados" ou, se ele não existir no painel, logo abaixo do topo ── */
+  /* ── kartódromo: uma chamada só, mesmo com os blocos "Treinos" e "Kartódromo" ligados (fica no lugar do primeiro) ── */
+  const indiceKart = blocos.findIndex((b) => b.blockType === 'treinos' || b.blockType === 'kartodromo')
+
+  /*
+   * ── avisos no ar: na posição do bloco "Comunicados" ou, se ele não existir no painel, logo depois do BKS e
+   * do kartódromo (a ordem do começo da página: ASKART, próxima etapa, BKS, kartódromo, avisos) ──
+   */
   const temBlocoAvisos = configuradas.some((b) => b.blockType === 'comunicados')
   const blocoAvisos = bloco('comunicados')
   const avisos = temBlocoAvisos && !blocoAvisos ? [] : await lerAvisos(quantidadeDe(blocoAvisos, 3))
-  const avisosNoTopo = !temBlocoAvisos ? (
+  const avisosPadrao = !temBlocoAvisos ? (
     <AvisosInicio avisos={avisos} titulo="Avisos no ar" subtitulo="Comunicados oficiais da ASKART sobre treinos, etapas e o kartódromo." />
   ) : null
-
-  /* ── kartódromo: uma chamada só, mesmo com os blocos "Treinos" e "Kartódromo" ligados (fica no lugar do último) ── */
-  const indicesKart = blocos.map((b, i) => (b.blockType === 'treinos' || b.blockType === 'kartodromo' ? i : -1)).filter((i) => i >= 0)
-  const indiceKart = indicesKart[indicesKart.length - 1] ?? -1
 
   const secoes: Record<string, (b: Bloco, i: number) => Promise<ReactNode> | ReactNode> = {
     'proxima-etapa': () => null, // fica no topo da página
     comunicados: (b) => <AvisosInicio avisos={avisos} titulo={tituloDe(b, 'Avisos no ar')} subtitulo={subtituloDe(b)} />,
     lideres: async (b) => {
       if (!temporada) return null
-      // Regra do BKS (pontos por subcategoria): um líder por subcategoria, na ordem cadastrada na categoria.
-      const lidas = await lerClassificacoes(temporada.id)
-      const classificacoes = lidas.filter((c) => c.lider || c.porSubcategoria)
+      // Agrupados por categoria: F400 e 125cc (e o kart indoor) com TODAS as subcategorias, um cartão por
+      // subcategoria (regra do BKS: pontos por subcategoria); Cadete e Mirim, um cartão só. A quantidade do
+      // painel conta categorias — nenhuma subcategoria fica de fora.
+      const classificacoes = await lerClassificacoes(temporada.id)
       if (!classificacoes.length) return null
       const categorias = await lerCategorias(classificacoes.map((c) => Number(c.categoria)))
       const porId = new Map(categorias.map((c) => [String(c.id), c]))
-      const vantagem = (lider: { pontos: number }, segundo?: { pontos: number }) =>
-        segundo ? Math.round((lider.pontos - segundo.pontos) * 10) / 10 : null
-      const todos: LiderInicio[] = classificacoes.flatMap((c): LiderInicio[] => {
-        const categoria = porId.get(String(c.categoria)) ?? null
-        const separada = c.porSubcategoria ? separarClassificacao(c.linhas, categoria?.subcategorias, { pontosPorSubcategoria: true }) : null
-        if (separada?.porSubcategoria && !c.lider) {
-          return separada.grupos
-            .filter((g) => (g.linhas[0]?.linha.pontos ?? 0) > 0)
-            .map((g) => {
-              const lider = g.linhas[0].linha
-              return {
-                chave: `${String(c.categoria)}-${g.chave}`,
-                categoria,
-                subcategoria: g.semSubcategoria ? null : g.nome,
-                numero: lider.numero ?? null,
-                nome: lider.nome,
-                equipe: lider.equipeNome ?? null,
-                pontos: lider.pontos,
-                vantagem: vantagem(lider, g.linhas[1]?.linha),
-              }
-            })
-        }
-        if (!c.lider) return []
-        const lider = c.lider.linha
-        return [
-          {
-            chave: String(c.categoria),
-            categoria,
-            numero: lider.numero ?? null,
-            nome: lider.nome,
-            equipe: lider.equipeNome ?? null,
-            pontos: lider.pontos,
-            vantagem: vantagem(lider, c.linhas[1]),
-          },
-        ]
-      })
-      const lideres = todos.slice(0, quantidadeDe(b, 6))
-      if (!lideres.length) return null
+      const grupos = montarLideres(classificacoes, (id) => porId.get(String(id)) ?? null, quantidadeDe(b, 6))
+      if (!grupos.length) return null
       return (
         <Lideres
-          lideres={lideres}
+          grupos={grupos}
           rotulo={`Classificação ${temporada.ano ?? ''}`.trim()}
           titulo={tituloDe(b, 'Líderes por categoria')}
           subtitulo={subtituloDe(b)}
@@ -254,8 +234,8 @@ export default async function Inicio() {
         acao={<AcaoSecao bloco={b} padrao={{ href: '/bks', texto: 'Calendário completo' }} />}
       />
     ),
-    treinos: (b, i) => (i === indiceKart ? chamadaKartodromo(b) : null),
-    kartodromo: (b, i) => (i === indiceKart ? chamadaKartodromo(b) : null),
+    treinos: (b, i) => (i === indiceKart ? comAvisos(chamadaKartodromo(b)) : null),
+    kartodromo: (b, i) => (i === indiceKart ? comAvisos(chamadaKartodromo(b)) : null),
     noticias: (b) => {
       return (
         <NoticiasInicio
@@ -322,6 +302,18 @@ export default async function Inicio() {
     ),
   }
 
+  /** A chamada do kartódromo seguida dos avisos (quando o painel não tem o bloco "Avisos no ar"). */
+  function comAvisos(chamada: ReactNode) {
+    return avisosPadrao ? (
+      <>
+        {chamada}
+        {avisosPadrao}
+      </>
+    ) : (
+      chamada
+    )
+  }
+
   /** Chamada do kartódromo (título, texto e botão podem ser trocados no painel). */
   function chamadaKartodromo(b: Bloco) {
     const padraoBotao = { href: '/kartodromo#grade', texto: 'Ver a grade de treinos' }
@@ -353,15 +345,18 @@ export default async function Inicio() {
     <>
       <TopoInicio
         foto={fotoTopo}
-        logo={bks?.logo ?? null}
-        rotulo={`${nomeKartodromo} · Brasília/DF`}
+        logo={comoDoc<Midia>(config.logo)}
+        rotulo="Site oficial · Brasília/DF"
         titulo={titulo}
+        nome={nomeAssociacao}
         subtitulo={subtitulo}
-        botoes={botoes}
-        proxima={cartaoProxima}
+        caminhos={caminhos}
+        links={linksTopo}
       />
-      {avisosNoTopo}
+      {cartaoProxima && <FaixaProximaEtapa>{cartaoProxima}</FaixaProximaEtapa>}
       <BlocoBks foto={fotoBks} nome={nomeCampeonato} ano={temporada?.ano ?? null} areas={areasBks} eventoPublico={publico?.texto ?? null} />
+      {/* Sem chamada do kartódromo no painel, os avisos vêm logo depois do BKS */}
+      {indiceKart < 0 && avisosPadrao}
       {conteudo}
     </>
   )

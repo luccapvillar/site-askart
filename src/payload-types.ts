@@ -4958,21 +4958,24 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface PaginaInicial {
   id: number;
+  /**
+   * O topo apresenta a ASKART (logo, sigla e nome das Configurações) e mostra dois caminhos fixos, lado a lado: "Brasília Kart Series (BKS)" e "Kartódromo do Guará". A próxima etapa vem logo abaixo.
+   */
   topo?: {
     /**
-     * Vazio = nome do campeonato principal e da temporada atual.
+     * Vazio = a sigla da associação (ASKART), com o nome por extenso embaixo.
      */
     titulo?: string | null;
     /**
-     * Vazio = frase padrão sobre o campeonato e o kartódromo.
+     * Vazio = "A associação responsável pela administração do Kartódromo Ayrton Senna do Guará e pela organização dos campeonatos de kart de Brasília."
      */
     subtitulo?: string | null;
     /**
-     * Foto larga e deitada (mínimo 1920 px). Vazio = foto do campeonato principal.
+     * Foto larga e deitada (mínimo 1920 px). Vazio = uma foto larga das galerias.
      */
     imagem?: (number | null) | Midia;
     /**
-     * Até dois. Vazio = "Calendário" e "Classificação".
+     * Opcional: até dois links discretos abaixo dos caminhos BKS e Kartódromo (que são fixos). Vazio = "Sobre a ASKART".
      */
     botoes?:
       | {
@@ -5247,6 +5250,9 @@ export interface PaginaInicial {
                */
               novaAba?: boolean | null;
             };
+            /**
+             * Cada categoria aparece inteira: F400 e 125cc com todas as subcategorias, um cartão para cada.
+             */
             quantidade?: number | null;
             id?: string | null;
             blockName?: string | null;

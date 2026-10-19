@@ -16,6 +16,9 @@
  * 6. Regra do BKS (informada pelo cliente): etapa pontuada pela média das posições nas corridas, por
  *    subcategoria — preenche "Como a etapa é pontuada" nas regras que estão sem ele e recalcula a
  *    classificação das temporadas não encerradas.
+ * 7. Topo da página inicial da ASKART (pedido do cliente: "o começo do site é mais da ASKART, e não do
+ *    kartódromo nem do BKS"): o título, o subtítulo e os botões do topo que ainda forem o padrão antigo do
+ *    BKS voltam a vazio — e vazio agora é a apresentação da ASKART. O que o moderador escreveu fica.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -30,6 +33,7 @@ import {
 import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
+import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
@@ -600,6 +604,83 @@ async function etapaPelaMediaDasCorridas(payload: Payload): Promise<string> {
   return partes.join('; ')
 }
 
+/* ─────────────────── 7. Topo da página inicial: apresentação da ASKART ─────────────────── */
+
+type TopoGravado = { titulo?: string | null; subtitulo?: string | null; botoes?: { link?: ValorLink | null }[] | null } & Record<string, unknown>
+
+/**
+ * O topo sem o padrão antigo do BKS: título ("Brasília Kart Series 2026"), subtítulo ("Calendário,
+ * classificação e resultados do campeonato…") e botões ("Calendário" e "Classificação") que ainda forem o
+ * padrão antigo ficam vazios — vazio = a apresentação da ASKART (src/lib/topo-inicio.ts). A foto e o que foi
+ * escrito à mão ficam como estão. null = nada a trocar.
+ */
+function topoSemPadraoAntigo(topo: TopoGravado | null | undefined): { topo: TopoGravado; trocados: string[] } | null {
+  if (!topo) return null
+  const novo: TopoGravado = { ...topo }
+  const trocados: string[] = []
+  if (topo.titulo?.trim() && ehTituloAntigoDoTopo(topo.titulo)) {
+    novo.titulo = null
+    trocados.push('título')
+  }
+  if (topo.subtitulo?.trim() && ehSubtituloAntigoDoTopo(topo.subtitulo)) {
+    novo.subtitulo = null
+    trocados.push('subtítulo')
+  }
+  const botoes = topo.botoes ?? []
+  if (botoes.length && ehBotoesAntigosDoTopo(botoes.map((b) => ({ caminho: caminho(b.link), rotulo: b.link?.rotulo })))) {
+    novo.botoes = []
+    trocados.push('botões')
+  }
+  return trocados.length ? { topo: novo, trocados } : null
+}
+
+/**
+ * Página inicial com rascunho: grava a versão PUBLICADA (só com o topo trocado; nada do rascunho vai para o
+ * site) e, se havia um rascunho em edição, grava-o de novo (com o topo trocado, se tinha o antigo) para ele
+ * continuar sendo o mais recente no painel — o mesmo cuidado da aba Avisos no menu.
+ */
+async function topoDaAskart(payload: Payload): Promise<string> {
+  const slug = 'pagina-inicial' as const
+  const global = payload.config.globals.find((g) => g.slug === slug)
+  if (!global) return 'global da página inicial não encontrado: nada feito'
+  const comRascunho = Boolean(global.versions && global.versions.drafts)
+
+  const publicado = (await payload.findGlobal({ slug, depth: 0, draft: false, overrideAccess: true })) as unknown as Record<string, unknown>
+  const ultima = comRascunho
+    ? ((await payload.findGlobal({ slug, depth: 0, draft: true, overrideAccess: true })) as unknown as Record<string, unknown>)
+    : null
+  const rascunho = ultima?._status === 'draft' ? ultima : null
+
+  const noPublicado = topoSemPadraoAntigo(publicado.topo as TopoGravado | null)
+  const noRascunho = rascunho ? topoSemPadraoAntigo(rascunho.topo as TopoGravado | null) : null
+  if (!noPublicado && !noRascunho) return 'nada a fazer: o topo não tem o texto antigo do BKS (vazio já mostra a apresentação da ASKART)'
+
+  if (noPublicado) {
+    await payload.updateGlobal({
+      slug,
+      draft: false,
+      overrideAccess: true,
+      context: { ...contexto },
+      data: { ...semControle(publicado), topo: noPublicado.topo, ...(comRascunho ? { _status: 'published' } : {}) } as never,
+    })
+  }
+  if (rascunho) {
+    await payload.updateGlobal({
+      slug,
+      draft: true,
+      overrideAccess: true,
+      context: { ...contexto },
+      data: { ...semControle(rascunho), ...(noRascunho ? { topo: noRascunho.topo } : {}), _status: 'draft' } as never,
+    })
+  }
+  return [
+    noPublicado ? `topo publicado: ${noPublicado.trocados.join(', ')} do BKS trocado(s) pela apresentação da ASKART` : null,
+    noRascunho ? `rascunho em edição: ${noRascunho.trocados.join(', ')} trocado(s)` : rascunho ? 'o rascunho em edição foi mantido' : null,
+  ]
+    .filter(Boolean)
+    .join('; ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -621,6 +702,7 @@ const ATUALIZACOES: Atualizacao[] = [
     descricao: 'Regra do BKS: etapa pela média das corridas, por subcategoria',
     aplicar: etapaPelaMediaDasCorridas,
   },
+  { chave: 'atualizacao:2026-10-topo-da-askart', descricao: 'Topo da página inicial com a apresentação da ASKART', aplicar: topoDaAskart },
 ]
 
 async function principal() {

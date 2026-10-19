@@ -3,10 +3,9 @@
  * não há dado publicado; nada aqui inventa conteúdo: textos fixos só descrevem o que o cliente confirmou.
  */
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { SeloNivel } from '@/components/site/avisos/SeloNivel'
 import { nivelSeguro, dataDoAviso } from '@/components/site/avisos/comum'
-import { Etiquetas } from '@/components/site/base/Etiquetas'
 import { FaixaFoto } from '@/components/site/base/FaixaFoto'
 import { Subcategorias } from '@/components/site/base/Subcategorias'
 import { Botao } from '@/components/site/Botao'
@@ -20,6 +19,7 @@ import { TituloSecao } from '@/components/site/TituloSecao'
 import { formatarData } from '@/lib/datas'
 import { dataDaEtapa, etapaJaOcorreu, NOMES_REDES, type Canal } from '@/lib/site'
 import type { Aviso, Categoria, Etapa, Midia, Pergunta, Piloto } from '@/payload-types'
+import type { GrupoLideres, PilotoLider } from './lideres'
 import s from './Inicio.module.css'
 
 /** Link de ação no cabeçalho das seções. */
@@ -82,7 +82,7 @@ export function AvisosInicio({ avisos, titulo, subtitulo }: { avisos: Aviso[]; t
 
 /* ───────────────────────────── BKS ───────────────────────────── */
 
-type AreaBks = { href: string; titulo: string; texto: string; categorias: Pick<Categoria, 'id' | 'nome'>[] }
+type AreaBks = { href: string; titulo: string; texto: string; categorias: Pick<Categoria, 'id' | 'nome' | 'subcategorias'>[] }
 
 /** Campeonato BKS: foto grande, as duas áreas (karts profissionais e indoor) e os atalhos do campeonato. */
 export function BlocoBks({
@@ -121,7 +121,17 @@ export function BlocoBks({
                 </h3>
                 <p className={s.bksAreaTexto}>{a.texto}</p>
                 {a.categorias.length > 0 ? (
-                  <Etiquetas rotulo={`Categorias — ${a.titulo}`} itens={a.categorias.map((c) => <TextoDemo key={c.id} texto={c.nome} />)} />
+                  // Cada categoria com as suas subcategorias (F400 e 125cc têm; Cadete e Mirim não)
+                  <ul className={s.bksCategorias} aria-label={`Categorias — ${a.titulo}`}>
+                    {a.categorias.map((c) => (
+                      <li key={c.id} className={s.bksCategoria}>
+                        <span className={s.bksCategoriaNome}>
+                          <TextoDemo texto={c.nome} />
+                        </span>
+                        <Subcategorias itens={c.subcategorias} rotulo={`Subcategorias de ${semDemo(c.nome)}`} />
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
                   <p className="texto-2 texto-pequeno">As categorias desta área ainda não foram divulgadas.</p>
                 )}
@@ -160,74 +170,128 @@ export function BlocoBks({
 
 /* ───────────────────────────── líderes ───────────────────────────── */
 
-export type LiderInicio = {
-  chave: string
-  categoria: Pick<Categoria, 'nome' | 'cor' | 'subcategorias'> | null
-  /**
-   * Regra do BKS (pontos por subcategoria): o líder é o da subcategoria — o cartão mostra só ela e a
-   * vantagem é sobre o 2º dela. Ausente/null = líder da categoria.
-   */
-  subcategoria?: string | null
-  numero: string | number | null
-  nome: string
-  equipe: string | null
-  pontos: number
-  vantagem: number | null
+/** Piloto líder (placa, nome, equipe) e os pontos; sem líder, o aviso de que a subcategoria ainda não pontuou. */
+function CorpoLider({ lider, cor }: { lider: PilotoLider | null; cor?: string | null }) {
+  if (!lider) return <p className={`texto-2 texto-pequeno ${s.liderVazio}`}>Ainda sem pontos nesta subcategoria.</p>
+  return (
+    <>
+      <div className={s.liderPiloto}>
+        <PlacaNumero numero={lider.numero} cor={cor} tamanho="m" />
+        <div className={s.liderNome}>
+          <span className="visualmente-oculto">{lider.rotulo}: </span>
+          <strong>
+            <TextoDemo texto={lider.nome} />
+          </strong>
+          {lider.equipe && (
+            <span className="texto-2 texto-pequeno">
+              <TextoDemo texto={lider.equipe} />
+            </span>
+          )}
+        </div>
+      </div>
+      <p className={s.liderPontos}>
+        <span className={s.liderNumero}>{lider.pontos}</span> <span className={s.liderPts}>pontos</span>
+        {lider.vantagem !== null && (
+          <span className={s.liderVantagem}>{lider.vantagem === 0 ? 'empatado com o 2º' : `${lider.vantagem} à frente do 2º`}</span>
+        )}
+      </p>
+    </>
+  )
 }
 
+const corDaCategoria = (g: GrupoLideres) => ({ '--cor-cat': g.categoria?.cor || 'var(--verde)' }) as CSSProperties
+
+/** Categoria com subcategorias: o nome da categoria e, embaixo, um cartão por subcategoria (todas, na ordem). */
+function LideresDaCategoria({ grupo }: { grupo: GrupoLideres }) {
+  const nome = semDemo(grupo.categoria?.nome) || 'Categoria'
+  const id = `lideres-cat-${grupo.chave}`
+  return (
+    <section className={s.lideresCategoria} style={corDaCategoria(grupo)} aria-labelledby={id}>
+      <div className={s.lideresCategoriaCabeca}>
+        <h3 id={id} className={s.lideresCategoriaNome}>
+          <TextoDemo texto={grupo.categoria?.nome || 'Categoria'} />
+        </h3>
+        <p className="texto-2 texto-pequeno">Líder de cada subcategoria</p>
+        {grupo.destaque && (
+          <p className={s.lideresDestaque}>
+            <span className={s.lideresDestaqueRotulo}>{grupo.destaque.rotulo}</span> <TextoDemo texto={grupo.destaque.nome} /> ·{' '}
+            {grupo.destaque.pontos} pontos
+          </p>
+        )}
+      </div>
+      <ul className={s.lideres} aria-label={`Líderes das subcategorias da ${nome}`}>
+        {grupo.cartoes.map((c) => (
+          <li key={c.chave} className={`${s.lider} ${c.lider ? '' : s.liderSemPontos}`}>
+            <h4 className={s.liderSub}>
+              <span className="visualmente-oculto">{nome}, subcategoria </span>
+              <TextoDemo texto={c.subcategoria ?? 'Subcategoria'} />
+            </h4>
+            <CorpoLider lider={c.lider} cor={grupo.categoria?.cor} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+/** Categorias sem subcategorias, lado a lado: um cartão só por categoria. */
+function LideresSemSubcategorias({ grupos }: { grupos: GrupoLideres[] }) {
+  return (
+    <ul className={s.lideres} aria-label="Líderes das categorias sem subcategorias">
+      {grupos.map((g) => {
+        const c = g.cartoes[0]
+        const nome = semDemo(g.categoria?.nome) || 'categoria'
+        return (
+          <li key={c.chave} className={`${s.lider} ${s.liderCategoriaInteira}`} style={corDaCategoria(g)}>
+            <div className={s.liderCabeca}>
+              <h3 className={s.liderCategoria}>
+                <TextoDemo texto={g.categoria?.nome || 'Categoria'} />
+              </h3>
+              <Subcategorias itens={g.categoria?.subcategorias} rotulo={`Subcategorias da ${nome}`} />
+            </div>
+            <CorpoLider lider={c.lider} cor={g.categoria?.cor} />
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/**
+ * Líderes da classificação, agrupados por categoria: F400 e 125cc (e o kart indoor) com TODAS as
+ * subcategorias, um cartão por subcategoria; as categorias sem subcategorias seguidas ficam lado a lado.
+ */
 export function Lideres({
-  lideres,
+  grupos,
   titulo,
   subtitulo,
   rotulo,
   acao,
 }: {
-  lideres: LiderInicio[]
+  grupos: GrupoLideres[]
   titulo: string
   subtitulo?: string | null
   rotulo: string
   acao: ReactNode
 }) {
-  if (!lideres.length) return null
+  if (!grupos.length) return null
+  // Categorias de um cartão só, seguidas, dividem a mesma linha
+  const blocos: (GrupoLideres | GrupoLideres[])[] = []
+  for (const g of grupos) {
+    const anterior = blocos[blocos.length - 1]
+    if (g.porSubcategoria) blocos.push(g)
+    else if (Array.isArray(anterior)) anterior.push(g)
+    else blocos.push([g])
+  }
   return (
     <section className="secao fundo-papel" aria-labelledby="lideres-inicio">
       <div className="conteiner">
         <TituloSecao id="lideres-inicio" rotulo={rotulo} titulo={titulo} subtitulo={subtitulo} acao={acao} />
-        <ul className={s.lideres}>
-          {lideres.map((l) => (
-            <li key={l.chave} className={s.lider} style={{ '--cor-cat': l.categoria?.cor || 'var(--verde)' } as React.CSSProperties}>
-              <div className={s.liderCabeca}>
-                <h3 className={s.liderCategoria}>
-                  <TextoDemo texto={l.categoria?.nome || 'Categoria'} />
-                  {l.subcategoria && <span className="visualmente-oculto">, subcategoria {semDemo(l.subcategoria)}</span>}
-                </h3>
-                {l.subcategoria ? (
-                  <Subcategorias itens={[{ nome: l.subcategoria }]} rotulo={`Subcategoria da ${semDemo(l.categoria?.nome) || 'categoria'}`} />
-                ) : (
-                  <Subcategorias itens={l.categoria?.subcategorias} rotulo={`Subcategorias da ${semDemo(l.categoria?.nome) || 'categoria'}`} />
-                )}
-              </div>
-              <div className={s.liderPiloto}>
-                <PlacaNumero numero={l.numero} cor={l.categoria?.cor} tamanho="m" />
-                <div className={s.liderNome}>
-                  <span className="visualmente-oculto">Líder: </span>
-                  <strong>
-                    <TextoDemo texto={l.nome} />
-                  </strong>
-                  {l.equipe && (
-                    <span className="texto-2 texto-pequeno">
-                      <TextoDemo texto={l.equipe} />
-                    </span>
-                  )}
-                </div>
-              </div>
-              <p className={s.liderPontos}>
-                <span className={s.liderNumero}>{l.pontos}</span> <span className={s.liderPts}>pontos</span>
-                {l.vantagem !== null && <span className={s.liderVantagem}>{l.vantagem === 0 ? 'empatado com o 2º' : `${l.vantagem} à frente do 2º`}</span>}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div className={s.lideresGrupos}>
+          {blocos.map((b) =>
+            Array.isArray(b) ? <LideresSemSubcategorias key={b.map((g) => g.chave).join('-')} grupos={b} /> : <LideresDaCategoria key={b.chave} grupo={b} />,
+          )}
+        </div>
       </div>
     </section>
   )

@@ -25,6 +25,7 @@ import {
   situacaoDaEtapa,
   type Modalidade,
 } from '@/lib/site'
+import { nomesCadastrados } from '@/lib/subcategorias'
 import type { Categoria } from '@/payload-types'
 import { semDemo } from '../TextoDemo'
 import { NavegacaoBks } from './AbasBks'
@@ -138,6 +139,11 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
                     (c): c is Categoria => typeof c === 'object' && c !== null && modalidadeDe(c) === modalidade,
                   )
                   const nomesCategorias = categoriasDaEtapa.map((c) => semDemo(c.nome))
+                  // Sem horários publicados: as categorias com as subcategorias ("F400 (Novatos, Junior…)")
+                  const categoriasPorExtenso = categoriasDaEtapa.map((c) => {
+                    const subs = nomesCadastrados(c.subcategorias).map((n) => semDemo(n))
+                    return subs.length ? `${semDemo(c.nome)} (${subs.join(', ')})` : semDemo(c.nome)
+                  })
                   const classes = [s.etapa, ehProxima && s.etapaProxima, situacao.jaOcorreu && s.etapaPassada, situacao.cancelada && s.etapaCancelada]
                   return (
                     <li key={etapa.id}>
@@ -173,7 +179,7 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
                               // Etapa sem categorias escolhidas = todas as da temporada: não dá para dizer "não corre"
                               categoriasDaEtapa={etapa.categorias?.length ? categoriasDaEtapa.map(chaveDaCategoria) : null}
                             />
-                            {nomesCategorias.length > 0 && !programacao.length && <p className="texto-2">Categorias: {nomesCategorias.join(', ')}.</p>}
+                            {categoriasPorExtenso.length > 0 && !programacao.length && <p className="texto-2">Categorias: {categoriasPorExtenso.join('; ')}.</p>}
                           </div>
                           <div className={s.etapaLado}>
                             {/* "Aberto ao público" fica no bloco geral "Venha assistir", no fim da página */}
