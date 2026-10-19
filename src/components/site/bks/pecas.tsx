@@ -1,37 +1,46 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import type { Categoria, Corrida, Etapa } from '@/payload-types'
 import { formatarDataExtenso, formatarHora } from '@/lib/datas'
 import { dataDaEtapa } from '@/lib/site'
+import { Subcategorias } from '../base/Subcategorias'
+import { Botao } from '../Botao'
 import { Selo, STATUS_ETAPA } from '../Selo'
 import { semDemo, TextoDemo } from '../TextoDemo'
 import s from './Bks.module.css'
 
-/** Botão da IZY Pass. Sem link cadastrado, avisa que o link será publicado (nunca um link inventado). */
+/**
+ * Botão da IZY Pass (treinos livres e corridas de cada etapa). Sem link cadastrado no painel, mostra que o
+ * link ainda não foi divulgado (nunca um link inventado).
+ */
 export function BotaoIzy({ href, texto = 'Comprar na IZY Pass', claro = false }: { href: string | null; texto?: string | null; claro?: boolean }) {
   if (!href) {
     return (
-      <span className={`${s.izy} ${s.izyInativo} ${claro ? s.izyClaro : ''}`}>
-        IZY Pass <small>link em breve</small>
-      </span>
+      <p className={`${s.izyInativo} ${claro ? s.izyInativoClaro : ''}`}>
+        <span className={s.izyMarca}>IZY Pass</span>
+        <span>O link de compra ainda não foi divulgado.</span>
+      </p>
     )
   }
   return (
-    <a className={`${s.izy} ${claro ? s.izyClaro : ''}`} href={href} target="_blank" rel="noopener noreferrer">
-      {texto || 'Comprar na IZY Pass'} <span aria-hidden="true">↗</span>
-      <span className="visualmente-oculto"> (abre o site da IZY Pass em nova aba)</span>
-    </a>
+    <Botao href={href} externo variante={claro ? 'destaque' : 'primario'} seta grande>
+      {texto || 'Comprar na IZY Pass'}
+      <span className="visualmente-oculto"> (site da IZY Pass)</span>
+    </Botao>
   )
 }
 
-export function LinkMapa({ href, rotulo = 'Ver no mapa' }: { href: string | null; rotulo?: string }) {
+/** "Como chegar": link do mapa da etapa (ou do kartódromo). Sem link, nada. */
+export function LinkMapa({ href, rotulo = 'Ver no mapa', claro = false }: { href: string | null; rotulo?: string; claro?: boolean }) {
   if (!href) return null
   return (
-    <a className={s.mapa} href={href} target="_blank" rel="noopener noreferrer">
-      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <a className={`${s.mapa} ${claro ? s.mapaClaro : ''}`} href={href} target="_blank" rel="noopener noreferrer">
+      <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 21s-7-6.1-7-11a7 7 0 1 1 14 0c0 4.9-7 11-7 11z" />
         <circle cx="12" cy="10" r="2.5" />
       </svg>
-      {rotulo}
+      <span>{rotulo}</span>
+      <span aria-hidden="true">↗</span>
       <span className="visualmente-oculto"> (abre o mapa em nova aba)</span>
     </a>
   )
@@ -44,12 +53,18 @@ export function SeloEtapa({ status, jaOcorreu = false }: { status: string; jaOco
   return <Selo tom={tom}>{rotulo}</Selo>
 }
 
-/** Bloco de data do calendário (dia, mês, dia da semana). */
-export function DataEtapa({ etapa, grande = false }: { etapa: Pick<Etapa, 'inicio'>; grande?: boolean }) {
+/** Bloco de data do calendário (dia, mês, dia da semana). Decorativo: a data por extenso vem ao lado. */
+export function DataEtapa({ etapa, grande = false, apagada = false }: { etapa: Pick<Etapa, 'inicio'>; grande?: boolean; apagada?: boolean }) {
   const d = dataDaEtapa(etapa)
-  if (!d) return <span className={`${s.data} ${grande ? s.dataGrande : ''}`}>A definir</span>
+  const classe = [s.data, grande && s.dataGrande, apagada && s.dataApagada].filter(Boolean).join(' ')
+  if (!d)
+    return (
+      <span className={classe} aria-hidden="true">
+        <span className={s.dataIndefinida}>A definir</span>
+      </span>
+    )
   return (
-    <span className={`${s.data} ${grande ? s.dataGrande : ''}`}>
+    <span className={classe} aria-hidden="true">
       <span className={s.dia}>{d.dia}</span>
       <span className={s.mes}>{d.mes}</span>
       <span className={s.semana}>{d.semana}</span>
@@ -61,67 +76,89 @@ export const nomeDaEtapa = (etapa: Pick<Etapa, 'nome' | 'numero'>) => etapa.nome
 
 export const dataPorExtenso = (etapa: Pick<Etapa, 'inicio'>) => (etapa.inicio ? formatarDataExtenso(etapa.inicio) : 'Data a definir')
 
-type GrupoCategoria = { categoria: string; cor: string | null; corridas: { nome: string; hora: string | null }[] }
+/** Subcategorias de cada categoria (pelo id), para mostrar junto da categoria na programação. */
+export type MapaSubcategorias = Map<string, { nome?: string | null }[] | null | undefined>
+
+export const mapaDeSubcategorias = (categorias: unknown[] | null | undefined): MapaSubcategorias =>
+  new Map(
+    (categorias ?? [])
+      .filter((c): c is Pick<Categoria, 'id' | 'subcategorias'> => typeof c === 'object' && c !== null && 'id' in c)
+      .map((c) => [String(c.id), c.subcategorias]),
+  )
+
+type GrupoCategoria = { categoria: string; ids: string[]; cor: string | null; corridas: { nome: string; hora: string | null }[] }
 
 /** Corridas de uma etapa agrupadas por categoria, na ordem do primeiro horário. */
 export function agruparProgramacao(corridas: Corrida[]): GrupoCategoria[] {
   const grupos = new Map<string, GrupoCategoria & { primeiro: number }>()
   for (const c of corridas) {
-    const cats = (c.categorias ?? []).filter((x): x is Categoria => typeof x === 'object')
+    const cats = (c.categorias ?? []).filter((x): x is Categoria => typeof x === 'object' && x !== null)
     const nome = cats.map((x) => semDemo(x.nome)).join(' + ') || 'Todas as categorias'
-    const g = grupos.get(nome) ?? { categoria: nome, cor: cats[0]?.cor ?? null, corridas: [], primeiro: Infinity }
+    const g = grupos.get(nome) ?? { categoria: nome, ids: cats.map((x) => String(x.id)), cor: cats[0]?.cor ?? null, corridas: [], primeiro: Infinity }
     const t = c.inicio ? new Date(c.inicio).getTime() : Infinity
     g.primeiro = Math.min(g.primeiro, t)
-    g.corridas.push({ nome: c.nome, hora: c.inicio ? formatarHora(c.inicio) : null })
+    g.corridas.push({ nome: semDemo(c.nome), hora: c.inicio ? formatarHora(c.inicio) : null })
     grupos.set(nome, g)
   }
   return [...grupos.values()].sort((a, b) => a.primeiro - b.primeiro)
 }
 
-/** Programação da etapa: horário de cada categoria (o que o cliente pediu ao clicar na data). */
-export function Programacao({ corridas, vazio = 'A programação desta etapa ainda não foi publicada.' }: { corridas: Corrida[]; vazio?: string }) {
+/**
+ * Programação da etapa: o horário de cada categoria (o que o cliente pediu ao tocar na data), com as
+ * subcategorias junto do nome da categoria. Lista (não tabela) para ler bem no celular.
+ */
+export function Programacao({
+  corridas,
+  vazio = 'A programação desta etapa ainda não foi publicada.',
+  subcategorias,
+}: {
+  corridas: Corrida[]
+  vazio?: string
+  subcategorias?: MapaSubcategorias
+}) {
   const grupos = agruparProgramacao(corridas)
-  if (!grupos.length) return <p className="texto-2">{vazio}</p>
+  if (!grupos.length) return <p className={s.semProgramacao}>{vazio}</p>
   return (
-    <table className={s.programacao}>
-      <caption className="visualmente-oculto">Horários por categoria</caption>
-      <thead>
-        <tr>
-          <th scope="col">Categoria</th>
-          <th scope="col">Programação</th>
-        </tr>
-      </thead>
-      <tbody>
-        {grupos.map((g) => (
-          <tr key={g.categoria}>
-            <th scope="row">
-              <span className={s.corCategoria} style={{ background: g.cor ?? 'var(--marca-primaria)' }} aria-hidden="true" />
-              {g.categoria}
-            </th>
-            <td>
-              <ul className={s.horarios}>
-                {g.corridas.map((c, i) => (
-                  <li key={i}>
-                    <span className="mono">{c.hora ?? '—'}</span> {c.nome}
-                  </li>
-                ))}
-              </ul>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <ul className={s.programacao} aria-label="Horários por categoria">
+      {grupos.map((g) => {
+        const subs = g.ids.length === 1 ? subcategorias?.get(g.ids[0]) : null
+        return (
+          <li key={g.categoria} className={s.progItem}>
+            <div className={s.progCategoria}>
+              <span className={s.progNome}>
+                <span className={s.corCategoria} style={{ background: g.cor ?? 'var(--verde)' }} aria-hidden="true" />
+                {g.categoria}
+              </span>
+              <Subcategorias itens={subs} rotulo={`Subcategorias de ${g.categoria}`} />
+            </div>
+            <ul className={s.progHorarios} aria-label={`Horários de ${g.categoria}`}>
+              {g.corridas.map((c, i) => (
+                <li key={i}>
+                  <span className={s.progHora}>{c.hora ?? '—'}</span>
+                  <span>{c.nome}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
-export function LinkEtapa({ etapa, children }: { etapa: Pick<Etapa, 'id'>; children?: React.ReactNode }) {
+export function LinkEtapa({ etapa, children }: { etapa: Pick<Etapa, 'id'>; children?: ReactNode }) {
   return (
-    <Link className={s.linkSeta} href={`/etapas/${etapa.id}`}>
-      {children ?? 'Página da etapa'} <span aria-hidden="true">→</span>
+    <Link className="link-seta" href={`/etapas/${etapa.id}`}>
+      {children ?? 'Página da etapa'}
     </Link>
   )
 }
 
 export function NomeEtapa({ etapa }: { etapa: Pick<Etapa, 'nome' | 'numero'> }) {
   return <TextoDemo texto={nomeDaEtapa(etapa)} />
+}
+
+/** Marca de cor da categoria (decorativa; o nome vem sempre ao lado). */
+export function CorCategoria({ cor }: { cor?: string | null }) {
+  return <span className={s.corCategoria} style={{ background: cor ?? 'var(--verde)' }} aria-hidden="true" />
 }

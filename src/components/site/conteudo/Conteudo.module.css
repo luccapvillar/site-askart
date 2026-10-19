@@ -1,0 +1,610 @@
+/* ==========================================================================
+   Conteúdo editorial: páginas de leitura (notícia, aviso, página livre),
+   cartões de notícia e paginação. Só tokens do sistema visual (globals.css).
+   ========================================================================== */
+
+/* ---------- Página de leitura ---------- */
+.artigo {
+  padding-block: clamp(24px, 4.5vw, 56px) clamp(48px, 7vw, 96px);
+  background: var(--branco);
+}
+
+/* Aviso de atenção/urgente: faixa de cor no alto (o nível também aparece em texto no selo) */
+.artigo_atencao {
+  box-shadow: inset 0 6px 0 var(--atencao);
+}
+
+.artigo_urgente {
+  box-shadow: inset 0 6px 0 var(--perigo);
+}
+
+.cabeca {
+  display: grid;
+  gap: 16px;
+  max-width: calc(880px + 2 * var(--margem));
+}
+
+/* A trilha do sistema é feita para fundo escuro: aqui fica sobre o branco */
+.cabeca nav ol {
+  color: var(--texto-2);
+}
+
+.cabeca nav a {
+  color: var(--verde-escuro);
+  font-weight: 600;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.titulo {
+  font-size: clamp(1.875rem, 1.25rem + 2.5vw, 3rem);
+  line-height: 1.08;
+}
+
+.linhaFina {
+  max-width: 62ch;
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+
+.assinatura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--linha);
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+.assinatura strong {
+  color: var(--texto);
+  font-weight: 650;
+}
+
+.capa {
+  max-width: calc(1120px + 2 * var(--margem));
+  margin-top: clamp(24px, 4vw, 40px);
+}
+
+.capa img {
+  width: 100%;
+  max-height: 640px;
+  border-radius: var(--raio-g);
+  object-fit: cover;
+}
+
+.legenda {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.corpo {
+  display: grid;
+  gap: 32px;
+  max-width: calc(720px + 2 * var(--margem));
+  margin-top: clamp(28px, 4vw, 44px);
+}
+
+.corpo :global(.prosa) {
+  max-width: none;
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  line-height: 1.75;
+}
+
+/* Imagens dentro do corpo (páginas livres): largura do texto, larga ou de tela inteira */
+.figura {
+  display: grid;
+  gap: 10px;
+}
+
+.figura img {
+  width: 100%;
+  border-radius: var(--raio-g);
+}
+
+.figuraLarga {
+  width: min(1040px, calc(100vw - 2 * var(--margem)));
+  margin-inline: calc((min(1040px, calc(100vw - 2 * var(--margem))) - 100%) / -2);
+}
+
+.figuraTela {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+.figuraTela img {
+  border-radius: 0;
+  max-height: 80vh;
+  object-fit: cover;
+}
+
+.figuraTela figcaption {
+  padding-inline: var(--margem);
+}
+
+.video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--raio-g);
+  background: var(--noite);
+}
+
+.voltar {
+  padding-top: 24px;
+  border-top: 1px solid var(--linha);
+}
+
+.voltar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--alvo);
+  font-weight: 700;
+  color: var(--verde-escuro);
+}
+
+/* Documento para baixar */
+.documento {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio-g);
+  background: var(--papel);
+  text-decoration: none;
+  transition: border-color var(--duracao) var(--curva), background-color var(--duracao) var(--curva);
+}
+
+.documento:hover {
+  border-color: var(--verde);
+  background: var(--verde-tinta);
+}
+
+.documentoIcone {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--raio);
+  background: var(--branco);
+  color: var(--verde-escuro);
+  border: 1px solid var(--linha);
+}
+
+.documentoTextos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.documentoRotulo {
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+.documentoTitulo {
+  font-weight: 700;
+  color: var(--verde-escuro);
+  overflow-wrap: anywhere;
+}
+
+.documento:hover .documentoTitulo {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* "Sobre:" (etapa, treino) */
+.relacionados {
+  display: grid;
+  gap: 4px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--verde);
+  border-radius: 0 var(--raio) var(--raio) 0;
+  background: var(--papel);
+}
+
+.relacionadosTitulo {
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+/* ---------- Paginação ---------- */
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-top: clamp(32px, 5vw, 56px);
+  padding-top: 24px;
+  border-top: 1px solid var(--linha);
+}
+
+.paginaNumeros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.paginaSeta,
+.paginaNumero,
+.paginaAtual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: var(--alvo);
+  min-height: var(--alvo);
+  padding: 0 12px;
+  border-radius: var(--raio);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.paginaSeta,
+.paginaNumero {
+  color: var(--verde-escuro);
+}
+
+.paginaSeta:hover,
+.paginaNumero:hover {
+  background: var(--verde-tinta);
+  text-decoration: underline;
+}
+
+.paginaAtual {
+  background: var(--noite);
+  color: var(--texto-claro);
+}
+
+.paginaInativa {
+  color: var(--texto-2);
+  opacity: 0.55;
+}
+
+.reticencias {
+  padding: 0 4px;
+  color: var(--texto-2);
+}
+
+/* ---------- Notícias: peças comuns ---------- */
+.noticiaMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--texto-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.noticiaCategoria {
+  color: var(--verde-escuro);
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--fs-mini);
+}
+
+.noticiaCategoria + time::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--texto-2);
+}
+
+/* O link do título cobre o cartão inteiro; o foco contorna o cartão */
+.linkCartao {
+  text-decoration: none;
+}
+
+.linkCartao::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.linkCartao:focus-visible {
+  outline: none;
+}
+
+.destaque:has(.linkCartao:focus-visible),
+.cartaoNoticia:has(.linkCartao:focus-visible),
+.item:has(.linkCartao:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 3px;
+}
+
+.destaque:hover .linkCartao,
+.cartaoNoticia:hover .linkCartao,
+.item:hover .linkCartao {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
+}
+
+.ler {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-weight: 750;
+  color: var(--verde-escuro);
+}
+
+.seta {
+  display: inline-block;
+  transition: transform var(--duracao) var(--curva);
+}
+
+.destaque:hover .seta {
+  transform: translateX(3px);
+}
+
+/* ---------- Notícia em destaque ---------- */
+.destaque {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva);
+}
+
+.destaque:hover {
+  box-shadow: var(--sombra-2);
+}
+
+.destaqueMidia {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--papel-2);
+}
+
+.destaqueMidia img,
+.destaqueMidia > div {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: auto;
+}
+
+.destaqueCorpo {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: clamp(20px, 3.4vw, 44px);
+  border-top: 4px solid var(--verde);
+}
+
+.destaqueTitulo {
+  font-size: clamp(1.5rem, 1.15rem + 1.4vw, 2.25rem);
+  line-height: 1.12;
+}
+
+.destaqueResumo {
+  max-width: 54ch;
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+
+/* Foto ao lado do texto só quando o espaço do bloco permite (lista de notícias); na coluna da página inicial, empilha */
+.destaqueConteiner {
+  container-type: inline-size;
+}
+
+@container (min-width: 820px) {
+  .destaque {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .destaqueMidia {
+    aspect-ratio: auto;
+    min-height: 400px;
+  }
+
+  .destaqueCorpo {
+    border-top: 0;
+    border-left: 4px solid var(--verde);
+  }
+}
+
+/* ---------- Cartão de notícia ---------- */
+.gradeNoticias {
+  display: grid;
+  gap: clamp(16px, 2vw, 28px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.cartaoNoticia {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
+}
+
+.cartaoNoticia:hover {
+  border-color: var(--linha-forte);
+  box-shadow: var(--sombra-2);
+}
+
+.cartaoMidia {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--papel-2);
+}
+
+.cartaoMidia img,
+.cartaoMidia > div {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: auto;
+}
+
+.cartaoCorpo {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px 20px 22px;
+}
+
+.cartaoTitulo {
+  font-size: clamp(1.125rem, 1.05rem + 0.3vw, 1.3125rem);
+  font-weight: 750;
+  font-variation-settings: 'wdth' 104;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.cartaoResumo {
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- Item compacto ---------- */
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 12px;
+  border-radius: var(--raio-g);
+  transition: background-color var(--duracao) var(--curva);
+}
+
+.item:hover {
+  background: var(--papel);
+}
+
+.itemMidia {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--raio);
+  background: var(--papel-2);
+}
+
+.itemMidia img,
+.itemMidia > div {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: auto;
+}
+
+.itemCorpo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.itemTitulo {
+  font-size: 1.0625rem;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destaque,
+  .cartaoNoticia,
+  .item,
+  .seta {
+    transition: none;
+  }
+}
+
+/* ---------- Listas de notícias (página Notícias e "Mais notícias") ---------- */
+.listaPagina {
+  display: grid;
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.gradeItem {
+  display: grid;
+}
+
+/* ---------- Capa da notícia: legenda e crédito embaixo da foto (texto de verdade, não sobreposto) ---------- */
+.figuraCapa {
+  display: grid;
+  gap: 10px;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+}
+
+.credito {
+  font-size: 0.8125rem;
+}
+
+/* Fotos dentro do texto da notícia */
+.galeria {
+  display: grid;
+  gap: 16px;
+}
+
+.subtituloCorpo {
+  font-variation-settings: 'wdth' 106;
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Páginas livres: o título está no topo da página; aqui só o corpo */
+.artigoSemCabeca {
+  padding-top: clamp(32px, 5vw, 64px);
+}
+
+.artigoSemCabeca .corpo {
+  margin-top: 0;
+}
+
+/* "Mais notícias": linhas compactas (miniatura + título) em colunas */
+.gradeItens {
+  display: grid;
+  gap: 8px 24px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  padding: 8px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}

@@ -1,144 +1,313 @@
-.grade {
+/*
+ * Galeria de fotos: miniaturas com a mesma proporção (3:2), sem buracos; legenda e crédito embaixo.
+ * Ampliação num <dialog> escuro, com contador, legenda, crédito e botões de 48 px.
+ */
+
+/* ---------- Miniaturas ---------- */
+.lista {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: clamp(8px, 1.2vw, 14px);
+  gap: clamp(10px, 1.6vw, 18px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
+.grade,
 .mosaico {
-  columns: 3 260px;
-  column-gap: clamp(8px, 1.2vw, 14px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.mosaico .item {
-  break-inside: avoid;
-  margin-bottom: clamp(8px, 1.2vw, 14px);
+@media (min-width: 720px) {
+  .grade,
+  .mosaico {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
+@media (min-width: 1100px) {
+  .grade,
+  .mosaico {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Mosaico: a primeira foto em destaque, na largura toda; as outras em grade igual */
+.mosaico > .item:first-child {
+  grid-column: 1 / -1;
+}
+
+.mosaico > .item:first-child .ampliar {
+  aspect-ratio: 16 / 9;
+}
+
+@media (min-width: 720px) {
+  .mosaico > .item:first-child .ampliar {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+/* Carrossel: faixa que rola para o lado, uma foto "encaixa" por vez */
 .carrossel {
-  display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: min(82%, 520px);
-  gap: 12px;
+  grid-auto-columns: min(80%, 420px);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
   padding-bottom: 8px;
   scrollbar-width: thin;
 }
 
-.carrossel .item {
+.carrossel > .item {
   scroll-snap-align: start;
 }
 
 .item {
-  position: relative;
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  border-radius: var(--raio);
-  overflow: hidden;
-  background: var(--papel-2);
-  cursor: zoom-in;
-}
-
-.grade .item,
-.carrossel .item {
-  aspect-ratio: 3 / 2;
-}
-
-.item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s var(--curva);
-}
-
-.item:hover img {
-  transform: scale(1.04);
-}
-
-.legendaItem {
-  position: absolute;
-  inset: auto 0 0 0;
-  padding: 24px 12px 10px;
-  background: linear-gradient(transparent, rgb(0 0 0 / 0.65));
-  color: #fff;
-  font-size: 0.8125rem;
-  text-align: left;
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-
-.item:hover .legendaItem,
-.item:focus-visible .legendaItem {
-  opacity: 1;
-}
-
-/* Tela cheia */
-.dialogo {
-  width: 100vw;
-  height: 100dvh;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: rgb(6 8 6 / 0.97);
-  color: #fff;
-}
-
-.dialogo[open] {
-  display: grid;
-  place-items: center;
-}
-
-.dialogo::backdrop {
-  background: rgb(6 8 6 / 0.9);
+  min-width: 0;
 }
 
 .figura {
   display: grid;
-  gap: 10px;
-  width: 100%;
-  max-width: 1600px;
-  padding: 56px var(--margem) 24px;
-  touch-action: pan-y;
+  gap: 8px;
+  margin: 0;
 }
 
-.figura img {
+.ampliar {
+  position: relative;
+  display: block;
   width: 100%;
-  max-height: calc(100dvh - 160px);
-  object-fit: contain;
+  aspect-ratio: 3 / 2;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--papel-2);
+  cursor: zoom-in;
 }
 
-.legenda {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  font-size: 0.9375rem;
+.ampliar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ampliar:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 3px;
+}
+
+/* Ícone de ampliar: aparece no foco e ao passar o mouse (no toque, sempre discreto) */
+.lupa {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--raio);
+  background: rgb(8 14 10 / 0.68);
+  color: #fff;
   opacity: 0.85;
 }
 
-.controle {
-  position: absolute;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  border: 1px solid rgb(255 255 255 / 0.25);
-  background: rgb(0 0 0 / 0.5);
-  color: #fff;
-  font-size: 1.1rem;
+@media (hover: hover) {
+  .lupa {
+    opacity: 0;
+  }
+
+  .ampliar:hover .lupa,
+  .ampliar:focus-visible .lupa {
+    opacity: 1;
+  }
 }
 
-.fechar { top: 10px; right: 10px; }
-.anterior { left: 10px; top: 50%; translate: 0 -50%; }
-.proxima { right: 10px; top: 50%; translate: 0 -50%; }
+@media (prefers-reduced-motion: no-preference) {
+  .ampliar img {
+    transition: transform 0.4s var(--curva);
+  }
 
-@media (max-width: 640px) {
-  .anterior,
+  .ampliar:hover img {
+    transform: scale(1.03);
+  }
+
+  .lupa {
+    transition: opacity var(--duracao) var(--curva);
+  }
+}
+
+.legenda {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.legendaTexto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--texto);
+  font-weight: 550;
+}
+
+.credito {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--texto-2);
+}
+
+:global(.escuro) .legendaTexto {
+  color: var(--texto-claro);
+}
+
+:global(.escuro) .credito {
+  color: var(--texto-claro-2);
+}
+
+/* ---------- Ampliação ---------- */
+:global(html):has(.dialogo[open]) {
+  overflow: hidden;
+}
+
+.dialogo {
+  --foco: var(--amarelo);
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(6 10 7 / 0.97);
+  color: var(--texto-claro);
+  overflow: hidden;
+}
+
+.dialogo[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.dialogo::backdrop {
+  background: rgb(6 10 7 / 0.9);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dialogo[open] {
+    animation: surgir 0.18s var(--curva);
+  }
+
+  @keyframes surgir {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px max(12px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+}
+
+.contador {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.palco {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 clamp(12px, 7vw, 96px) max(16px, env(safe-area-inset-bottom));
+}
+
+.fotoGrande {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--raio-p);
+  background: var(--noite-2);
+}
+
+.legendaGrande {
+  display: grid;
+  gap: 2px;
+  max-width: 70ch;
+  text-align: center;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.creditoGrande {
+  font-size: 0.8125rem;
+  color: var(--texto-claro-2);
+}
+
+.controle {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--raio-pilula);
+  background: rgb(255 255 255 / 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+.controle:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+.controle:focus-visible {
+  outline: 3px solid var(--amarelo);
+  outline-offset: 2px;
+}
+
+.anterior,
+.proxima {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgb(6 10 7 / 0.62);
+}
+
+.anterior {
+  left: max(10px, env(safe-area-inset-left));
+}
+
+.proxima {
+  right: max(10px, env(safe-area-inset-right));
+}
+
+@media (min-width: 900px) {
+  .anterior {
+    left: 24px;
+  }
+
   .proxima {
-    top: auto;
-    bottom: 14px;
-    translate: none;
+    right: 24px;
+  }
+}
+
+@media (forced-colors: active) {
+  .controle {
+    border: 2px solid ButtonText;
   }
 }

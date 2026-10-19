@@ -1,26 +1,45 @@
+/* Estado vazio: dado oficial ainda não publicado. Claro, calmo e sem parecer erro. */
 .vazio {
   display: grid;
-  justify-items: start;
-  gap: 12px;
-  padding: clamp(24px, 4vw, 40px);
-  border: 1px dashed var(--linha);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px 14px;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--linha);
+  border-left: 4px solid var(--verde);
   border-radius: var(--raio-g);
-  background: color-mix(in oklab, var(--papel-2) 60%, transparent);
+  background: var(--branco);
 }
 
 :global(.escuro) .vazio {
   border-color: var(--linha-clara);
-  background: rgb(255 255 255 / 0.03);
+  border-left-color: var(--amarelo);
+  background: rgb(255 255 255 / 0.04);
 }
 
 .icone {
-  color: var(--verde);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
 }
 
 :global(.escuro) .icone {
+  background: rgb(255 255 255 / 0.08);
   color: var(--amarelo);
 }
 
 .texto {
-  max-width: 56ch;
+  align-self: center;
+  max-width: 62ch;
+  font-weight: 550;
+}
+
+/* Ação (botão/link) abaixo do texto */
+.vazio > :nth-child(n + 3) {
+  grid-column: 2;
+  justify-self: start;
 }

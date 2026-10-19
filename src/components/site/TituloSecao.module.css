@@ -4,11 +4,11 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px 32px;
-  margin-bottom: clamp(24px, 3.5vw, 44px);
+  margin-bottom: clamp(24px, 3.2vw, 40px);
 }
 
 .textos {
-  max-width: 52rem;
+  max-width: 50rem;
 }
 
 .rotulo {
@@ -23,17 +23,41 @@
   color: var(--amarelo);
 }
 
-.quadriculado {
-  color: currentColor;
-  transform: skewX(var(--inclinacao));
+/* Marca do capacete: traço verde com ponta vermelha */
+.marcador {
+  flex: none;
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--verde) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%);
+}
+
+:global(.escuro) .marcador {
+  background: linear-gradient(90deg, var(--verde-sobre-escuro) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%);
 }
 
 .subtitulo {
-  margin-top: 12px;
-  max-width: 60ch;
-  font-size: 1.0625rem;
+  margin-top: 14px;
+  max-width: 62ch;
+  font-size: var(--fs-lead);
+  line-height: 1.55;
 }
 
 .acao {
   flex: none;
+}
+
+.centro {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.centro .textos {
+  display: grid;
+  justify-items: center;
+}
+
+.centro .subtitulo {
+  margin-inline: auto;
 }

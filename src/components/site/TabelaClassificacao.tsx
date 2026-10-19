@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Fragment } from 'react'
 import { PlacaNumero } from './PlacaNumero'
 import { Selo } from './Selo'
 import s from './TabelaClassificacao.module.css'
@@ -22,7 +23,10 @@ export type LinhaTabela = {
 
 const fmtPontos = (n: number | null | undefined) => (n === null || n === undefined ? '–' : Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','))
 
-/** Tabela de classificação de uma categoria. `colunasEtapas` mostra a pontuação por etapa (com descartes riscados). */
+/**
+ * Tabela de classificação de uma categoria. `colunasEtapas` mostra a pontuação por etapa (com descartes riscados).
+ * Celular: só posição, piloto e pontos; vitórias, pódios, corridas e etapas ficam em "Detalhes" de cada piloto.
+ */
 export function TabelaClassificacao({
   linhas,
   cor,
@@ -37,50 +41,62 @@ export function TabelaClassificacao({
   compacta?: boolean
 }) {
   const etapas = colunasEtapas ? (linhas[0]?.porEtapa ?? []).map((e) => e.etapa) : []
+  const colunas = 3 + (compacta ? 0 : 3) + etapas.length
   return (
-    <div className="rolagem-x">
+    <div className={`rolagem-x ${s.moldura}`}>
       <table className={s.tabela}>
         <caption className="visualmente-oculto">{legenda}</caption>
         <thead>
           <tr>
-            <th scope="col">Pos.</th>
+            <th scope="col" className={s.colPos}>
+              Pos.
+            </th>
             <th scope="col">Piloto</th>
             {!compacta && (
               <>
-                <th scope="col" className={`${s.num} ${s.larga}`}>V</th>
-                <th scope="col" className={`${s.num} ${s.larga}`}>Pód.</th>
-                <th scope="col" className={`${s.num} ${s.larga}`}>Corr.</th>
+                <th scope="col" className={`${s.num} ${s.larga}`}>
+                  <abbr title="Vitórias">V</abbr>
+                </th>
+                <th scope="col" className={`${s.num} ${s.larga}`}>
+                  <abbr title="Pódios">Pód.</abbr>
+                </th>
+                <th scope="col" className={`${s.num} ${s.larga}`}>
+                  <abbr title="Corridas">Corr.</abbr>
+                </th>
               </>
             )}
             {etapas.map((e) => (
-              <th key={e} scope="col" className={`${s.num} ${s.larga}`}>
-                {e}
+              <th key={e} scope="col" className={`${s.num} ${s.larga} ${s.colEtapa}`}>
+                <abbr title={`Etapa ${e.replace(/^E/, '')}`}>{e}</abbr>
               </th>
             ))}
-            <th scope="col" className={s.num}>Pontos</th>
+            <th scope="col" className={`${s.num} ${s.colPontos}`}>
+              Pontos
+            </th>
           </tr>
         </thead>
         <tbody>
           {linhas.map((l, i) => {
             const variacao = l.posicaoAnterior ? l.posicaoAnterior - l.posicao : 0
+            const podio = l.posicao >= 1 && l.posicao <= 3 ? s[`p${l.posicao}`] : ''
             return (
-              <FragmentoLinha key={`${l.pilotoNome}-${i}`}>
-                <tr className={`${i === 0 ? s.lider : ''} ${!compacta ? s.comDetalhe : ''}`}>
-                  <td className={s.pos}>
-                    {l.posicao}
+              <Fragment key={`${l.pilotoNome}-${i}`}>
+                <tr className={`${l.posicao === 1 ? s.lider : ''} ${!compacta ? s.comDetalhe : ''}`}>
+                  <td className={s.colPos}>
+                    <span className={`${s.pos} ${podio}`}>{l.posicao}</span>
                     {variacao !== 0 && (
                       <span className={`${s.variacao} ${variacao > 0 ? s.sobe : s.desce}`} title={variacao > 0 ? `Subiu ${variacao}` : `Caiu ${-variacao}`}>
-                        {' '}
-                        {variacao > 0 ? '▲' : '▼'}
+                        <span aria-hidden="true">{variacao > 0 ? '▲' : '▼'}</span>
                         <span className="visualmente-oculto">{variacao > 0 ? `subiu ${variacao}` : `caiu ${-variacao}`}</span>
                       </span>
                     )}
                   </td>
-                  <td>
+                  <th scope="row" className={s.colPiloto}>
                     <span className={s.piloto}>
                       <PlacaNumero numero={l.numero} cor={cor} tamanho="p" />
-                      <span>
-                        {l.pilotoHref ? <Link href={l.pilotoHref}>{l.pilotoNome}</Link> : <strong>{l.pilotoNome}</strong>}
+                      <span className={s.pilotoTextos}>
+                        {l.pilotoHref ? <Link href={l.pilotoHref}>{l.pilotoNome}</Link> : <span className={s.nome}>{l.pilotoNome}</span>}
+                        {l.equipe && <span className={s.equipe}>{l.equipe}</span>}
                         {l.convidado && (
                           <span className={s.convidado}>
                             <Selo tom="neutro" ponto={false}>
@@ -88,10 +104,9 @@ export function TabelaClassificacao({
                             </Selo>
                           </span>
                         )}
-                        {l.equipe && <span className={s.equipe}>{l.equipe}</span>}
                       </span>
                     </span>
-                  </td>
+                  </th>
                   {!compacta && (
                     <>
                       <td className={`${s.num} ${s.larga}`}>{l.vitorias ?? 0}</td>
@@ -104,6 +119,7 @@ export function TabelaClassificacao({
                     return (
                       <td key={e} className={`${s.num} ${s.larga} ${pe?.descartado ? s.descartado : ''}`} title={pe?.descartado ? 'Resultado descartado' : undefined}>
                         {fmtPontos(pe?.pontos)}
+                        {pe?.descartado && <span className="visualmente-oculto"> (descartado)</span>}
                       </td>
                     )
                   })}
@@ -111,19 +127,43 @@ export function TabelaClassificacao({
                 </tr>
                 {!compacta && (
                   <tr className={s.detalhe}>
-                    <td colSpan={2 + etapas.length + 4}>
+                    <td colSpan={colunas}>
                       <details className={s.detalhes}>
-                        <summary>Detalhes</summary>
+                        <summary>
+                          Detalhes<span className="visualmente-oculto"> de {l.pilotoNome}</span>
+                        </summary>
                         <dl>
-                          <div><dt>Vitórias</dt><dd>{l.vitorias ?? 0}</dd></div>
-                          <div><dt>Pódios</dt><dd>{l.podios ?? 0}</dd></div>
-                          <div><dt>Corridas</dt><dd>{l.corridas ?? 0}</dd></div>
-                          {(l.poles ?? 0) > 0 && <div><dt>Poles</dt><dd>{l.poles}</dd></div>}
-                          {(l.voltasRapidas ?? 0) > 0 && <div><dt>V. rápidas</dt><dd>{l.voltasRapidas}</dd></div>}
+                          <div>
+                            <dt>Vitórias</dt>
+                            <dd>{l.vitorias ?? 0}</dd>
+                          </div>
+                          <div>
+                            <dt>Pódios</dt>
+                            <dd>{l.podios ?? 0}</dd>
+                          </div>
+                          <div>
+                            <dt>Corridas</dt>
+                            <dd>{l.corridas ?? 0}</dd>
+                          </div>
+                          {(l.poles ?? 0) > 0 && (
+                            <div>
+                              <dt>Poles</dt>
+                              <dd>{l.poles}</dd>
+                            </div>
+                          )}
+                          {(l.voltasRapidas ?? 0) > 0 && (
+                            <div>
+                              <dt>V. rápidas</dt>
+                              <dd>{l.voltasRapidas}</dd>
+                            </div>
+                          )}
                           {l.porEtapa?.map((pe) => (
                             <div key={pe.etapa}>
-                              <dt>{pe.etapa}</dt>
-                              <dd className={pe.descartado ? s.descartado : undefined}>{fmtPontos(pe.pontos)}</dd>
+                              <dt>Etapa {pe.etapa.replace(/^E/, '')}</dt>
+                              <dd className={pe.descartado ? s.descartado : undefined}>
+                                {fmtPontos(pe.pontos)}
+                                {pe.descartado && <span className="visualmente-oculto"> (descartado)</span>}
+                              </dd>
                             </div>
                           ))}
                         </dl>
@@ -131,15 +171,11 @@ export function TabelaClassificacao({
                     </td>
                   </tr>
                 )}
-              </FragmentoLinha>
+              </Fragment>
             )
           })}
         </tbody>
       </table>
     </div>
   )
-}
-
-function FragmentoLinha({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
 }

@@ -33,11 +33,11 @@ export function ListaAvisos({ avisos }: { avisos: Aviso[] }) {
                   </time>
                 )}
               </p>
-              <h2 id={`aviso-${a.id}`} className={s.titulo}>
+              <h3 id={`aviso-${a.id}`} className={s.titulo}>
                 <Link className={s.link} href={`/avisos/${a.id}`}>
                   <TextoDemo texto={a.titulo} />
                 </Link>
-              </h2>
+              </h3>
               {resumo && <p className={s.resumo}>{resumo}</p>}
               {(relacionados.length > 0 || anexo) && (
                 <ul className={s.extras} aria-label="Detalhes">
