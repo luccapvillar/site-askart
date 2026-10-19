@@ -1,16 +1,18 @@
+/* Selo "Exemplo" (dado de demonstração): tracejado, discreto, na cor do texto ao redor */
 .selo {
   display: inline-block;
   margin-left: 0.45em;
-  padding: 0.1em 0.45em;
+  padding: 0.12em 0.5em;
   border: 1px dashed currentColor;
-  border-radius: 4px;
-  font-family: var(--fonte-mono);
-  font-size: 0.62em;
+  border-radius: var(--raio-p);
+  font-family: var(--fonte);
+  font-size: max(0.62em, 0.6875rem);
   font-style: normal;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
   text-transform: uppercase;
-  vertical-align: 0.25em;
+  vertical-align: 0.2em;
   white-space: nowrap;
+  opacity: 0.85;
 }

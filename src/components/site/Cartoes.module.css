@@ -1,8 +1,8 @@
-/* Cartões de notícia, etapa, piloto e documento */
+/* Cartões de notícia e de etapa */
 .grade {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--min, 300px)), 1fr));
-  gap: clamp(14px, 2vw, 24px);
+  gap: clamp(16px, 2vw, 24px);
 }
 
 .cartao {
@@ -13,21 +13,34 @@
   overflow: hidden;
   background: var(--branco);
   border: 1px solid var(--linha);
-  transition: transform 0.25s var(--curva), box-shadow 0.25s var(--curva);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
 }
 
-.cartao:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--sombra);
+.clicavel:hover {
+  border-color: var(--linha-forte);
+  box-shadow: var(--sombra-2);
+}
+
+/* O foco do link do título contorna o cartão inteiro */
+.clicavel:has(.titulo a:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.clicavel .titulo a:focus-visible {
+  outline: none;
 }
 
 :global(.escuro) .cartao {
-  background: var(--asfalto-2);
+  background: var(--noite-2);
   border-color: var(--linha-clara);
+  box-shadow: none;
 }
 
 .midia {
-  aspect-ratio: 16 / 10;
+  position: relative;
+  aspect-ratio: 16 / 9;
   background: var(--papel-2);
   overflow: hidden;
 }
@@ -36,28 +49,30 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s var(--curva);
-}
-
-.cartao:hover .midia img {
-  transform: scale(1.04);
 }
 
 .semImagem {
   display: grid;
   place-items: center;
   height: 100%;
-  background:
-    repeating-conic-gradient(rgb(0 0 0 / 0.05) 0 25%, transparent 0 50%) 0 0 / 28px 28px,
-    linear-gradient(135deg, var(--verde-escuro), var(--asfalto));
-  color: rgb(255 255 255 / 0.5);
+  background: var(--verde-tinta);
+  color: color-mix(in oklab, var(--verde) 55%, transparent);
+}
+
+/* Faixa do capacete na base do bloco sem foto */
+.semImagem::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--faixa-marca);
 }
 
 .corpo {
   display: grid;
   align-content: start;
   gap: 10px;
-  padding: 18px 18px 20px;
+  padding: 18px 20px 20px;
 }
 
 .meta {
@@ -65,17 +80,28 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 12px;
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--texto-2);
+  font-variant-numeric: tabular-nums;
 }
 
 :global(.escuro) .meta {
   color: var(--texto-claro-2);
 }
 
+.titulo {
+  font-weight: 750;
+}
+
 .titulo a {
   text-decoration: none;
+}
+
+.clicavel:hover .titulo a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
 }
 
 /* Área clicável do cartão inteiro */
@@ -94,9 +120,32 @@
   overflow: hidden;
 }
 
-/* Etapa: data em destaque */
+.ler {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--verde-escuro);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+:global(.escuro) .ler {
+  color: var(--amarelo);
+}
+
+.seta {
+  transition: transform var(--duracao) var(--curva);
+}
+
+.clicavel:hover .seta {
+  transform: translateX(3px);
+}
+
+/* ---------- Etapa: data em bloco ---------- */
 .etapa {
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   grid-template-rows: none;
   align-items: stretch;
 }
@@ -105,50 +154,64 @@
   display: grid;
   place-content: center;
   justify-items: center;
-  min-width: 92px;
+  gap: 2px;
+  min-width: 88px;
   padding: 16px 12px;
-  background: var(--asfalto);
+  background: var(--noite);
   color: var(--texto-claro);
   text-align: center;
+  border-bottom: 4px solid var(--vermelho);
 }
 
 .dia {
-  font-variation-settings: 'wdth' 118;
-  font-style: italic;
+  font-variation-settings: 'wdth' 112;
   font-weight: 850;
   font-size: 2.25rem;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .mes {
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--amarelo);
 }
 
 .semana {
   font-size: 0.75rem;
-  opacity: 0.7;
+  color: var(--texto-claro-2);
   text-transform: capitalize;
+}
+
+.categorias {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+/* Seta à direita da etapa */
+.irEtapa {
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  margin-right: 20px;
+  border-top: 2px solid var(--texto-2);
+  border-right: 2px solid var(--texto-2);
+  transform: rotate(45deg);
+  transition: transform var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
+}
+
+.clicavel:hover .irEtapa {
+  border-color: var(--verde-escuro);
+  transform: translateX(3px) rotate(45deg);
 }
 
 .cancelada .data {
   background: var(--neutro);
+  border-bottom-color: var(--neutro);
 }
 
 .cancelada .titulo {
   text-decoration: line-through;
-}
-
-.ler {
-  margin-top: auto;
-  padding-top: 8px;
-  color: var(--verde-escuro);
-  font-style: italic;
-  font-variation-settings: 'wdth' 112;
-  font-weight: 800;
-  font-size: 0.875rem;
-  text-transform: uppercase;
 }

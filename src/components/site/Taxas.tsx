@@ -1,40 +1,37 @@
 import { valorDaTaxa, VALOR_A_CONFIRMAR } from '@/lib/taxas'
 import type { Kartodromo } from '@/payload-types'
+import { semDemo, TextoDemo } from './TextoDemo'
 import s from './Taxas.module.css'
 
 type Taxa = NonNullable<Kartodromo['taxas']>[number]
 
-/** Tabela de taxas do kartódromo. Valor não definido aparece como "R$ X" (pedido do cliente). */
+/**
+ * Taxas do kartódromo em cartões de valor (nome, valor grande, quando se aplica e se é obrigatória).
+ * Valor ainda não definido aparece como "R$ X" (pedido do cliente), com o aviso "Valor ainda não informado".
+ * Funciona em fundo claro e dentro de `.escuro`.
+ */
 export function Taxas({ taxas, introducao }: { taxas: Taxa[]; introducao?: string | null }) {
   if (!taxas.length) return null
-  const aConfirmar = taxas.some((t) => valorDaTaxa(t) === VALOR_A_CONFIRMAR)
   return (
     <div className={s.taxas}>
-      {introducao && <p className={s.intro}>{introducao}</p>}
-      <table className={s.tabela}>
-        <caption className="visualmente-oculto">Taxas do kartódromo</caption>
-        <thead>
-          <tr>
-            <th scope="col">Taxa</th>
-            <th scope="col" className={s.valor}>
-              Valor
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {taxas.map((t, i) => (
-            <tr key={t.id ?? i}>
-              <th scope="row">
-                {t.item}
+      {introducao && <p className={s.intro}>{semDemo(introducao)}</p>}
+      <dl className={s.lista}>
+        {taxas.map((t, i) => {
+          const valor = valorDaTaxa(t)
+          const aConfirmar = valor === VALOR_A_CONFIRMAR
+          return (
+            <div key={t.id ?? i} className={`${s.taxa} ${aConfirmar ? s.aConfirmar : ''}`}>
+              <dt className={s.nome}>
+                <TextoDemo texto={t.item} />
                 {t.obrigatoria && <span className={s.obrigatoria}>Obrigatória</span>}
-                {t.observacao && <span className={s.obs}>{t.observacao}</span>}
-              </th>
-              <td className={`${s.valor} mono`}>{valorDaTaxa(t)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {aConfirmar && <p className={s.nota}>R$ X = valor a confirmar pela ASKART.</p>}
+              </dt>
+              <dd className={s.valor}>{valor}</dd>
+              {aConfirmar && <dd className={s.pendente}>Valor ainda não informado</dd>}
+              {t.observacao && <dd className={s.obs}>{semDemo(t.observacao)}</dd>}
+            </div>
+          )
+        })}
+      </dl>
     </div>
   )
 }

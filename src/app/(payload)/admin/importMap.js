@@ -35,7 +35,6 @@ import { VisaoAssistente as VisaoAssistente_7e338fe29a8ac31f49161468b4d05666 } f
 import { VisaoEditor as VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9 } from '../../../components/admin/editor/VisaoEditor'
 import { VisaoGrade as VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3 } from '../../../components/admin/grade/VisaoGrade'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
-import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -75,6 +74,5 @@ export const importMap = {
   "/components/admin/assistente/VisaoAssistente#VisaoAssistente": VisaoAssistente_7e338fe29a8ac31f49161468b4d05666,
   "/components/admin/editor/VisaoEditor#VisaoEditor": VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9,
   "/components/admin/grade/VisaoGrade#VisaoGrade": VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
-  "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
