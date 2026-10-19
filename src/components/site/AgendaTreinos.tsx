@@ -20,7 +20,11 @@ export type DiaAgenda = {
   horarios: HorarioAgenda[]
 }
 
-/** Agenda de treinos por dia. `semana` distribui os dias em colunas em telas largas. */
+/**
+ * Agenda de treinos por dia (grade + exceções), um quadro por dia. `semana` distribui os dias em colunas em
+ * telas largas. No Kartódromo, a grade semanal oficial é o componente treinos/GradeTreinos e as exceções
+ * aparecem em treinos/MudancasGrade; este componente fica para listas de agenda por data.
+ */
 export function AgendaTreinos({ dias, semana = false, textoSemHorario = 'Sem treinos programados.' }: { dias: DiaAgenda[]; semana?: boolean; textoSemHorario?: string }) {
   return (
     <div className={`${s.dias} ${semana ? s.semana : ''}`}>
@@ -29,7 +33,7 @@ export function AgendaTreinos({ dias, semana = false, textoSemHorario = 'Sem tre
           <header className={s.cabecaDia}>
             <span className={s.nomeDia}>
               {d.nome}
-              {d.hoje && <span className="visualmente-oculto"> (hoje)</span>}
+              {d.hoje && <span className={s.seloHoje}>Hoje</span>}
             </span>
             <span className={s.dataDia}>{d.data}</span>
           </header>
@@ -41,7 +45,10 @@ export function AgendaTreinos({ dias, semana = false, textoSemHorario = 'Sem tre
                 return (
                   <li key={h.id} className={`${s.horario} ${inativo ? s.inativo : ''}`} style={h.cor ? ({ '--cor': h.cor } as React.CSSProperties) : undefined}>
                     <span className={s.hora}>
-                      {h.inicio}–{h.fim}
+                      {h.inicio}
+                      <span aria-hidden="true">–</span>
+                      <span className="visualmente-oculto"> às </span>
+                      {h.fim}
                     </span>
                     <span className={s.tipo}>{h.tipo}</span>
                     <span className={s.meta}>

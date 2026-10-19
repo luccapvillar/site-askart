@@ -1,59 +1,128 @@
 .rodape {
-  background: var(--marca-escuro);
+  --foco: var(--amarelo);
+  background: var(--noite);
   color: var(--texto-claro);
-  padding-block: clamp(48px, 7vw, 88px) 32px;
-}
-
-.faixa {
-  height: 12px;
-  background:
-    repeating-conic-gradient(var(--marca-escuro) 0 25%, var(--texto-claro) 0 50%) 0 0 / 12px 12px;
-  opacity: 0.9;
+  font-size: 0.9375rem;
 }
 
 .grade {
   display: grid;
   gap: 40px;
+  padding-block: clamp(48px, 6vw, 80px) clamp(36px, 5vw, 56px);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 720px) {
   .grade {
-    grid-template-columns: 1.3fr repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .marca {
+    grid-column: 1 / -1;
   }
 }
 
+@media (min-width: 1100px) {
+  .grade {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 56px;
+  }
+  .marca {
+    grid-column: auto;
+  }
+}
+
+/* ---------- Marca ---------- */
 .marca {
   display: grid;
   gap: 12px;
   align-content: start;
 }
 
+/* Wordmark como na logo: "AS" amarelo, "KART" verde */
 .sigla {
-  font-variation-settings: 'wdth' 118;
-  font-style: italic;
-  font-weight: 850;
-  font-size: 1.75rem;
+  font-variation-settings: 'wdth' 125;
+  font-weight: 900;
+  font-size: 2rem;
+  letter-spacing: -0.01em;
   line-height: 1;
 }
 
-.sigla b {
+.siglaAs {
   color: var(--amarelo);
-  font-weight: inherit;
 }
 
-.coluna h2 {
-  margin-bottom: 14px;
+.siglaKart {
+  color: var(--verde-sobre-escuro);
+}
+
+.nome {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.texto {
+  max-width: 46ch;
+  color: var(--texto-claro-2);
+}
+
+.redes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.redes a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--alvo);
+  padding: 8px 16px;
+  border: 1px solid var(--linha-clara);
+  border-radius: var(--raio-pilula);
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color var(--duracao) var(--curva), background-color var(--duracao) var(--curva);
+}
+
+.redes a:hover {
+  border-color: var(--amarelo);
+  background: rgb(255 255 255 / 0.05);
+}
+
+.externo {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+/* ---------- Colunas de links ---------- */
+.colunas {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+}
+
+.tituloColuna {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--linha-clara);
+  font-size: var(--fs-mini);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--amarelo);
 }
 
 .coluna ul {
   display: grid;
-  gap: 8px;
 }
 
 .coluna a {
-  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
   color: var(--texto-claro-2);
+  text-decoration: none;
 }
 
 .coluna a:hover {
@@ -61,93 +130,123 @@
   text-decoration: underline;
 }
 
+/* ---------- Contato ---------- */
+.canais {
+  display: grid;
+  gap: 16px;
+}
+
 .canal {
   display: grid;
   gap: 2px;
+  justify-items: start;
 }
 
-.canal small {
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
+.canalTipo {
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.6;
+  color: var(--texto-claro-2);
 }
 
-.redes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.canalValor {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
-.redes a {
+a.canalValor {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid var(--linha-clara);
-  border-radius: 999px;
-  font-size: 0.875rem;
+  min-height: 32px;
   text-decoration: none;
 }
 
-.redes a:hover {
-  border-color: var(--amarelo);
-}
-
-.base {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 48px;
-  padding-top: 24px;
-  border-top: 1px solid var(--linha-clara);
-  font-size: 0.8125rem;
-  color: var(--texto-claro-2);
-}
-
-.base a {
-  color: inherit;
-  text-underline-offset: 3px;
-}
-
-.base a:hover {
-  color: var(--texto-claro);
-}
-
-/* Crédito + acesso ao painel: discretos, mas legíveis (mesmo tom AA do restante da base) */
-.credito {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 8px;
-  margin: 0;
-}
-
-/* Área de toque de pelo menos 24 px de altura */
-.credito a {
-  display: inline-block;
-  padding-block: 4px;
-}
-
-.separador {
-  opacity: 0.7;
-}
-
-/* Textos secundários legíveis sobre o fundo escuro (contraste AA) */
-.rodape :global(.texto-2) {
-  color: var(--texto-claro-2);
+a.canalValor:hover {
+  text-decoration: underline;
 }
 
 .provisorio {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 8px;
-  border-radius: 4px;
-  background: #fff4c2;
-  color: #4a3b00;
+  border-radius: var(--raio-p);
+  background: var(--amarelo-tinta);
+  color: #3d3200;
   font-size: 0.75rem;
-  font-weight: 600;
-  vertical-align: 0.1em;
+  font-weight: 700;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+
+.endereco {
+  display: grid;
+  white-space: pre-line;
+  color: var(--texto-claro);
+}
+
+.mapa {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo);
+  font-weight: 700;
+  color: var(--amarelo);
+  text-underline-offset: 3px;
+}
+
+/* ---------- Base: direitos, crédito e acesso ao painel ---------- */
+.base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 24px;
+  padding-block: 20px 28px;
+  border-top: 1px solid var(--linha-clara);
+  font-size: 0.8125rem;
+  color: var(--texto-claro-2);
+}
+
+.base a {
+  color: var(--texto-claro);
+  text-underline-offset: 3px;
+}
+
+.base a:hover {
+  color: var(--amarelo);
+}
+
+/* Crédito + acesso ao painel: discretos, mas legíveis (contraste AA) e com área de toque */
+.credito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 10px;
+}
+
+/* No celular, crédito e acesso ao painel ficam um embaixo do outro (sem o "·" sobrando no fim da linha) */
+@media (max-width: 719px) {
+  .credito {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .separador {
+    display: none;
+  }
+}
+
+.credito a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo);
+}
+
+.separador {
+  opacity: 0.7;
+}
+
+/* Textos secundários legíveis sobre o fundo escuro */
+.rodape :global(.texto-2) {
+  color: var(--texto-claro-2);
 }

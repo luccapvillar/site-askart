@@ -1,175 +1,405 @@
+/*
+ * Grade semanal de treinos. O formato depende da LARGURA DISPONÍVEL (container query), não da tela:
+ *   < 720 px  → celular: um dia por vez, com seletor de dias (ou "Semana toda" empilhada)
+ *   ≥ 720 px  → todos os dias em quadros (3 colunas)
+ *   ≥ 1080 px → a semana em 7 colunas, como no documento oficial
+ * Os tokens têm valor reserva porque a prévia do painel (/admin/grade-treinos) só define parte deles.
+ */
 .grade {
+  container: grade / inline-size;
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+/* ---------- Controles (categoria, dia, exibição) ---------- */
+.controles {
+  display: grid;
+  gap: 18px;
+}
+
+.controle {
+  display: grid;
   gap: 8px;
 }
 
-.filtrosRotulo {
-  margin-right: 4px;
-  font-weight: 650;
+.controleRotulo {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
 }
 
-.filtros button {
-  min-height: 40px;
-  padding: 6px 16px;
-  border: 1px solid var(--linha);
+.pilulas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pilulas button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 18px;
+  border: 1px solid var(--linha-forte, rgb(18 24 19 / 0.24));
   border-radius: 999px;
   background: var(--branco);
+  color: var(--texto);
+  font-size: 0.9375rem;
   font-weight: 650;
+  line-height: 1.2;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-.filtros button[aria-pressed='true'] {
-  background: var(--marca-escuro);
-  border-color: var(--marca-escuro);
+.pilulas button:hover {
+  border-color: var(--marca-primaria);
+}
+
+/* Escolhida: fundo escuro + marca de seleção (a cor não é a única pista) */
+.pilulas button[aria-pressed='true'] {
+  border-color: var(--noite, #17221a);
+  background: var(--noite, #17221a);
   color: #fff;
 }
 
-.legenda {
+.pilulas button[aria-pressed='true']::before {
+  content: '';
+  width: 0.7em;
+  height: 0.38em;
+  margin-top: -0.2em;
+  border-bottom: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+/* Seletor do celular: trilho cinza com o item escolhido em branco (controle segmentado) */
+.linhaDia {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
-  font-size: 0.8125rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.modos,
+.abas {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--raio-g);
+  background: var(--papel-2, #e8ece7);
+}
+
+.modos {
+  grid-template-columns: repeat(2, auto);
+}
+
+.abas {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.modos button,
+.abas button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--texto);
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.modos button {
+  padding: 6px 14px;
+  font-size: 0.875rem;
+}
+
+.abas button {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  min-height: 54px;
+  padding: 4px 0;
+}
+
+.modos button[aria-pressed='true'],
+.abas button[aria-pressed='true'] {
+  background: var(--branco);
+  box-shadow:
+    0 1px 2px rgb(16 24 18 / 0.14),
+    0 0 0 1px var(--linha-forte, rgb(18 24 19 / 0.24));
+  font-weight: 800;
+}
+
+.abaNome {
+  font-size: 0.9375rem;
+}
+
+.abaHoje {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--verde-escuro);
+}
+
+/* Dia sem treino para a categoria escolhida: continua clicável, só mais apagado */
+.abaVazia .abaNome {
+  font-weight: 500;
   color: var(--texto-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.resumo {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+/* ---------- Dias ---------- */
+.dias {
+  display: grid;
+  gap: 12px;
+  align-items: start;
+}
+
+.dia {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+}
+
+.hoje {
+  border-color: var(--marca-primaria);
+  box-shadow:
+    0 0 0 1px var(--marca-primaria),
+    var(--sombra);
+}
+
+.nomeDia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 11px 14px;
+  background: var(--noite, #17221a);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.hoje .nomeDia {
+  background: var(--marca-primaria);
+  color: var(--sobre-primaria, #fff);
+}
+
+.seloHoje {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--amarelo);
+  color: #111;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ---------- Horários ---------- */
+.horarios {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.horario {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.4em minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--linha);
+}
+
+.horario:first-child {
+  border-top: 0;
+}
+
+.hora {
+  font-family: var(--fonte-mono);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hora [aria-hidden] {
+  padding-inline: 2px;
+  color: var(--texto-2);
+}
+
+.turma {
+  justify-self: start;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.1);
+}
+
+.obs {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--texto-2);
+}
+
+.fechada {
+  background: var(--papel, #f4f6f3);
+}
+
+.fechada .hora {
+  color: var(--texto-2);
+}
+
+/* Treino acontecendo agora: fundo, barra lateral e o rótulo "Agora" (absoluto: não empurra o layout) */
+.agora {
+  background: color-mix(in oklab, var(--marca-primaria) 10%, white);
+  box-shadow: inset 4px 0 0 var(--marca-primaria);
+}
+
+.agoraSelo {
+  position: absolute;
+  top: -9px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--marca-primaria);
+  color: var(--sobre-primaria, #fff);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.horario:first-child .agoraSelo {
+  top: 4px;
+}
+
+.agoraSelo::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.semTreino {
+  margin: 0;
+  padding: 16px 14px;
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+/* ---------- Legenda ---------- */
+.legenda {
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--linha);
+}
+
+.legenda ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .legenda li {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  font-size: 0.875rem;
 }
 
 .amostra {
-  width: 12px;
-  height: 12px;
+  flex: none;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
-  border: 1px solid rgb(0 0 0 / 0.15);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
 }
 
-.dias {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  align-items: start;
+/* ---------- Formatos por largura ---------- */
+@container grade (max-width: 719.98px) {
+  .foraDoDia {
+    display: none;
+  }
+
+  .dias.semanaToda {
+    gap: 16px;
+  }
 }
 
-.dia {
-  overflow: hidden;
-  background: var(--branco);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
+@container grade (min-width: 720px) {
+  .seletor {
+    display: none;
+  }
+
+  .dias {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
 }
 
-.hoje {
-  border: 2px solid var(--marca-primaria);
-  box-shadow: var(--sombra);
+@container grade (min-width: 1080px) {
+  .dias {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .nomeDia {
+    padding: 10px 12px;
+    font-size: 0.9375rem;
+  }
+
+  .horario {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .hora {
+    font-size: 0.875rem;
+  }
+
+  .turma {
+    font-size: 0.8125rem;
+    padding: 3px 8px;
+  }
 }
 
-.nomeDia {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0;
-  padding: 12px 16px;
-  background: var(--marca-escuro);
-  color: #fff;
-  font-size: 1rem;
-  font-variation-settings: 'wdth' 112;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.selo {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--marca-primaria);
-  color: var(--sobre-primaria, #fff);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-}
-
-.tabela {
-  font-size: 0.9375rem;
-}
-
-.tabela thead th {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--linha);
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--texto-2);
-}
-
-.tabela td {
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--linha);
-  vertical-align: middle;
-}
-
-.tabela tr:last-child td {
-  border-bottom: 0;
-}
-
-.tabela td:first-child,
-.tabela td:nth-child(2) {
-  width: 3.8em;
-  white-space: nowrap;
-}
-
-.turma {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 4px;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.fechada .turma {
-  background-image: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.12) 0 6px, transparent 6px 12px);
-}
-
-.agora td {
-  background: color-mix(in oklab, var(--marca-primaria) 9%, white);
-}
-
-.aoVivo {
-  margin-left: 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--verde-escuro);
-}
-
-.aoVivo::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  vertical-align: 0.05em;
-}
-
-.obs {
-  display: block;
-  margin-top: 2px;
-  font-size: 0.8125rem;
-  color: var(--texto-2);
-}
-
-.semTreino {
-  padding: 14px 16px;
-  color: var(--texto-2);
-  font-size: 0.9375rem;
+@media (forced-colors: active) {
+  .turma,
+  .amostra {
+    border: 1px solid CanvasText;
+  }
 }
