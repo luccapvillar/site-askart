@@ -23,6 +23,10 @@
   box-shadow: 0 0 0 1px var(--verde);
 }
 
+.hoje .cabecaDia {
+  background: var(--verde-tinta);
+}
+
 .cabecaDia {
   display: flex;
   align-items: baseline;
@@ -34,8 +38,22 @@
 }
 
 .nomeDia {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 750;
   text-transform: capitalize;
+}
+
+.seloHoje {
+  padding: 1px 8px;
+  border-radius: var(--raio-pilula);
+  background: var(--amarelo);
+  color: #111;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .dataDia {
@@ -61,7 +79,7 @@
 }
 
 .inativo {
-  background: repeating-linear-gradient(-45deg, transparent 0 8px, rgb(0 0 0 / 0.035) 8px 16px);
+  background: var(--papel);
 }
 
 .inativo .hora,
