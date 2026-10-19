@@ -50,6 +50,19 @@ export const prepararRegra: CollectionBeforeValidateHook = ({ data, req }) => {
   return data
 }
 
+/** Marca (só do servidor, em `context`) de scripts/atualizacoes.ts: volta a regra de temporada encerrada para "por corrida". */
+export const CONTEXTO_CALCULO_ANTIGO = 'calculoDaEtapaAntigo'
+
+/**
+ * Regra usada por temporada encerrada: "Como a etapa é pontuada" só pode virar "por corrida" — o cálculo com que
+ * a classificação final dela foi feita, então o resultado não muda:
+ * - a partir do vazio (regra gravada antes do campo existir, que o motor já calcula por corrida);
+ * - pelo servidor (`peloServidor`: scripts/atualizacoes.ts), também a partir do padrão "média das corridas" que
+ *   a migração do campo grava nas regras que já existiam. Pelo painel isso nunca é permitido.
+ */
+export const soPreencheCalculoAntigo = (novo: unknown, antigo: unknown, peloServidor = false) =>
+  novo === 'por-corrida' && (peloServidor || antigo === null || antigo === undefined || antigo === '')
+
 /**
  * Regra usada por temporada encerrada: só o nome pode mudar. Tabela renomeada ou removida não pode
  * estar em uso por corridas nem pelo formato de etapa das temporadas.
@@ -58,7 +71,10 @@ export const protegerRegraEmUso: CollectionBeforeChangeHook = async ({ data, ori
   if (operation !== 'update' || !docAnterior(originalDoc)) return data
   const usos = await temporadasQueUsam(req, originalDoc.id)
   const encerradas = usos.filter((t) => t.status === 'encerrada')
-  if (encerradas.length && camposAlterados(data, originalDoc, ['nome', 'temporadas', 'classificacoes']).length) {
+  const peloServidor = req.context?.[CONTEXTO_CALCULO_ANTIGO] === true
+  const calculoAntigo = soPreencheCalculoAntigo(data.calculoDaEtapa, originalDoc.calculoDaEtapa, peloServidor)
+  const livres = ['nome', 'temporadas', 'classificacoes', ...(calculoAntigo ? ['calculoDaEtapa'] : [])]
+  if (encerradas.length && camposAlterados(data, originalDoc, livres).length) {
     falhar(
       `Esta regra foi usada na temporada encerrada "${encerradas[0].nome}" e não pode mudar (o resultado oficial ficaria diferente). ` +
         'Para outra temporada, use "Duplicar regra" e edite a cópia.',
@@ -66,7 +82,9 @@ export const protegerRegraEmUso: CollectionBeforeChangeHook = async ({ data, ori
     )
   }
 
-  // Tabelas que deixaram de existir (removidas ou renomeadas)
+  // Tabelas que deixaram de existir (removidas ou renomeadas). Gravação parcial sem as tabelas (ex.: só o
+  // "Como a etapa é pontuada", por scripts/atualizacoes.ts) não mexe nelas: não há o que conferir.
+  if (!Array.isArray(data.tabelas)) return data
   type Tabelas = NonNullable<RegraPontuacaoDoc['tabelas']>
   const novas = new Set(((data.tabelas ?? []) as Tabelas).map((t) => normalizarBusca(t?.nome ?? '')))
   const sumiram = ((originalDoc.tabelas ?? []) as Tabelas)

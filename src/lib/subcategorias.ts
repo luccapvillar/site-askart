@@ -2,8 +2,9 @@
  * Subcategorias no site — funções PURAS (sem React nem Payload), testadas em tests/int.
  *
  * Uma categoria pode ter subcategorias (ex.: F400 → Novatos, Junior, Graduados). Elas aparecem:
- * - no resultado da etapa e na classificação: uma tabela por subcategoria, com a posição dentro dela e a
- *   posição geral ao lado (os pontos são sempre os do campeonato: a subcategoria não muda pontos);
+ * - no resultado da etapa e na classificação: uma tabela por subcategoria. Com a regra do BKS (cálculo pela
+ *   média, `pontosPorSubcategoria`) cada subcategoria é um grid com posições e pontos PRÓPRIOS; no cálculo
+ *   antigo (por corrida), a posição dentro dela é relativa e a posição geral aparece ao lado;
  * - na programação da etapa: os horários de cada subcategoria, quando a corrida diz para quais vale.
  *
  * Regras comuns (iguais em todo o site):
@@ -72,7 +73,10 @@ export interface LinhaNaSubcategoria<L> {
   linha: L
   /** Posição exibida: dentro da subcategoria (tabelas separadas) ou a geral (tabela única). */
   posicao: number
-  /** Posição geral na categoria — só nas tabelas por subcategoria (para "1º (3º geral)"). */
+  /**
+   * Posição geral na categoria — só nas tabelas por subcategoria do cálculo antigo (para "1º (3º geral)").
+   * Com pontos por subcategoria não há posição geral: null.
+   */
   posicaoGeral: number | null
   /** Posição anterior no mesmo critério de `posicao` (para a seta de subiu/caiu). */
   posicaoAnterior: number | null
@@ -88,27 +92,38 @@ export interface GrupoClassificacao<L> {
 }
 
 export interface ClassificacaoSeparada<L> {
-  /** true = uma tabela por subcategoria (com posição relativa); false = uma tabela só, como antes. */
+  /** true = uma tabela por subcategoria; false = uma tabela só, como antes. */
   porSubcategoria: boolean
+  /** true = posições e pontos próprios de cada subcategoria (regra do BKS): sem "(3º geral)". */
+  pontosPorSubcategoria: boolean
   grupos: GrupoClassificacao<L>[]
 }
 
 /**
- * Classificação de uma categoria separada por subcategoria. Cada tabela tem só os pilotos da subcategoria,
- * na ordem da classificação geral, com a posição DENTRO da subcategoria (empate na posição geral = mesma
- * posição) e a geral ao lado. A seta de subiu/caiu compara com a posição anterior dentro da subcategoria.
- * Os pontos não mudam. Categoria sem subcategorias — ou nenhum piloto com subcategoria — tem uma tabela só.
+ * Classificação de uma categoria separada por subcategoria. Cada tabela tem só os pilotos da subcategoria.
+ * - Cálculo antigo: na ordem da classificação geral, com a posição DENTRO da subcategoria (empate na posição
+ *   geral = mesma posição) e a geral ao lado; a seta de subiu/caiu compara com a posição anterior dentro da
+ *   subcategoria; os pontos não mudam.
+ * - `pontosPorSubcategoria` (cálculo pela média, regra do BKS): as linhas já trazem a posição DENTRO da
+ *   subcategoria em que pontuaram (e a anterior também); ela é usada como veio, sem posição geral. Separa
+ *   sempre que algum piloto tem subcategoria, mesmo que o nome não esteja mais cadastrado na categoria.
+ * Categoria sem subcategorias — ou nenhum piloto com subcategoria — tem uma tabela só.
  */
 export function separarClassificacao<L extends LinhaComPosicao>(
   linhas: L[],
   subcategorias: ItemSubcategoria[] | null | undefined,
+  opcoes: { pontosPorSubcategoria?: boolean } = {},
 ): ClassificacaoSeparada<L> {
   const ordenadas = [...linhas].sort((a, b) => a.posicao - b.posicao)
   const cadastradas = nomesCadastrados(subcategorias)
-  const porSubcategoria = cadastradas.length > 0 && ordenadas.some((l) => nomeOficial(l.subcategoria, cadastradas) !== null)
+  const pontosPorSubcategoria = opcoes.pontosPorSubcategoria === true
+  const porSubcategoria = pontosPorSubcategoria
+    ? ordenadas.some((l) => nomeOficial(l.subcategoria, cadastradas) !== null)
+    : cadastradas.length > 0 && ordenadas.some((l) => nomeOficial(l.subcategoria, cadastradas) !== null)
   if (!porSubcategoria) {
     return {
       porSubcategoria: false,
+      pontosPorSubcategoria,
       grupos: [
         {
           chave: 'categoria',
@@ -130,15 +145,35 @@ export function separarClassificacao<L extends LinhaComPosicao>(
       chave,
       nome: g.nome ?? SEM_SUBCATEGORIA,
       semSubcategoria: g.nome === null,
-      linhas: g.itens.map((linha) => ({
-        linha,
-        posicao: posicaoRelativa(linha.posicao, gerais) as number,
-        posicaoGeral: linha.posicao,
-        posicaoAnterior: posicaoRelativa(linha.posicaoAnterior, anteriores),
-      })),
+      linhas: g.itens.map((linha) =>
+        pontosPorSubcategoria
+          ? { linha, posicao: linha.posicao, posicaoGeral: null, posicaoAnterior: linha.posicaoAnterior ?? null }
+          : {
+              linha,
+              posicao: posicaoRelativa(linha.posicao, gerais) as number,
+              posicaoGeral: linha.posicao,
+              posicaoAnterior: posicaoRelativa(linha.posicaoAnterior, anteriores),
+            },
+      ),
     }
   })
-  return { porSubcategoria: true, grupos }
+  return { porSubcategoria: true, pontosPorSubcategoria, grupos }
+}
+
+/**
+ * Pódio (1º, 2º e 3º) de cada subcategoria de uma classificação com pontos por subcategoria (regra do BKS:
+ * a posição de cada linha já é dentro da subcategoria dela), na ordem cadastrada na categoria; "sem
+ * subcategoria" (`nome: null`) no fim. Usado no histórico de campeões, a partir da fotografia final.
+ */
+export function podiosPorSubcategoria<L extends { posicao: number; subcategoria?: string | null }>(
+  linhas: L[],
+  subcategorias: ItemSubcategoria[] | null | undefined,
+): { nome: string | null; podio: L[] }[] {
+  const ordenadas = [...linhas].sort((a, b) => a.posicao - b.posicao)
+  return agruparPorSubcategoria(ordenadas, (l) => l.subcategoria, nomesCadastrados(subcategorias)).map((g) => ({
+    nome: g.nome,
+    podio: g.itens.filter((l) => l.posicao >= 1 && l.posicao <= 3),
+  }))
 }
 
 /* ───────────────────────────── programação da etapa ───────────────────────────── */

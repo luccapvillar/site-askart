@@ -1614,7 +1614,11 @@ export interface RegrasPontuacao {
    */
   nome: string;
   /**
-   * Uma tabela para cada tipo de corrida que pontua diferente (ex.: "Bateria" e "Final"). A primeira é a usada quando a corrida não indica outra.
+   * Regra do BKS: cada subcategoria é um grid próprio (warm-up, classificação, corrida 1 e corrida 2). A posição do piloto na etapa é a média das posições dele nas corridas da subcategoria (ex.: 2º e 2º = 2º na etapa), e a tabela dá os pontos por essa posição. Média igual: desempata a melhor posição na corrida 2 e, depois, na classificação. Abandono, não largou, desclassificado ou não correr vale a última posição do grid. Pole e volta mais rápida são de cada subcategoria, e a classificação do campeonato é separada por subcategoria. "Pontos em cada corrida" é o cálculo antigo: cada corrida dá pontos pela tabela e a etapa soma.
+   */
+  calculoDaEtapa?: ('media-das-corridas' | 'por-corrida') | null;
+  /**
+   * Pela média das corridas: os pontos de cada posição na etapa (dentro da subcategoria). Pontos em cada corrida: uma tabela para cada tipo de corrida que pontua diferente (ex.: "Bateria" e "Final"). A primeira é a usada quando a corrida não indica outra.
    */
   tabelas?:
     | {
@@ -1630,11 +1634,11 @@ export interface RegrasPontuacao {
       }[]
     | null;
   /**
-   * Para o 1º da tomada de tempo. Vazio = 0.
+   * Para o 1º da tomada de tempo (pela média: o 1º de cada subcategoria). Vazio = 0.
    */
   pontosPole?: number | null;
   /**
-   * Por corrida que conta. Vazio = 0.
+   * Por corrida que conta (pela média: a mais rápida de cada subcategoria). Vazio = 0.
    */
   pontosVoltaRapida?: number | null;
   /**
@@ -1642,6 +1646,9 @@ export interface RegrasPontuacao {
    */
   pontosParticipacao?: number | null;
   requisitoParticipacao?: ('presente' | 'largou' | 'classificado') | null;
+  /**
+   * Vale para o cálculo de pontos em cada corrida. Na média das corridas (regra do BKS), abandono conta sempre como a última posição do grid.
+   */
   abandono: 'pela-posicao' | 'so-participacao' | 'zero';
   /**
    * Percentual das voltas do vencedor. Ex.: 75 = precisa completar 75% das voltas. Vazio = sem mínimo.
@@ -1649,7 +1656,7 @@ export interface RegrasPontuacao {
   percentualMinimoVoltas?: number | null;
   convidados: 'reclassificar-elegiveis' | 'manter-posicoes';
   /**
-   * Piores resultados que não entram na soma. Desclassificação nunca é descartada, e penalidades/ajustes de pontos são aplicados depois dos descartes.
+   * Piores resultados que não entram na soma. Desclassificação nunca é descartada, e penalidades/ajustes de pontos são aplicados depois dos descartes. Na média das corridas (regra do BKS), o descarte é sempre de etapas inteiras.
    */
   descartes?: {
     /**
@@ -4396,6 +4403,7 @@ export interface CampeonatosSelect<T extends boolean = true> {
  */
 export interface RegrasPontuacaoSelect<T extends boolean = true> {
   nome?: T;
+  calculoDaEtapa?: T;
   tabelas?:
     | T
     | {

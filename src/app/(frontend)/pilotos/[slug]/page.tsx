@@ -76,7 +76,11 @@ export default async function PaginaPiloto({ params }: Props) {
                       </div>
                       <Dados
                         itens={[
-                          { termo: 'Posição', valor: `${linha.posicao}º` },
+                          // Regra do BKS (pontos por subcategoria): a posição é dentro da subcategoria do piloto.
+                          {
+                            termo: c.porSubcategoria && linha.subcategoria ? `Posição em ${semDemo(linha.subcategoria)}` : 'Posição',
+                            valor: `${linha.posicao}º`,
+                          },
                           { termo: 'Pontos', valor: linha.pontos },
                           { termo: 'Vitórias', valor: linha.vitorias },
                           { termo: 'Pódios', valor: linha.podios },

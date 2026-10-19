@@ -10,11 +10,13 @@
  */
 import {
   calcularClassificacao,
+  chaveDoGrid,
   deDecimos,
   paraDecimos,
   type EntradaClassificacao,
   type Id,
   type LinhaClassificacao,
+  type PosicaoNaMedia,
   type ResultadoClassificacao,
 } from './classificacao'
 
@@ -403,8 +405,17 @@ export interface LinhaResultadoDaEtapa {
   pilotoSlug: string | null
   numero: number | string | null
   equipeNome: string | null
-  /** Posição na etapa (1..N, sem buracos); null = sem posição oficial em nenhuma corrida que conta. */
+  /**
+   * Posição na etapa (1..N, sem buracos; no cálculo pela média, dentro da subcategoria — empate que nenhum
+   * critério resolveu repete a posição); null = sem posição oficial em nenhuma corrida que conta.
+   */
   posicao: number | null
+  /** Cálculo pela média: média das posições nas corridas (ex.: 2 = 2º e 2º). Ausente no cálculo por corrida. */
+  media?: number | null
+  /** Cálculo pela média: posição de cada corrida que entrou na média. */
+  posicoesNaMedia?: PosicaoNaMedia[]
+  /** Cálculo pela média: subcategoria em que o piloto pontuou (null = sem subcategoria). */
+  subcategoria?: string | null
   /** Pontos da etapa (corridas + pole), antes de penalidades. */
   pontos: number
   /** Penalidades de pontos das corridas da etapa (com sinal). */
@@ -416,19 +427,24 @@ export interface LinhaResultadoDaEtapa {
 }
 
 /**
- * Resultado somado de uma etapa com o MESMO desempate do campeonato: `resultado` precisa ser a
- * classificação calculada só com esta etapa (sem descartes nem ajustes), cuja ordem já é a do campeonato
- * (total, critérios de desempate da regra, ordem alfabética). Só entram os pilotos que correram a etapa;
- * quem tem posição oficial em alguma corrida que conta é numerado 1..N nessa ordem, e os demais (ex.: só
- * fizeram a tomada de tempo, ou não largaram/foram desclassificados em todas) vêm depois, sem posição.
+ * Resultado de uma etapa: `resultado` precisa ser a classificação calculada só com esta etapa (sem descartes
+ * nem ajustes). Só entram os pilotos que correram a etapa.
+ * - Cálculo por corrida: o MESMO desempate do campeonato (a ordem das linhas já é total, critérios da regra,
+ *   ordem alfabética); quem tem posição oficial em alguma corrida que conta é numerado 1..N nessa ordem.
+ * - Cálculo pela média (`resultado.porSubcategoria`): agrupado por subcategoria (na ordem das linhas) e, em
+ *   cada uma, pela posição na etapa que veio da média das corridas (com a média e as posições usadas).
+ * Os demais (ex.: só fizeram a tomada de tempo, ou não largaram/foram desclassificados em todas) vêm depois
+ * (no fim da subcategoria, no cálculo pela média), sem posição.
  */
-export function resultadoSomadoDaEtapa(resultado: Pick<ResultadoClassificacao, 'linhas'>, etapa: Id): LinhaResultadoDaEtapa[] {
+export function resultadoSomadoDaEtapa(
+  resultado: Pick<ResultadoClassificacao, 'linhas'> & Partial<Pick<ResultadoClassificacao, 'porSubcategoria'>>,
+  etapa: Id,
+): LinhaResultadoDaEtapa[] {
   const alvo = k(etapa)
   const disputaram = resultado.linhas
     .map((l) => ({ linha: l, etapa: l.porEtapa.find((e) => k(e.etapa) === alvo) }))
     .filter((x): x is { linha: LinhaClassificacao; etapa: NonNullable<typeof x.etapa> } => !!x.etapa && x.etapa.participou)
-  const comPosicao = disputaram.filter((x) => x.etapa.posicao !== null)
-  const semPosicao = disputaram.filter((x) => x.etapa.posicao === null)
+  const pelaMedia = resultado.porSubcategoria === true
   const paraLinha = (x: (typeof disputaram)[number], posicao: number | null): LinhaResultadoDaEtapa => ({
     chave: x.linha.chave,
     inscricao: x.linha.inscricao,
@@ -443,6 +459,25 @@ export function resultadoSomadoDaEtapa(resultado: Pick<ResultadoClassificacao, '
     total: deDecimos(paraDecimos(x.etapa.pontos) + paraDecimos(x.etapa.ajustes)),
     pole: x.etapa.pole,
     desclassificado: x.etapa.desclassificado,
+    ...(pelaMedia
+      ? { media: x.etapa.media ?? null, posicoesNaMedia: x.etapa.posicoesNaMedia ?? [], subcategoria: x.linha.subcategoria ?? null }
+      : {}),
   })
-  return [...comPosicao.map((x, i) => paraLinha(x, i + 1)), ...semPosicao.map((x) => paraLinha(x, null))]
+  if (!pelaMedia) {
+    const comPosicao = disputaram.filter((x) => x.etapa.posicao !== null)
+    const semPosicao = disputaram.filter((x) => x.etapa.posicao === null)
+    return [...comPosicao.map((x, i) => paraLinha(x, i + 1)), ...semPosicao.map((x) => paraLinha(x, null))]
+  }
+  // Pela média: subcategorias na ordem em que aparecem; em cada uma, pela posição na etapa (empate: a ordem
+  // das linhas, que é a do campeonato da subcategoria).
+  const grupos = new Map<string, typeof disputaram>()
+  for (const x of disputaram) {
+    const chave = chaveDoGrid(x.linha.subcategoria)
+    grupos.set(chave, [...(grupos.get(chave) ?? []), x])
+  }
+  return [...grupos.values()].flatMap((grupo) => {
+    const comPosicao = grupo.filter((x) => x.etapa.posicao !== null).sort((a, b) => (a.etapa.posicao as number) - (b.etapa.posicao as number))
+    const semPosicao = grupo.filter((x) => x.etapa.posicao === null)
+    return [...comPosicao.map((x) => paraLinha(x, x.etapa.posicao)), ...semPosicao.map((x) => paraLinha(x, null))]
+  })
 }
