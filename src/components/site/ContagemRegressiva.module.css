@@ -1,14 +1,15 @@
+/* Contagem regressiva (dias, horas, minutos). Números tabulares para não "dançar" quando mudam. */
 .contagem {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(6px, 1.2vw, 12px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .bloco {
   display: grid;
   justify-items: center;
   gap: 2px;
-  padding: clamp(10px, 1.6vw, 16px) 6px;
+  padding: 12px 6px 10px;
   border-radius: var(--raio);
   background: rgb(255 255 255 / 0.06);
   border: 1px solid var(--linha-clara);
@@ -16,26 +17,37 @@
 
 .valor {
   font-family: var(--fonte);
-  font-variation-settings: 'wdth' 118;
-  font-style: italic;
-  font-weight: 850;
-  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 3rem);
+  font-variation-settings: 'wdth' 112;
+  font-weight: 800;
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   color: var(--amarelo);
 }
 
 .rotulo {
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.75;
+  color: var(--texto-claro-2);
 }
 
 .agora {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   color: var(--amarelo);
+}
+
+.pulso {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* Sobre fundo claro (cartão da próxima etapa) */
@@ -51,5 +63,8 @@
 
 .claro .rotulo {
   color: var(--texto-2);
-  opacity: 1;
+}
+
+.agora.claro .pulso {
+  color: var(--ok);
 }

@@ -1,59 +1,45 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import { NavegacaoBks } from '@/components/site/bks/AbasBks'
 import s from '@/components/site/bks/Bks.module.css'
-import { EstadoVazio } from '@/components/site/EstadoVazio'
-import { Foto } from '@/components/site/Foto'
-import { Galeria } from '@/components/site/Galeria'
-import { TextoDemo } from '@/components/site/TextoDemo'
-import { fotosDaGaleria } from '@/lib/galeria'
-import { lerBks, lerGalerias } from '@/lib/publico'
+import { GradeGalerias } from '@/components/site/bks/CartoesGaleria'
+import { galeriasDoBks } from '@/components/site/bks/fotos'
+import { CabecalhoArea } from '@/components/site/bks/Modalidades'
 
 export const revalidate = 60
 
-export const metadata: Metadata = { title: 'BKS — Fotos', description: 'Fotos das etapas do BKS — Brasília Kart Series.' }
+export const metadata: Metadata = { title: 'BKS — Fotos', description: 'Galerias de fotos do BKS — Brasília Kart Series: etapas, treinos e eventos do campeonato.' }
 
-/** Sub-aba Fotos: galerias ligadas ao campeonato (a mais recente aberta). */
+/** Sub-aba Fotos: as galerias do campeonato em cartões (capa, título, data/etapa e quantidade de fotos). */
 export default async function FotosBks() {
-  const bks = await lerBks()
-  const galerias = bks ? await lerGalerias({ campeonato: { equals: bks.campeonato.id } }, 24) : []
-  const [primeira, ...outras] = galerias
+  const galerias = (await galeriasDoBks()).filter((g) => (g.fotos ?? []).length > 0)
 
   return (
-    <section className="secao-compacta" aria-labelledby="fotos">
-      <div className="conteiner">
-        <div className={s.cabecalhoSecao}>
-          <h2 id="fotos" className="titulo-marca h2">
-            Fotos
-          </h2>
+    <>
+      <NavegacaoBks secao="fotos" />
+      <section className={`secao-compacta ${s.secaoPrincipal}`} aria-labelledby="fotos">
+        <div className="conteiner">
+          <CabecalhoArea
+            id="fotos"
+            titulo="Fotos"
+            introducao={galerias.length ? 'Escolha uma galeria para ver as fotos.' : undefined}
+          />
+          {galerias.length ? (
+            <GradeGalerias galerias={galerias} />
+          ) : (
+            <div className={s.fotosVazio} role="status">
+              <span className={s.fotosVazioIcone} aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <circle cx="9" cy="10" r="1.6" />
+                  <path d="m4 17 5-4.5 3.5 3 3-2.5L20 17" />
+                </svg>
+              </span>
+              <p className={s.fotosVazioTitulo}>Nenhuma galeria publicada ainda</p>
+              <p className="texto-2">As fotos das etapas do BKS aparecem aqui assim que a organização publicar as galerias.</p>
+            </div>
+          )}
         </div>
-        {!primeira ? (
-          <EstadoVazio texto="As fotos das etapas serão publicadas aqui." />
-        ) : (
-          <>
-            <h3 className={`h3 ${s.subtitulo}`}>
-              <TextoDemo texto={primeira.titulo} />
-            </h3>
-            <Galeria fotos={fotosDaGaleria(primeira)} exibicao={primeira.exibicao ?? 'grade'} />
-            {outras.length > 0 && (
-              <>
-                <h3 className={`h3 ${s.subtitulo}`}>Outras galerias</h3>
-                <ul className={s.gradeGalerias}>
-                  {outras.map((g) => (
-                    <li key={g.id}>
-                      <Link href={`/galeria/${g.slug}`} className={s.cartaoGaleria}>
-                        <Foto midia={typeof g.capa === 'object' ? g.capa : null} ate="card" sizes="(min-width: 900px) 33vw, 100vw" />
-                        <span>
-                          <TextoDemo texto={g.titulo} />
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </section>
+      </section>
+    </>
   )
 }

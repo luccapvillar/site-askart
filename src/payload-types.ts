@@ -4945,9 +4945,12 @@ export interface PaginaInicial {
      * Vazio = nome do campeonato principal e da temporada atual.
      */
     titulo?: string | null;
+    /**
+     * Vazio = frase padrão sobre o campeonato e o kartódromo.
+     */
     subtitulo?: string | null;
     /**
-     * Foto larga (mínimo 1920 px). Vazio = foto do campeonato principal.
+     * Foto larga e deitada (mínimo 1920 px). Vazio = foto do campeonato principal.
      */
     imagem?: (number | null) | Midia;
     /**
@@ -5234,7 +5237,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Calendário do BKS".
+             * Vazio = "Calendário da temporada".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5327,7 +5330,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Treinos de hoje e amanhã".
+             * Vazio = "Treino quase todos os dias".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5420,7 +5423,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Notícias".
+             * Vazio = "Últimas notícias".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5514,7 +5517,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Comunicados".
+             * Vazio = "Avisos no ar".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5702,7 +5705,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Galeria em destaque".
+             * Vazio = "título da galeria".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5799,7 +5802,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "Kartódromo".
+             * Vazio = "Treino quase todos os dias".
              */
             titulo?: string | null;
             subtitulo?: string | null;
@@ -5892,7 +5895,7 @@ export interface PaginaInicial {
         | {
             ativo?: boolean | null;
             /**
-             * Vazio = "IZY Pass (treinos e corridas)".
+             * Vazio = "Etapas e treinos livres pela IZY Pass".
              */
             titulo?: string | null;
             subtitulo?: string | null;

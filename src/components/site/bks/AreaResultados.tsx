@@ -1,29 +1,28 @@
+import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import { MatrizEtapa } from '@/components/site/resultados/MatrizEtapa'
 import { EstadoVazio } from '@/components/site/EstadoVazio'
-import { TextoDemo } from '@/components/site/TextoDemo'
+import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { lerBks, lerCategorias, lerEtapas, lerResultadosEtapa } from '@/lib/publico'
-import { caminhoDaArea, etapaNaModalidade, modalidadeDe, type Modalidade } from '@/lib/site'
+import { caminhoDaArea, dataDaEtapa, etapaNaModalidade, modalidadeDe, type Modalidade } from '@/lib/site'
 import type { Etapa } from '@/payload-types'
-import { CabecalhoArea, SeletorModalidade } from './Modalidades'
-import { dataPorExtenso, nomeDaEtapa } from './pecas'
+import { Subcategorias } from '../base/Subcategorias'
+import { NavegacaoBks } from './AbasBks'
+import { CabecalhoArea } from './Modalidades'
+import { DataEtapa, dataPorExtenso, nomeDaEtapa } from './pecas'
 import s from './Bks.module.css'
 
 const VAZIO: Record<Modalidade, string> = {
-  profissional:
-    'Os resultados dos karts profissionais aparecem aqui assim que a primeira etapa tiver resultado oficial.',
-  indoor:
-    'Os resultados dos karts indoor aparecem aqui assim que a primeira etapa tiver resultado oficial.',
+  profissional: 'Os resultados dos karts profissionais aparecem aqui assim que a primeira etapa tiver resultado oficial.',
+  indoor: 'Os resultados dos karts indoor aparecem aqui assim que a primeira etapa tiver resultado oficial.',
 }
 
 /** Etapas da área na temporada atual do BKS e a etapa pedida (pelo número) ou a última realizada. */
 async function etapasDaArea(modalidade: Modalidade, numero?: string) {
   const bks = await lerBks()
-  const etapas = (bks?.temporada ? await lerEtapas(bks.temporada.id) : []).filter((e) =>
-    etapaNaModalidade(e, modalidade),
-  )
+  const etapas = (bks?.temporada ? await lerEtapas(bks.temporada.id) : []).filter((e) => etapaNaModalidade(e, modalidade))
   const realizadas = etapas.filter((e) => e.status === 'realizada')
   if (numero === undefined) return { realizadas, atual: realizadas.at(-1) ?? null }
   const atual = etapas.find((e) => String(e.numero) === numero)
@@ -36,68 +35,73 @@ async function etapasDaArea(modalidade: Modalidade, numero?: string) {
  * Resultados de uma área do BKS (karts profissionais ou indoor): seletor das etapas realizadas e, da
  * etapa escolhida, a matriz de resultados de cada categoria da modalidade, na ordem do painel.
  */
-export async function AreaResultados({
-  modalidade,
-  numero,
-}: {
-  modalidade: Modalidade
-  numero?: string
-}) {
+export async function AreaResultados({ modalidade, numero }: { modalidade: Modalidade; numero?: string }) {
   const { realizadas, atual } = await etapasDaArea(modalidade, numero)
   return (
-    <section className="secao-compacta" aria-labelledby="resultados">
-      <div className="conteiner">
-        <SeletorModalidade atual={modalidade} secao="resultados" />
-        <CabecalhoArea
-          id="resultados"
-          modalidade={modalidade}
-          titulo="Resultados"
-          introducao="Resultado oficial de cada etapa, por categoria."
-        />
-        {!realizadas.length && !atual ? (
-          <EstadoVazio texto={VAZIO[modalidade]} />
-        ) : (
-          <>
-            {realizadas.length > 0 && (
-              <nav className={s.seletorEtapas} aria-label="Escolha a etapa">
-                {realizadas.map((e) => (
-                  <Link
-                    key={e.id}
-                    href={caminhoDaArea(modalidade, 'resultados', e.numero)}
-                    aria-current={atual?.id === e.id ? 'page' : undefined}
-                  >
-                    {e.numero}ª etapa
-                  </Link>
-                ))}
-              </nav>
-            )}
-            {atual && <ResultadoDaEtapaNaArea etapa={atual} modalidade={modalidade} />}
-          </>
-        )}
-      </div>
-    </section>
+    <>
+      <NavegacaoBks area={modalidade} secao="resultados" />
+      <section className={`secao-compacta ${s.secaoPrincipal}`} aria-labelledby="resultados">
+        <div className="conteiner">
+          <CabecalhoArea
+            id="resultados"
+            modalidade={modalidade}
+            titulo="Resultados"
+            introducao="Resultado oficial de cada etapa, por categoria: warm-up, classificação, corridas e o resultado da etapa."
+          />
+          {!realizadas.length && !atual ? (
+            <EstadoVazio texto={VAZIO[modalidade]} />
+          ) : (
+            <>
+              {realizadas.length > 0 && (
+                <nav className={s.seletorEtapas} aria-label="Escolha a etapa">
+                  <ul>
+                    {realizadas.map((e) => {
+                      const d = dataDaEtapa(e)
+                      return (
+                        <li key={e.id}>
+                          <Link href={caminhoDaArea(modalidade, 'resultados', e.numero)} aria-current={atual?.id === e.id ? 'page' : undefined}>
+                            <span className={s.seletorNumero}>{e.numero}ª etapa</span>
+                            {d && (
+                              <span className={s.seletorData}>
+                                {d.dia} {d.mes}
+                              </span>
+                            )}
+                          </Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </nav>
+              )}
+              {atual && <ResultadoDaEtapaNaArea etapa={atual} modalidade={modalidade} />}
+            </>
+          )}
+        </div>
+      </section>
+    </>
   )
 }
 
-/** Resultado de uma etapa numa modalidade: título da etapa, a matriz de cada categoria e o link da etapa. */
+/** Resultado de uma etapa numa modalidade: a etapa, a matriz de cada categoria e o link da etapa. */
 function ResultadoDaEtapaNaArea({ etapa, modalidade }: { etapa: Etapa; modalidade: Modalidade }) {
   return (
     <div className={s.resultadoEtapa}>
-      <h3 className="h3">
-        <TextoDemo texto={nomeDaEtapa(etapa)} />{' '}
-        <span className="texto-2">· {dataPorExtenso(etapa)}</span>
-      </h3>
-      <MatrizesDaModalidade
-        etapaId={etapa.id}
-        modalidade={modalidade}
-        nivelTitulo={4}
-        vazio="O resultado desta etapa ainda não foi publicado."
-      />
-      <p>
-        <Link className={s.linkSeta} href={`/etapas/${etapa.id}`}>
-          Página da etapa (fotos e notícias) <span aria-hidden="true">→</span>
+      <div className={s.etapaEscolhida}>
+        <DataEtapa etapa={etapa} />
+        <div className={s.etapaEscolhidaTextos}>
+          <h3 className="titulo-marca h3">
+            <TextoDemo texto={nomeDaEtapa(etapa)} />
+          </h3>
+          <p className="texto-2">
+            {dataPorExtenso(etapa)}
+            {etapa.local ? ` · ${semDemo(etapa.local)}` : ''}
+          </p>
+        </div>
+        <Link className={`link-seta ${s.etapaEscolhidaLink}`} href={`/etapas/${etapa.id}`}>
+          Página da etapa
         </Link>
-      </p>
+      </div>
+      <MatrizesDaModalidade etapaId={etapa.id} modalidade={modalidade} nivelTitulo={4} vazio="O resultado desta etapa ainda não foi publicado." />
     </div>
   )
 }
@@ -131,9 +135,7 @@ export async function MatrizesDaModalidade({
   vazio?: string
 }) {
   const { resultado, comCorridas, porId } = await resultadoComCategorias(etapaId)
-  const daModalidade = comCorridas.filter(
-    (c) => modalidadeDe(porId.get(String(c.categoria))) === modalidade,
-  )
+  const daModalidade = comCorridas.filter((c) => modalidadeDe(porId.get(String(c.categoria))) === modalidade)
   if (!daModalidade.length) return vazio ? <EstadoVazio texto={vazio} /> : null
   const Titulo = `h${nivelTitulo}` as const
   return (
@@ -141,16 +143,23 @@ export async function MatrizesDaModalidade({
       {daModalidade.map((c) => {
         const cat = porId.get(String(c.categoria))
         const id = `resultado-${modalidade}-${c.categoria}`
+        const nome = semDemo(cat?.nome ?? c.categoriaNome) || 'Categoria'
         return (
-          <section key={String(c.categoria)} className={s.categoria} aria-labelledby={id}>
-            <Titulo id={id} className={`h3 ${s.tituloCategoria}`}>
-              <span
-                className={s.corCategoria}
-                style={{ background: cat?.cor ?? 'var(--camp-p)' }}
-                aria-hidden="true"
-              />
-              <TextoDemo texto={cat?.nome ?? c.categoriaNome} />
-            </Titulo>
+          <section
+            key={String(c.categoria)}
+            className={s.blocoCategoria}
+            aria-labelledby={id}
+            style={{ '--cor-categoria': cat?.cor ?? 'var(--verde)' } as CSSProperties}
+          >
+            <header className={s.blocoCabeca}>
+              <div className={s.blocoTitulos}>
+                <Titulo id={id} className={`titulo-marca h3 ${s.tituloCategoria}`}>
+                  <TextoDemo texto={cat?.nome ?? c.categoriaNome} />
+                </Titulo>
+                <Subcategorias itens={cat?.subcategorias} rotulo={`Subcategorias de ${nome}`} />
+              </div>
+              {resultado?.parcial && <p className={s.parcial}>Resultado parcial</p>}
+            </header>
             <MatrizEtapa
               categoria={{
                 id: c.categoria,

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { Quadriculado } from './Quadriculado'
 import s from './TituloSecao.module.css'
 
 type Props = {
@@ -9,17 +8,19 @@ type Props = {
   acao?: ReactNode
   nivel?: 1 | 2
   id?: string
+  /** Centraliza (chamadas curtas, como "Venha assistir"). */
+  centro?: boolean
 }
 
-/** Cabeçalho de seção: rótulo com a faixa quadriculada, título em itálico largo (como a logo) e ação opcional. */
-export function TituloSecao({ rotulo, titulo, subtitulo, acao, nivel = 2, id }: Props) {
+/** Cabeçalho de seção: sobretítulo com a marca do capacete, título forte, subtítulo e ação opcional. */
+export function TituloSecao({ rotulo, titulo, subtitulo, acao, nivel = 2, id, centro = false }: Props) {
   const H = nivel === 1 ? 'h1' : 'h2'
   return (
-    <div className={s.cabeca}>
+    <div className={`${s.cabeca} ${centro ? s.centro : ''}`}>
       <div className={s.textos}>
         {rotulo && (
           <p className={`rotulo ${s.rotulo}`}>
-            <Quadriculado className={s.quadriculado} />
+            <span className={s.marcador} aria-hidden="true" />
             {rotulo}
           </p>
         )}

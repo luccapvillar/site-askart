@@ -1,17 +1,23 @@
-/* Tema do campeonato: cores próprias (BKS: vermelho, azul, branco), com o padrão da ASKART */
+/* ==========================================================================
+   Aba BKS — topo com a logo, divisão "Karts profissionais | Karts indoor", seções, calendário,
+   categorias, classificação, resultados, história, regulamento e fotos.
+   Identidade do capacete (verde, branco, vermelho) e placa amarela. Sem JavaScript no navegador.
+   ========================================================================== */
+
 .tema {
-  --camp-p: var(--camp-primaria, var(--marca-primaria));
-  --camp-s: var(--camp-secundaria, var(--marca-escuro));
-  --camp-sobre-p: var(--sobre-camp-primaria, #fff);
-  --camp-sobre-s: var(--sobre-camp-secundaria, #fff);
+  /* Nome antigo usado por peças reaproveitadas: a cor de apoio da aba é o verde da marca */
+  --camp-p: var(--verde);
 }
 
-/* ---------- Topo da aba ---------- */
+/* ==========================================================================
+   Topo da aba (logo do BKS sobre a foto do campeonato)
+   ========================================================================== */
 .topo {
+  --foco: var(--amarelo);
   position: relative;
   overflow: hidden;
-  background: color-mix(in oklab, var(--camp-s) 62%, #05060f);
-  color: var(--camp-sobre-s);
+  background: var(--noite);
+  color: var(--texto-claro);
   isolation: isolate;
 }
 
@@ -22,586 +28,1107 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.22;
-  filter: grayscale(0.6);
 }
 
-.topo::after {
-  /* Faixa com as cores do campeonato na base */
+/* Véu: a base fica toda no verde-noite para emendar com as abas das áreas logo abaixo */
+.topoComFoto::before {
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 6px;
-  background: linear-gradient(90deg, var(--camp-p) 0 62%, var(--camp-destaque, #fff) 62% 70%, var(--camp-s) 70%);
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(0deg, var(--noite) 0%, rgb(14 22 16 / 0.82) 34%, rgb(14 22 16 / 0.5) 72%, rgb(14 22 16 / 0.42) 100%),
+    linear-gradient(90deg, rgb(14 22 16 / 0.7) 0%, rgb(14 22 16 / 0) 70%);
 }
 
 .topoConteudo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px 40px;
-  padding-block: clamp(32px, 6vw, 64px) clamp(28px, 5vw, 52px);
+  display: grid;
+  gap: 28px;
+  padding-block: clamp(36px, 6vw, 80px) clamp(28px, 4vw, 44px);
+}
+
+@media (min-width: 960px) {
+  .topoConteudo {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+    align-items: end;
+    gap: 48px;
+  }
+}
+
+.topoMarca {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.topoRotulo {
+  color: var(--amarelo);
 }
 
 .logoTitulo {
   margin: 0;
+  line-height: 0;
 }
 
 .logoTitulo img {
-  width: min(520px, 82vw);
+  width: min(540px, 86vw);
   height: auto;
 }
 
-.topoTemporada {
-  margin-top: 10px;
-  font-family: var(--fonte-mono);
-  font-size: 0.875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.85;
+.tituloSemLogo {
+  color: var(--texto-claro);
 }
 
-.topoAcoes {
+.topoTemporada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 1.0625rem;
+  font-weight: 750;
+}
+
+.topoStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: var(--raio-pilula);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.topoStatus::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--amarelo);
+}
+
+/* Compra pela IZY Pass */
+.topoIzy {
   display: grid;
   gap: 10px;
   justify-items: start;
-  font-size: 0.9375rem;
+  padding: 20px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: var(--raio-g);
+  background: rgb(8 14 10 / 0.62);
 }
 
-/* ---------- Sub-abas ---------- */
-.abas {
+.topoIzyTitulo {
+  font-variation-settings: 'wdth' 106;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.topoIzyTexto {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--texto-claro-2);
+}
+
+.izyInativo {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px dashed var(--linha-forte);
+  border-radius: var(--raio);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--texto-2);
+}
+
+.izyInativoClaro {
+  border-color: rgb(255 255 255 / 0.4);
+  color: var(--texto-claro-2);
+}
+
+.izyMarca {
+  font-weight: 800;
+  color: var(--texto);
+}
+
+.izyInativoClaro .izyMarca {
+  color: var(--texto-claro);
+}
+
+.topoCredito {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  max-width: calc(100% - 24px);
+  padding: 2px 8px;
+  border-radius: var(--raio-p);
+  background: rgb(0 0 0 / 0.5);
+  font-size: 0.6875rem;
+  color: rgb(255 255 255 / 0.9);
+}
+
+/* ==========================================================================
+   Divisão "Karts profissionais | Karts indoor" (abas presas ao topo escuro)
+   ========================================================================== */
+.areas {
+  --foco: var(--amarelo);
+  background: var(--noite);
+  color: var(--texto-claro);
+}
+
+.areasLista {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+@media (min-width: 720px) {
+  .areasLista {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-bottom: 0;
+  border-radius: var(--raio-g) var(--raio-g) 0 0;
+  background: rgb(255 255 255 / 0.07);
+  color: var(--texto-claro);
+  font-variation-settings: 'wdth' 106;
+  font-weight: 750;
+  font-size: 1rem;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color var(--duracao) var(--curva);
+}
+
+@media (min-width: 720px) {
+  .area {
+    min-width: 260px;
+    padding: 14px 22px;
+    font-size: 1.125rem;
+  }
+}
+
+.area:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.area[aria-current='page'] {
+  border-color: var(--branco);
+  background: var(--branco);
+  color: var(--texto);
+  box-shadow: inset 0 4px 0 var(--verde);
+}
+
+.areaIcone {
+  flex: none;
+  color: var(--amarelo);
+}
+
+.area[aria-current='page'] .areaIcone {
+  color: var(--verde-escuro);
+}
+
+@media (max-width: 400px) {
+  .areaIcone {
+    display: none;
+  }
+}
+
+.area:focus-visible {
+  outline-offset: -4px;
+}
+
+/* ==========================================================================
+   Seções (barra fixa sob o cabeçalho)
+   ========================================================================== */
+.secoes {
   position: sticky;
   top: var(--cabecalho);
   z-index: 40;
   background: var(--branco);
   border-bottom: 1px solid var(--linha);
+  box-shadow: 0 2px 10px rgb(16 24 18 / 0.05);
 }
 
-.abas ul {
-  display: flex;
-  gap: 4px;
+.secoesInterno {
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.abas ul::-webkit-scrollbar {
+.secoesInterno::-webkit-scrollbar {
   display: none;
 }
 
-.abas a {
-  display: block;
-  padding: 14px 14px 12px;
-  border-bottom: 3px solid transparent;
-  font-weight: 650;
-  text-decoration: none;
+.secoesLista {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
   white-space: nowrap;
-  color: var(--texto-2);
 }
 
-.abas a:hover {
-  color: var(--texto);
-}
-
-.abas a[aria-current='page'] {
-  color: var(--texto);
-  border-bottom-color: var(--camp-p);
-}
-
-/* ---------- Botões e links ---------- */
-.izy {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 10px 18px;
-  border-radius: var(--raio);
-  background: var(--camp-p);
-  color: var(--camp-sobre-p);
-  font-weight: 750;
-  text-decoration: none;
-  transition: filter 0.2s;
-}
-
-.izy:hover {
-  filter: brightness(1.08);
-}
-
-.izyClaro {
-  background: #fff;
-  color: #111;
-}
-
-.izyInativo {
-  background: transparent;
-  color: inherit;
-  border: 1px dashed currentColor;
-  font-weight: 650;
-}
-
-.izyInativo small {
-  font-weight: 500;
-}
-
-.mapa {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-weight: 650;
-  color: inherit;
-}
-
-.linkSeta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  font-weight: 650;
-  color: var(--verde-escuro);
-}
-
-/* ---------- Karts profissionais | Karts indoor ---------- */
-/* Controle segmentado (links): a área atual tem fundo do campeonato, ícone de confirmação e aria-current */
-.modalidades {
-  margin-bottom: clamp(20px, 3vw, 32px);
-}
-
-.modalidades ul {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  max-width: 460px;
-  padding: 4px;
-  border: 1px solid var(--linha);
-  border-radius: calc(var(--raio-g) + 4px);
-  background: var(--papel-2);
-}
-
-.modalidades a {
+.secoesLista a {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 48px;
-  padding: 8px 12px;
-  border-radius: var(--raio-g);
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-  text-decoration: none;
+  min-height: 52px;
+  padding: 0 14px;
+  font-weight: 650;
+  font-size: 0.9688rem;
   color: var(--texto-2);
+  text-decoration: none;
 }
 
-.modalidades a:hover {
+.secoesLista a::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+}
+
+.secoesLista a:hover {
   color: var(--texto);
-  background: rgb(255 255 255 / 0.7);
 }
 
-.modalidades a[aria-current='page'] {
-  background: var(--camp-s);
-  color: var(--camp-sobre-s);
-  box-shadow: var(--sombra);
+.secoesLista a:hover::after {
+  background: var(--linha-forte);
 }
 
-.modalidades svg {
-  flex: none;
+.secoesLista a[aria-current='page'] {
+  color: var(--texto);
+  font-weight: 750;
+}
+
+.secoesLista a[aria-current='page']::after {
+  background: var(--verde);
+}
+
+.secoesLista a:focus-visible {
+  outline-offset: -4px;
+}
+
+/* Separa as seções da área (Calendário, Classificação, Resultados) das gerais do BKS */
+.secoesGerais {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+.secoesGerais::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 22px;
+  border-left: 1px solid var(--linha-forte);
+  transform: translateY(-50%);
+}
+
+/* ==========================================================================
+   Cabeçalho de seção e blocos
+   ========================================================================== */
+.secaoPrincipal {
+  background: var(--papel);
+}
+
+.secaoBorda {
+  border-top: 1px solid var(--linha);
+}
+
+.cabecalhoSecao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  margin-bottom: clamp(22px, 3vw, 34px);
+}
+
+.cabecalhoTextos {
+  display: grid;
+  gap: 10px;
+  max-width: 52rem;
 }
 
 .rotuloArea {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--verde-escuro);
+}
+
+.rotuloMarca {
+  flex: none;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--faixa-marca);
+}
+
+.introducao {
+  margin-top: 2px;
+}
+
+.cabecalhoAcao {
+  flex: none;
+}
+
+.blocoSecao {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
+.subcabecalho {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.subcabecalhoLinha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 20px;
+}
+
+.subcabecalhoLinha .subcabecalho {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Calendário: cartões de etapa (tocar abre os horários e as compras)
+   ========================================================================== */
+.resumoCalendario {
+  margin: -6px 0 18px;
+  font-size: 0.9375rem;
   color: var(--texto-2);
 }
 
-/* Categorias da área, com as subcategorias em etiquetas */
-.categoriasArea {
-  margin-top: clamp(32px, 5vw, 56px);
+.resumoCalendario strong {
+  color: var(--texto);
 }
 
-.categoriasArea .subtitulo {
-  margin-top: 0;
-}
-
-.listaCategorias {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-}
-
-.listaCategorias > li {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
-  background: var(--branco);
-}
-
-.nomeCategoria {
-  font-weight: 750;
-}
-
-.subcategorias {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.subcategorias li {
-  padding: 3px 10px;
-  border: 1px solid var(--linha);
-  border-radius: 999px;
-  background: var(--papel);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* Página da etapa: programação e resultado separados por modalidade */
-.pilhaModalidades {
-  display: grid;
-  gap: clamp(28px, 4vw, 44px);
-}
-
-.tituloModalidade {
-  margin-bottom: 12px;
-  padding-left: 12px;
-  border-left: 4px solid var(--camp-p);
-}
-
-/* Bloco geral "Venha assistir" (karts profissionais e indoor) */
-.venhaAssistir {
-  padding-block: calc(var(--secao) * 0.6);
-  border-top: 1px solid var(--linha);
-  background: var(--branco);
-}
-
-.textoPublico {
-  max-width: 46ch;
-  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
-  font-weight: 650;
-  line-height: 1.4;
-}
-
-/* ---------- Seções ---------- */
-.cabecalhoSecao {
-  display: grid;
-  gap: 10px;
-  max-width: 70ch;
-  margin-bottom: clamp(24px, 4vw, 40px);
-}
-
-.subtitulo {
-  margin: clamp(32px, 5vw, 56px) 0 16px;
-}
-
-.duasColunas {
-  display: grid;
-  gap: 32px;
-}
-
-@media (min-width: 900px) {
-  .duasColunas {
-    grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-    align-items: start;
-  }
-}
-
-.painelLateral {
-  padding: 20px;
-  background: var(--branco);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
-}
-
-.listaSimples li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--linha);
-}
-
-.listaSimples li:last-child {
-  border-bottom: 0;
-}
-
-/* ---------- Calendário ---------- */
 .calendario {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
   gap: 12px;
 }
 
 .etapa {
-  background: var(--branco);
+  overflow: hidden;
   border: 1px solid var(--linha);
   border-radius: var(--raio-g);
-  overflow: hidden;
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
+}
+
+.etapa:hover {
+  border-color: var(--linha-forte);
 }
 
 .etapa[open] {
-  border-color: color-mix(in oklab, var(--camp-p) 45%, var(--linha));
   box-shadow: var(--sombra);
 }
 
-.etapa summary {
+.etapaProxima {
+  border-color: color-mix(in oklab, var(--amarelo) 70%, var(--texto));
+  box-shadow: inset 6px 0 0 var(--amarelo), var(--sombra-1);
+}
+
+.etapaProxima[open] {
+  box-shadow: inset 6px 0 0 var(--amarelo), var(--sombra);
+}
+
+.etapaPassada {
+  background: color-mix(in oklab, var(--papel) 45%, white);
+}
+
+.etapaCancelada .etapaNome {
+  text-decoration: line-through;
+}
+
+.etapaResumo {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 14px 14px 14px 16px;
   cursor: pointer;
   list-style: none;
 }
 
-.etapa summary::-webkit-details-marker {
+.etapaProxima .etapaResumo {
+  padding-left: 20px;
+}
+
+@media (min-width: 720px) {
+  .etapaResumo {
+    gap: 22px;
+    padding: 16px 22px 16px 18px;
+  }
+
+  .etapaProxima .etapaResumo {
+    padding-left: 24px;
+  }
+}
+
+.etapaResumo::-webkit-details-marker {
   display: none;
 }
 
-.etapa summary:hover .etapaNome {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+.etapaResumo:focus-visible {
+  outline-offset: -4px;
+  border-radius: var(--raio-g);
 }
 
+.etapaResumo:hover .etapaNome {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+/* Data em bloco: verde-noite e mês em amarelo; etapas que já passaram ficam neutras */
 .data {
   display: grid;
+  place-content: center;
   justify-items: center;
-  min-width: 64px;
-  padding: 8px 6px;
+  gap: 2px;
+  width: 68px;
+  min-height: 76px;
+  padding: 8px 4px 6px;
   border-radius: var(--raio);
-  background: var(--camp-s);
-  color: var(--camp-sobre-s);
-  line-height: 1;
+  border-bottom: 4px solid var(--vermelho);
+  background: var(--noite);
+  color: var(--texto-claro);
   text-align: center;
 }
 
+@media (min-width: 720px) {
+  .data {
+    width: 78px;
+    min-height: 84px;
+  }
+}
+
 .dataGrande {
-  min-width: 88px;
-  padding: 12px 10px;
+  width: 96px;
+  min-height: 104px;
+}
+
+.dataApagada {
+  border-bottom-color: var(--linha-forte);
+  background: var(--papel-2);
+  color: var(--texto-2);
 }
 
 .dia {
   font-variation-settings: 'wdth' 112;
   font-weight: 850;
-  font-size: 1.75rem;
+  font-size: 1.875rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .dataGrande .dia {
-  font-size: 2.5rem;
-}
-
-.mes,
-.semana {
-  font-family: var(--fonte-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 2.625rem;
 }
 
 .mes {
-  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--amarelo);
+}
+
+.dataApagada .mes {
+  color: var(--texto-2);
 }
 
 .semana {
-  opacity: 0.7;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  text-transform: capitalize;
+  opacity: 0.85;
+}
+
+.dataIndefinida {
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .etapaTextos {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
-.etapaNome {
-  font-variation-settings: 'wdth' 108;
-  font-weight: 780;
-  font-size: 1.15rem;
-  line-height: 1.2;
+.etapaSelos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .proxima {
-  display: inline-block;
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--camp-p);
-  color: var(--camp-sobre-p);
-  font-size: 0.75rem;
-  font-weight: 700;
-  vertical-align: 0.15em;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--raio-p);
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
+  font-size: 0.71875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.etapaNome {
+  font-variation-settings: 'wdth' 106;
+  font-weight: 800;
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  line-height: 1.2;
+  color: var(--texto);
 }
 
 .etapaMeta {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 14px;
-  font-size: 0.875rem;
+  flex-direction: column;
+  gap: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
   color: var(--texto-2);
 }
 
-.abrir {
-  width: 12px;
-  height: 12px;
-  border-right: 2px solid var(--texto-2);
-  border-bottom: 2px solid var(--texto-2);
-  transform: rotate(45deg) translate(-3px, -3px);
-  transition: transform 0.2s var(--curva);
+@media (min-width: 720px) {
+  .etapaMeta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 10px;
+  }
+
+  .etapaMeta > span + span::before {
+    content: '·';
+    margin-right: 10px;
+  }
 }
 
-.etapa[open] .abrir {
-  transform: rotate(225deg) translate(-3px, -3px);
+.etapaCategorias {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--texto-2);
+}
+
+/* "Ver horários" / "Fechar" + seta (decorativos: o <summary> já diz aberto/fechado) */
+.abrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 750;
+  color: var(--verde-escuro);
+  white-space: nowrap;
+}
+
+.abrirTexto,
+.fecharTexto {
+  display: none;
+}
+
+@media (min-width: 720px) {
+  .abrirTexto {
+    display: inline;
+  }
+
+  .etapa[open] .abrirTexto {
+    display: none;
+  }
+
+  .etapa[open] .fecharTexto {
+    display: inline;
+  }
+}
+
+.chevron {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+}
+
+.chevron::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.etapa[open] .chevron::before {
+  margin-top: 4px;
+  transform: rotate(-135deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chevron::before {
+    transition: transform var(--duracao) var(--curva), margin var(--duracao) var(--curva);
+  }
 }
 
 .etapaCorpo {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
-  gap: 20px;
-  padding: 4px 16px 20px;
+  gap: 26px;
+  padding: 20px 16px 22px;
   border-top: 1px solid var(--linha);
-  padding-top: 16px;
-}
-
-.etapaCorpo h3 {
-  margin-bottom: 10px;
-  color: var(--texto-2);
+  background: var(--branco);
 }
 
 @media (min-width: 900px) {
   .etapaCorpo {
-    grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr);
-    padding-left: 96px;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 36px;
+    padding: 24px 26px 28px;
   }
 }
 
-.etapaAcoes {
+.etapaHorarios {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
+  gap: 12px;
   align-content: start;
-  justify-items: start;
-  gap: 8px;
+  min-width: 0;
 }
 
-@media (max-width: 520px) {
-  .etapa summary {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-  .abrir {
-    display: none;
-  }
-}
-
-/* Programação (horários por categoria) */
-.programacao {
-  font-size: 0.9375rem;
-}
-
-.programacao thead {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-
-.programacao th,
-.programacao td {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--linha);
-  text-align: left;
-  vertical-align: top;
-}
-
-.programacao th {
-  width: 45%;
-  padding-right: 12px;
-  font-weight: 650;
-}
-
-.corCategoria {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 8px;
-  border-radius: 2px;
-  vertical-align: 0.05em;
-}
-
-.horarios li + li {
-  margin-top: 4px;
-}
-
-.horarios .mono {
-  display: inline-block;
-  min-width: 3.2em;
-  font-weight: 600;
-}
-
-/* ---------- Classificação e resultados ---------- */
-.atalhosCategorias,
-.seletorEtapas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.atalhosCategorias a,
-.seletorEtapas a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 6px 14px;
-  border: 1px solid var(--linha);
-  border-radius: 999px;
-  background: var(--branco);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.seletorEtapas a[aria-current='page'] {
-  background: var(--camp-s);
-  border-color: var(--camp-s);
-  color: var(--camp-sobre-s);
-}
-
-.pilhaCategorias {
-  display: grid;
-  gap: clamp(32px, 5vw, 56px);
-}
-
-.categoria {
-  scroll-margin-top: calc(var(--cabecalho) + 64px);
-}
-
-.tituloCategoria {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-  margin-bottom: 12px;
-}
-
-.liderResumo {
-  font-size: 0.9375rem;
-  font-weight: 500;
+.corpoRotulo {
   color: var(--texto-2);
 }
 
-.blocoTabela {
+.etapaLado {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
-  gap: 16px;
-  padding: clamp(8px, 2vw, 16px);
-  background: var(--branco);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
+  gap: 22px;
+  align-content: start;
+  min-width: 0;
 }
 
-.avisoExemplo {
-  padding: 8px 12px;
+@media (min-width: 900px) {
+  .etapaLado {
+    padding-left: 32px;
+    border-left: 1px solid var(--linha);
+  }
+}
+
+.resumoLocal {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.resumoLocal p {
+  font-weight: 650;
+}
+
+.etapaLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 22px;
+  padding-top: 4px;
+  border-top: 1px solid var(--linha);
+}
+
+/* Link "Como chegar" (mapa) */
+.mapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--alvo);
+  font-weight: 700;
+  color: var(--verde-escuro);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+}
+
+.mapa:hover {
+  text-decoration-color: currentColor;
+}
+
+.mapaClaro {
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 1.5px solid rgb(255 255 255 / 0.7);
   border-radius: var(--raio);
-  background: #fff4c2;
-  color: #4a3b00;
-  font-size: 0.8125rem;
+  color: #fff;
+  text-decoration: none;
+}
+
+.mapaClaro:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+/* ---------- Programação (horário de cada categoria) ---------- */
+.programacao {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--branco);
+}
+
+.progItem {
+  display: grid;
+  gap: 10px 20px;
+  padding: 14px 16px;
+}
+
+.progItem + .progItem {
+  border-top: 1px solid var(--linha);
+}
+
+@media (min-width: 640px) {
+  .progItem {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.progCategoria {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.progNome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variation-settings: 'wdth' 104;
+  font-weight: 800;
+  font-size: 1.0625rem;
+  line-height: 1.25;
+}
+
+.corCategoria {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+}
+
+.progHorarios {
+  display: grid;
+  gap: 6px;
+}
+
+.progHorarios li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.progHora {
+  min-width: 3.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.semProgramacao {
+  padding: 12px 14px;
+  border: 1px dashed var(--linha-forte);
+  border-radius: var(--raio);
+  background: var(--papel);
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+/* ==========================================================================
+   Categorias da área (com subcategorias)
+   ========================================================================== */
+.categorias {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+}
+
+.cartaoCategoria {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 20px;
+  border: 1px solid var(--linha);
+  border-top: 5px solid var(--cor-categoria, var(--verde));
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+}
+
+.nomeCategoria {
+  font-variation-settings: 'wdth' 110;
+  font-weight: 850;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Fotos do campeonato (mosaico sem buracos) e "Venha assistir"
+   ========================================================================== */
+.fotosFaixa {
+  border-top: 1px solid var(--linha);
+}
+
+.mosaico {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mosaicoItem {
+  overflow: hidden;
+  border-radius: var(--raio);
+  background: var(--papel-2);
+  aspect-ratio: 3 / 2;
+}
+
+.mosaicoItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mosaico1 .mosaicoItem,
+.mosaico3 .mosaicoItem:first-child,
+.mosaico5 .mosaicoItem:first-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+@media (min-width: 900px) {
+  .mosaico {
+    gap: 12px;
+  }
+
+  .mosaico1 .mosaicoItem {
+    aspect-ratio: 21 / 9;
+  }
+
+  .mosaico3 {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .mosaico3 .mosaicoItem:first-child {
+    grid-column: auto;
+    grid-row: span 2;
+    aspect-ratio: auto;
+  }
+
+  .mosaico4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mosaico4 .mosaicoItem {
+    aspect-ratio: 4 / 5;
+  }
+
+  .mosaico5 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mosaico5 .mosaicoItem:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+    aspect-ratio: auto;
+  }
+}
+
+.creditos {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+
+/* Itens do público sobre a foto (FaixaFoto é escura) */
+.publicoItens {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  margin-top: 6px;
+}
+
+.publicoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: var(--raio);
+  background: rgb(8 14 10 / 0.6);
+}
+
+.publicoIcone {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--raio);
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
+}
+
+.publicoTextos {
+  display: grid;
+  gap: 2px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.publicoTextos strong {
+  font-weight: 800;
+  color: #fff;
+}
+
+.publicoTextos span {
+  font-size: 0.875rem;
+  color: rgb(255 255 255 / 0.84);
+}
+
+/* ==========================================================================
+   Classificação e resultados (um bloco por categoria)
+   ========================================================================== */
+.atalhos {
+  margin-bottom: 24px;
+}
+
+.atalhos ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.atalhos a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alvo);
+  padding: 0 18px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio-pilula);
+  background: var(--branco);
+  font-weight: 700;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.atalhos a:hover {
+  border-color: var(--verde);
+  background: var(--verde-tinta);
+}
+
+.pilhaCategorias {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.blocoCategoria {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(16px, 2.4vw, 26px);
+  border: 1px solid var(--linha);
+  border-top: 5px solid var(--cor-categoria, var(--verde));
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  scroll-margin-top: calc(var(--cabecalho) + 72px);
+}
+
+.blocoCabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.blocoTitulos {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.tituloCategoria {
+  font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+  font-weight: 850;
+}
+
+.lider {
+  display: grid;
+  gap: 1px;
+  padding: 10px 16px;
+  border-radius: var(--raio);
+  background: var(--amarelo-tinta);
+  line-height: 1.3;
+}
+
+.liderRotulo {
+  font-size: var(--fs-mini);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+.liderPontos {
+  font-size: 0.875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-2);
+}
+
+.parcial {
+  padding: 4px 10px;
+  border-radius: var(--raio-p);
+  background: var(--atencao-fundo);
+  color: var(--atencao-texto);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.blocoTabela {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 
 .notaTabela {
@@ -609,125 +1136,628 @@
   color: var(--texto-2);
 }
 
-.resultado {
-  font-size: 0.9375rem;
+.avisoExemplo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 12px;
+  border-radius: var(--raio);
+  background: var(--amarelo-tinta);
+  color: #3d3200;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
-.resultado caption {
-  padding: 4px 0 10px;
-  text-align: left;
-  font-weight: 750;
-}
-
-.resultado th,
-.resultado td {
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--linha);
-  text-align: left;
-}
-
-.resultado thead th {
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
+.avisoExemploSelo {
+  padding: 1px 7px;
+  border-radius: 3px;
+  background: var(--amarelo);
+  color: #111;
+  font-size: 0.6875rem;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--texto-2);
 }
 
-.num {
-  text-align: right !important;
-  font-variant-numeric: tabular-nums;
+/* Escolha da etapa (resultados) */
+.seletorEtapas {
+  margin-bottom: 22px;
 }
 
-.pos {
-  width: 3.5em;
-  font-family: var(--fonte-mono);
-  font-weight: 600;
-}
-
-.pontosCel {
-  font-weight: 750;
-}
-
-.pilotoLinha {
+.seletorEtapas ul {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.equipe,
-.situacao {
-  display: block;
+.seletorEtapas a {
+  display: grid;
+  align-content: center;
+  min-height: 56px;
+  min-width: 104px;
+  padding: 8px 16px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+  background: var(--branco);
+  color: var(--texto);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.seletorEtapas a:hover {
+  border-color: var(--verde);
+}
+
+.seletorEtapas a[aria-current='page'] {
+  border-color: var(--noite);
+  background: var(--noite);
+  color: var(--texto-claro);
+}
+
+.seletorNumero {
+  font-weight: 800;
+}
+
+.seletorData {
   font-size: 0.8125rem;
   color: var(--texto-2);
+  text-transform: capitalize;
 }
 
-.situacao {
-  color: var(--perigo);
+.seletorEtapas a[aria-current='page'] .seletorData {
+  color: var(--amarelo);
 }
 
 .resultadoEtapa {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
-  gap: 24px;
+  gap: 22px;
 }
 
-/* ---------- Fotos e documentos ---------- */
-.gradeGalerias {
+.etapaEscolhida {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
 }
 
-.cartaoGaleria {
+.etapaEscolhidaTextos {
+  display: grid;
+  gap: 4px;
+}
+
+.etapaEscolhidaLink {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 720px) {
+  .etapaEscolhida {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 16px 22px 16px 16px;
+  }
+
+  .etapaEscolhidaLink {
+    grid-column: auto;
+  }
+}
+
+/* ==========================================================================
+   História e campeões
+   ========================================================================== */
+.duasColunas {
+  display: grid;
+  gap: 28px;
+}
+
+@media (min-width: 960px) {
+  .duasColunas {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+.textoHistoria {
+  min-width: 0;
+}
+
+.painelLateral {
   display: grid;
   gap: 10px;
-  font-weight: 650;
-  text-decoration: none;
-}
-
-.cartaoGaleria img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  padding: 20px 22px;
+  border: 1px solid var(--linha);
+  border-top: 4px solid var(--verde);
   border-radius: var(--raio-g);
+  background: var(--branco);
 }
 
+.painelTitulo {
+  color: var(--texto-2);
+}
+
+.listaTemporadas li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.listaTemporadas li:last-child {
+  border-bottom: 0;
+}
+
+.temporadaAno {
+  font-variation-settings: 'wdth' 108;
+  font-weight: 850;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pilhaAnos {
+  display: grid;
+  gap: 36px;
+}
+
+.anoCampeoes {
+  display: grid;
+  gap: 14px;
+}
+
+.anoTitulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.anoTitulo::before {
+  content: '';
+  width: 6px;
+  height: 1.1em;
+  border-radius: 2px;
+  background: var(--amarelo);
+}
+
+.campeoes {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.campeao {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 18px 20px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--papel);
+}
+
+.campeaoCategoria {
+  font-variation-settings: 'wdth' 106;
+  font-weight: 850;
+  font-size: 1.1875rem;
+  line-height: 1.2;
+}
+
+.podio {
+  display: grid;
+  gap: 8px;
+}
+
+.podio > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--linha);
+}
+
+.podio > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.podio dt {
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--texto-2);
+}
+
+.podio dd {
+  font-weight: 700;
+  text-align: right;
+}
+
+.podioPrimeiro dt {
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.podioPrimeiro dd {
+  font-size: 1.0625rem;
+  font-weight: 850;
+}
+
+/* ==========================================================================
+   Regulamento e documentos
+   ========================================================================== */
 .documentos {
   display: grid;
-  gap: 10px;
-  max-width: 760px;
+  gap: 12px;
 }
 
 .documento {
-  display: flex;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  padding: 14px 16px;
-  background: var(--branco);
+  padding: 16px 20px 16px 16px;
   border: 1px solid var(--linha);
   border-radius: var(--raio-g);
-  text-decoration: none;
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
 }
 
 .documento:hover {
-  border-color: var(--camp-p);
+  border-color: var(--linha-forte);
+  box-shadow: var(--sombra-2);
 }
 
-.documento > span:last-child {
-  display: grid;
-  gap: 2px;
+.documento:has(.docTitulo a:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.documentoVigente {
+  border-left: 6px solid var(--verde);
 }
 
 .docIcone {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 56px;
-  border-radius: 4px;
-  background: var(--camp-s);
-  color: var(--camp-sobre-s);
-  font-family: var(--fonte-mono);
-  font-size: 0.75rem;
+  align-content: center;
+  gap: 2px;
+  width: 56px;
+  height: 64px;
+  border-radius: var(--raio);
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
+}
+
+.docTipo {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.docTextos {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.docVigente {
+  color: var(--verde-escuro);
+}
+
+.docTitulo {
+  font-variation-settings: 'wdth' 104;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.docTitulo a {
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.docTitulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.docTitulo a:focus-visible {
+  outline: none;
+}
+
+.documento:hover .docTitulo a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.docMeta {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.docAcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 750;
+  color: var(--verde-escuro);
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .docAcao {
+    display: none;
+  }
+
+  .documento {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
+   Fotos: galerias em cartões
+   ========================================================================== */
+.galerias {
+  display: grid;
+  gap: clamp(16px, 2vw, 24px);
+}
+
+.gradeGalerias {
+  display: grid;
+  gap: clamp(16px, 2vw, 24px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.galeria {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+  transition: box-shadow var(--duracao) var(--curva), border-color var(--duracao) var(--curva);
+}
+
+.galeria:hover {
+  border-color: var(--linha-forte);
+  box-shadow: var(--sombra-2);
+}
+
+.galeria:has(.galeriaTitulo a:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.galeriaMidia {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: var(--papel-2);
+}
+
+.galeriaMidia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .galeriaMidia img {
+    transition: transform 0.5s var(--curva);
+  }
+
+  .galeria:hover .galeriaMidia img {
+    transform: scale(1.03);
+  }
+}
+
+.galeriaSemCapa {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
+}
+
+.galeriaQuantidade {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--raio-p);
+  background: rgb(8 14 10 / 0.8);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.galeriaCorpo {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 20px 20px;
+}
+
+.galeriaRotulo {
+  color: var(--verde-escuro);
+}
+
+.galeriaTitulo {
+  font-weight: 800;
+}
+
+.galeriaTitulo a {
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.galeriaTitulo a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.galeriaTitulo a:focus-visible {
+  outline: none;
+}
+
+.galeria:hover .galeriaTitulo a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+.galeriaData {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.galeriaDescricao {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--texto-2);
+}
+
+.galeriaMiniaturas {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.galeriaMiniaturas li {
+  width: 76px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--raio-p);
+  background: var(--papel-2);
+}
+
+.galeriaMiniaturas img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.galeriaAcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-weight: 750;
+  color: var(--verde-escuro);
+}
+
+.galeriaSeta {
+  transition: transform var(--duracao) var(--curva);
+}
+
+.galeria:hover .galeriaSeta {
+  transform: translateX(3px);
+}
+
+/* A galeria mais recente em destaque: foto grande à esquerda, textos à direita */
+@media (min-width: 900px) {
+  .galeriaDestaque {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  .galeriaDestaque .galeriaMidia {
+    aspect-ratio: 16 / 10;
+  }
+
+  .galeriaDestaque .galeriaCorpo {
+    align-content: center;
+    gap: 10px;
+    padding: 32px;
+  }
+
+  .galeriaDestaque .galeriaTitulo {
+    font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.125rem);
+    line-height: 1.1;
+  }
+}
+
+.fotosVazio {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: clamp(40px, 8vw, 80px) 24px;
+  border: 1px dashed var(--linha-forte);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  text-align: center;
+}
+
+.fotosVazioIcone {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
+}
+
+.fotosVazioTitulo {
+  font-variation-settings: 'wdth' 106;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+/* Página de uma galeria */
+.galeriaBarra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 24px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--linha);
+}
+
+.galeriaBarraMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+.galeriaDica {
   font-weight: 600;
+}
+
+.voltar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  margin-top: 28px;
 }

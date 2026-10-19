@@ -1,62 +1,65 @@
-import type { CSSProperties, ReactNode } from 'react'
-import { AbasBks } from '@/components/site/bks/AbasBks'
+import type { ReactNode } from 'react'
 import { BotaoIzy } from '@/components/site/bks/pecas'
 import s from '@/components/site/bks/Bks.module.css'
-import { fontesDaFoto } from '@/components/site/Foto'
+import { Foto } from '@/components/site/Foto'
 import { semDemo } from '@/components/site/TextoDemo'
 import { lerBks, lerConfiguracoes } from '@/lib/publico'
-import { variaveisDoCampeonato } from '@/lib/site'
 import type { Midia } from '@/payload-types'
 
 export const revalidate = 60
 
-/** Aba BKS: faixa com a logo e as cores do campeonato, botão da IZY Pass e as sub-abas. */
+const STATUS_TEMPORADA: Record<string, string> = { planejada: 'Planejada', 'em-andamento': 'Em andamento', encerrada: 'Encerrada' }
+
+/**
+ * Aba BKS: topo escuro com a foto do campeonato, a logo do BKS (o título da página), a temporada e a
+ * compra pela IZY Pass. Logo abaixo, cada página põe a navegação (Karts profissionais | Karts indoor e as
+ * seções), para dizer onde o visitante está sem JavaScript.
+ */
 export default async function LayoutBks({ children }: { children: ReactNode }) {
   const [bks, config] = await Promise.all([lerBks(), lerConfiguracoes()])
   const campeonato = bks?.campeonato
-  const logo = bks?.logo
-  const fundo = campeonato?.banner as Midia | null | undefined
-  const fotoFundo = fundo?.url ? fontesDaFoto(fundo, 'destaque') : null
-  const logoTopo = logo?.url ? fontesDaFoto(logo, 'card') : null
+  const logo = bks?.logo?.url ? bks.logo : null
+  const banner = campeonato?.banner && typeof campeonato.banner === 'object' ? (campeonato.banner as Midia) : null
   const temporada = bks?.temporada
-  const nome = campeonato?.nome || 'Brasília Kart Series'
+  const nome = semDemo(campeonato?.nome) || 'Brasília Kart Series'
+  const sigla = semDemo(campeonato?.sigla) || 'BKS'
   return (
-    <div className={s.tema} style={variaveisDoCampeonato(campeonato?.cores) as CSSProperties}>
-      <section className={s.topo} aria-labelledby="titulo-bks">
-        {fotoFundo && (
-          <img className={s.topoFoto} src={fotoFundo.src} srcSet={fotoFundo.srcSet} sizes="100vw" alt="" fetchPriority="high" width={fotoFundo.largura ?? undefined} height={fotoFundo.altura ?? undefined} />
-        )}
+    <div className={s.tema}>
+      <section className={`${s.topo} ${banner?.url ? s.topoComFoto : ''}`} aria-labelledby="titulo-bks">
+        {banner?.url && <Foto midia={banner} className={s.topoFoto} prioridade sizes="100vw" alt="" />}
         <div className={`conteiner ${s.topoConteudo}`}>
-          <div>
-            {logoTopo ? (
+          <div className={s.topoMarca}>
+            <p className={`rotulo ${s.topoRotulo}`}>Campeonato organizado pela ASKART</p>
+            {logo ? (
               <h1 id="titulo-bks" className={s.logoTitulo}>
-                <img
-                  src={logoTopo.src}
-                  srcSet={logoTopo.srcSet}
-                  sizes="(min-width: 640px) 520px, 82vw"
-                  alt={`${campeonato?.sigla ?? 'BKS'} — ${nome}`}
-                  width={logoTopo.largura ?? undefined}
-                  height={logoTopo.altura ?? undefined}
-                  fetchPriority="high"
-                />
+                <Foto midia={logo} ate="card" prioridade sizes="(min-width: 960px) 520px, 86vw" alt={`${sigla} — ${nome}`} />
               </h1>
             ) : (
-              <h1 id="titulo-bks" className="titulo-marca h1">
+              <h1 id="titulo-bks" className={`titulo-display ${s.tituloSemLogo}`}>
                 {nome}
               </h1>
             )}
             <p className={s.topoTemporada}>
-              {temporada ? `Temporada ${temporada.ano}` : 'Campeonato organizado pela ASKART'}
-              {temporada?.status === 'em-andamento' ? ' · em andamento' : ''}
+              {temporada ? (
+                <>
+                  <span>Temporada {temporada.ano}</span>
+                  {temporada.status && STATUS_TEMPORADA[temporada.status] && <span className={s.topoStatus}>{STATUS_TEMPORADA[temporada.status]}</span>}
+                </>
+              ) : (
+                <span>Temporada ainda não divulgada</span>
+              )}
             </p>
           </div>
-          <div className={s.topoAcoes}>
-            <p>Treinos livres e corridas de cada etapa:</p>
+          <aside className={s.topoIzy} aria-labelledby="izy-titulo">
+            <h2 id="izy-titulo" className={s.topoIzyTitulo}>
+              Ingressos e treinos livres
+            </h2>
+            <p className={s.topoIzyTexto}>As corridas e os treinos livres de cada etapa são comprados pela IZY Pass.</p>
             <BotaoIzy href={config.izyPass || null} texto={semDemo(config.izyPassTexto)} claro />
-          </div>
+          </aside>
         </div>
+        {banner?.credito && <p className={s.topoCredito}>Foto: {banner.credito}</p>}
       </section>
-      <AbasBks />
       {children}
     </div>
   )

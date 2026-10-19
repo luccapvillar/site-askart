@@ -1,61 +1,20 @@
-/* Blocos da etapa: compra, treinos livres, transmissão, aberto ao público e etapa já realizada.
-   As cores vêm do campeonato (aba BKS) e, fora dela, da marca. */
+/* ==========================================================================
+   Etapa: página da etapa e o resumo dentro do cartão do calendário do BKS.
+   Identidade do capacete (verde, branco, vermelho) e placa amarela; estados com par AA.
+   ========================================================================== */
 
-/* ---------- Botões ---------- */
+/* ---------- Botões e mensagens ---------- */
 .botao {
-  --etapa-p: var(--camp-p, var(--marca-primaria));
-  --etapa-sobre-p: var(--camp-sobre-p, var(--sobre-primaria, #fff));
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 10px 18px;
-  border: 2px solid var(--etapa-p);
-  border-radius: var(--raio);
-  background: var(--etapa-p);
-  color: var(--etapa-sobre-p);
-  font-weight: 750;
-  line-height: 1.2;
-  text-decoration: none;
-  transition: filter 0.2s;
+  justify-self: start;
 }
 
-.botao:hover {
-  filter: brightness(1.08);
-}
-
-.botao:focus-visible {
-  outline: 3px solid var(--texto);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 6px var(--amarelo);
-}
-
-.botaoContorno {
-  background: transparent;
-  color: var(--texto);
-  border-color: currentColor;
-}
-
-.botaoContorno:hover {
-  filter: none;
-  background: color-mix(in oklab, var(--etapa-p) 8%, transparent);
-}
-
-.botaoPequeno {
-  min-height: 44px;
-  padding: 8px 14px;
-  font-size: 0.9375rem;
-}
-
-/* ---------- "Ainda não está disponível" ---------- */
+/* "… ainda não está disponível": a mensagem exata do cliente, com relógio (não é erro, é "ainda não") */
 .indisponivel {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  max-width: 52ch;
-  padding: 10px 12px;
-  border: 1px dashed color-mix(in oklab, var(--texto-2) 55%, transparent);
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--linha-forte);
   border-radius: var(--raio);
   background: var(--papel);
   color: var(--texto-2);
@@ -65,35 +24,53 @@
 
 .indisponivel strong {
   color: var(--texto);
-  font-weight: 650;
 }
 
 .indisponivelIcone {
   flex: none;
-  margin-top: 1px;
+  margin-top: 2px;
+  color: var(--texto-2);
 }
 
-/* ---------- Cartões (compra, treinos livres, transmissão) ---------- */
-.duas {
+.compacto {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.875rem;
+}
+
+/* ---------- Passos: comprar a etapa → treinos livres → grade ---------- */
+.passos {
   display: grid;
-  gap: 16px;
+  gap: clamp(14px, 2vw, 20px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-@media (min-width: 720px) {
-  .duas {
+@media (min-width: 840px) {
+  .passos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .passoLargo {
+    grid-column: 1 / -1;
   }
 }
 
+.passo,
 .cartao {
   display: grid;
   align-content: start;
-  justify-items: start;
-  gap: 14px;
-  padding: clamp(16px, 3vw, 24px);
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(18px, 2.6vw, 26px);
   border: 1px solid var(--linha);
+  border-top: 4px solid var(--verde);
   border-radius: var(--raio-g);
   background: var(--branco);
+  box-shadow: var(--sombra-1);
+  scroll-margin-top: calc(var(--cabecalho) + 64px);
 }
 
 .cartaoCabeca {
@@ -103,35 +80,52 @@
 }
 
 .cartaoIcone {
-  --etapa-p: var(--camp-p, var(--marca-primaria));
-  display: grid;
   flex: none;
+  display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--etapa-p) 12%, white);
-  color: var(--etapa-p);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--raio);
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
 }
 
 .cartaoTitulo {
-  font-size: 1.0625rem;
-  font-weight: 750;
+  font-variation-settings: 'wdth' 104;
+  font-size: 1.1875rem;
+  font-weight: 800;
   line-height: 1.25;
 }
 
-/* ---------- Grade dos treinos livres ---------- */
-.blocoGrade {
-  display: grid;
-  gap: 16px;
-  margin-top: clamp(24px, 4vw, 36px);
-  scroll-margin-top: calc(var(--cabecalho) + 60px);
+.cartaoNumero {
+  color: var(--verde-escuro);
 }
 
-.cabecaGrade {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Duas colunas (transmissões) */
+.duas {
+  display: grid;
+  gap: clamp(14px, 2vw, 20px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 840px) {
+  .duas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cartaoTransmissao {
+  border-top-color: var(--vermelho);
+}
+
+/* ---------- Grade dos treinos livres ---------- */
+.grade {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .dias {
@@ -141,69 +135,74 @@
 
 @media (min-width: 900px) {
   .dias {
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     align-items: start;
   }
 }
 
+.rolagemTreinos {
+  position: relative;
+}
+
 .tabelaTreinos {
-  width: 100%;
-  border-collapse: collapse;
   border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
-  background: var(--branco);
-  font-size: 0.9375rem;
+  border-radius: var(--raio);
+  border-collapse: separate;
+  border-spacing: 0;
   overflow: hidden;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .tabelaTreinos caption {
   padding: 0 0 8px;
-  font-weight: 750;
   text-align: left;
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--texto);
 }
 
-.tabelaTreinos thead {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
+.tabelaTreinos thead th {
+  background: var(--papel);
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
 }
 
 .tabelaTreinos th,
 .tabelaTreinos td {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--linha);
   text-align: left;
   vertical-align: top;
 }
 
-.tabelaTreinos tr:last-child th,
-.tabelaTreinos tr:last-child td {
+.tabelaTreinos tbody tr:last-child > * {
   border-bottom: 0;
 }
 
-.tabelaTreinos tbody th {
+.horario {
   width: 1%;
+  font-weight: 800;
   white-space: nowrap;
-  font-weight: 650;
 }
 
 .categorias {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 4px 14px;
 }
 
 .categoria {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .corCategoria {
-  display: inline-block;
   flex: none;
   width: 10px;
   height: 10px;
@@ -213,6 +212,7 @@
 .observacao {
   display: block;
   margin-top: 2px;
+  font-size: 0.875rem;
   color: var(--texto-2);
 }
 
@@ -225,182 +225,271 @@
 
 .imagemGrade img {
   width: 100%;
-  height: auto;
   border: 1px solid var(--linha);
-  border-radius: var(--raio-g);
-  background: var(--branco);
-}
-
-.imagemGrade figcaption a {
-  font-weight: 650;
-  color: var(--verde-escuro);
+  border-radius: var(--raio);
 }
 
 /* ---------- Aberto ao público ---------- */
 .publico {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .publicoTexto {
-  max-width: 46ch;
-  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
-  font-weight: 650;
-  line-height: 1.4;
+  max-width: 60ch;
+  font-size: var(--fs-lead);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
-/* Placa amarela (identidade da ASKART) com o ícone */
-.chipIcone {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--amarelo);
-  color: #111;
-}
-
-/* O que o público encontra: nome e explicação de cada item */
 .itensPublico {
   display: grid;
   gap: 12px;
-}
-
-@media (min-width: 640px) {
-  .itensPublico {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .itensPublico {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
 
 .itemPublico {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--linha);
   border-radius: var(--raio-g);
   background: var(--branco);
 }
 
-.itemPublico .chipIcone {
+.chipIcone {
   flex: none;
-  width: 40px;
-  height: 40px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--raio);
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
 }
 
 .itemPublicoTexto {
   display: grid;
   gap: 2px;
-  line-height: 1.4;
 }
 
 .itemPublicoTexto strong {
-  font-weight: 750;
+  font-weight: 800;
 }
 
 .itemPublicoTexto span {
+  font-size: 0.9375rem;
   color: var(--texto-2);
 }
 
-/* Cartão da transmissão: o player ocupa a largura toda */
-.cartaoTransmissao {
-  align-content: start;
-}
-
-/* ---------- Etapa já realizada ---------- */
+/* ---------- "Esta etapa já ocorreu em …" ---------- */
 .aviso {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 16px 18px;
-  border: 1px solid color-mix(in oklab, var(--ok) 35%, transparent);
-  border-left: 5px solid var(--ok);
+  border-left: 4px solid var(--neutro);
   border-radius: var(--raio);
-  background: color-mix(in oklab, var(--ok) 9%, white);
+  background: var(--neutro-fundo);
   color: var(--texto);
-  font-weight: 650;
-  line-height: 1.45;
 }
 
-.aviso svg {
+.avisoIcone {
   flex: none;
   margin-top: 1px;
-  color: color-mix(in oklab, var(--ok) 80%, black);
+  color: var(--neutro-texto);
 }
 
 .avisoTexto {
   display: grid;
   gap: 4px;
+  font-weight: 650;
 }
 
-.avisoTexto a {
-  font-weight: 650;
-  color: var(--verde-escuro);
+.avisoTexto p + p {
+  font-weight: 400;
+}
+
+.avisoCompacto {
+  padding: 12px 14px;
+  font-size: 0.9375rem;
 }
 
 .faixaAviso {
-  padding-block: clamp(20px, 4vw, 32px);
+  padding-block: 20px;
+  background: var(--branco);
+  border-bottom: 1px solid var(--linha);
 }
 
-/* ---------- Versão compacta (cartão do calendário e página inicial) ---------- */
+/* ---------- Resumo no cartão do calendário ---------- */
 .resumo {
+  grid-template-columns: minmax(0, 1fr);
   display: grid;
   gap: 18px;
 }
 
 .resumoGrupo {
   display: grid;
-  justify-items: start;
-  gap: 8px;
+  gap: 10px;
 }
 
-.resumo .indisponivel,
-.compacto.indisponivel {
-  padding: 8px 10px;
-  font-size: 0.875rem;
-}
-
-.resumo .aviso {
-  padding: 12px 14px;
-  font-size: 0.9375rem;
-}
-
-.linkInterno {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  font-weight: 650;
-  color: var(--verde-escuro);
-}
-
-.publicoCompacto {
-  display: grid;
-  gap: 8px;
-  font-size: 0.9375rem;
-}
-
-.itensCompactos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
+.resumoRotulo {
   color: var(--texto-2);
 }
 
-.itensCompactos li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.listaResumo {
+  display: grid;
+  gap: 12px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .botao {
-    transition: none;
+.itemResumo {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.itemResumoIcone {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-p);
+  background: var(--amarelo-tinta);
+  color: var(--texto);
+}
+
+.itemResumoCorpo {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-width: 0;
+  padding-top: 5px;
+}
+
+.itemResumoCorpo:has(> a) {
+  padding-top: 0;
+}
+
+.itemResumoTitulo {
+  font-size: 0.875rem;
+  font-weight: 750;
+  color: var(--texto);
+}
+
+.publicoCompacto {
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+/* ---------- Página da etapa ---------- */
+.topoMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+/* Ficha à direita do topo: data em bloco, local e categorias */
+.ficha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 20px;
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  color: var(--texto);
+  box-shadow: var(--sombra-3);
+}
+
+.fichaDados {
+  display: grid;
+  gap: 12px;
+}
+
+.fichaDados dt {
+  font-size: var(--fs-mini);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-2);
+}
+
+.fichaDados dd {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fichaDados dd ul {
+  margin-top: 6px;
+}
+
+.programacao {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 28px;
+}
+
+@media (min-width: 1040px) {
+  .programacao:has(> .blocoModalidade + .blocoModalidade) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
+}
+
+.blocoModalidade {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tituloModalidade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tituloModalidade::before {
+  content: '';
+  width: 6px;
+  height: 1.1em;
+  border-radius: 2px;
+  background: var(--verde);
+}
+
+.descricao {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--linha);
+}
+
+.pilhaModalidades {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: clamp(32px, 4vw, 48px);
+}
+
+.pilhaModalidades > section {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.voltar {
+  padding-block: 24px 40px;
+  border-top: 1px solid var(--linha);
+  background: var(--papel);
+}
+
+.voltarLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--alvo);
+  font-weight: 750;
+  color: var(--verde-escuro);
 }

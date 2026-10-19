@@ -1,0 +1,382 @@
+/* ==========================================================================
+   Páginas institucionais: Contato, Sobre, perfil do piloto e página 404.
+   Só tokens do sistema visual (globals.css).
+   ========================================================================== */
+
+.pilha {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.duas {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 900px) {
+  .duas {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+}
+
+/* Texto institucional + quadro de dados ao lado */
+.duasTexto {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 960px) {
+  .duasTexto {
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+.cartao {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: clamp(20px, 2.6vw, 28px);
+  border: 1px solid var(--linha);
+  border-top: 4px solid var(--verde);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+}
+
+.cartaoTitulo {
+  font-variation-settings: 'wdth' 106;
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+/* ---------- Contato: endereço + foto do local ---------- */
+.local {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 900px) {
+  .local {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+}
+
+.endereco {
+  display: grid;
+  gap: 2px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.fotoLocal {
+  display: grid;
+  gap: 8px;
+  justify-self: start;
+  width: 100%;
+  max-width: 360px;
+}
+
+.fotoLocal img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--raio-g);
+  border-bottom: 6px solid var(--verde);
+}
+
+/* ---------- Redes sociais ---------- */
+.redes {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.rede {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 18px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  text-decoration: none;
+  transition: border-color var(--duracao) var(--curva), background-color var(--duracao) var(--curva);
+}
+
+.rede:hover {
+  border-color: var(--verde);
+  background: var(--verde-tinta);
+}
+
+.rede:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.redeIcone {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--verde-tinta);
+  color: var(--verde-escuro);
+}
+
+.redeTextos {
+  display: grid;
+  min-width: 0;
+}
+
+.redeTextos strong {
+  font-size: 1.0625rem;
+}
+
+.redeSeta {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--verde-escuro);
+}
+
+/* ---------- Perguntas (título ao lado no computador) ---------- */
+.perguntas {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 960px) {
+  .perguntas {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
+    gap: 64px;
+    align-items: start;
+  }
+}
+
+/* ---------- Atalhos ---------- */
+.atalhos {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+}
+
+/* ---------- Sobre ---------- */
+.pilares {
+  display: grid;
+  gap: 16px;
+  margin-top: clamp(32px, 4vw, 48px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+.marcos {
+  display: grid;
+  gap: 0;
+  border-left: 3px solid var(--verde);
+  margin-left: 6px;
+}
+
+.marco {
+  position: relative;
+  display: grid;
+  gap: 4px 24px;
+  padding: 0 0 28px 28px;
+}
+
+.marco::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: -9px;
+  width: 15px;
+  height: 15px;
+  border: 3px solid var(--verde);
+  border-radius: 50%;
+  background: var(--branco);
+}
+
+@media (min-width: 720px) {
+  .marco {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+
+.marcoAno {
+  font-variation-settings: 'wdth' 110;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--verde-escuro);
+}
+
+.diretoria {
+  display: grid;
+  gap: 24px 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+}
+
+.membro {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.membroFoto {
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  margin-bottom: 6px;
+  border-radius: var(--raio-g);
+  background: var(--papel-2);
+}
+
+.membroFoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.documentos {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+
+/* ---------- Piloto ---------- */
+.perfil {
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 900px) {
+  .perfil {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+}
+
+.perfilFoto {
+  display: grid;
+  gap: 8px;
+}
+
+.perfilFoto img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--raio-g);
+}
+
+.posicoes {
+  display: grid;
+  gap: 16px;
+}
+
+.posicao {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 2.4vw, 24px);
+  border: 1px solid var(--linha);
+  border-top: 5px solid var(--cor-cat, var(--verde));
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+}
+
+.posicaoCabeca {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.posicaoCabeca > div {
+  display: grid;
+  gap: 8px;
+}
+
+/* ---------- 404 ---------- */
+.erro {
+  position: relative;
+}
+
+.erroConteudo {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  padding-block: clamp(56px, 9vw, 120px);
+}
+
+.erroRotulo {
+  color: var(--amarelo);
+}
+
+.erroFaixa {
+  position: absolute;
+  inset: auto 0 0;
+}
+
+.caminhos {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.caminho {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  transition: border-color var(--duracao) var(--curva), background-color var(--duracao) var(--curva);
+}
+
+.caminho:hover {
+  border-color: var(--verde);
+  background: var(--verde-tinta);
+}
+
+.caminho a {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--verde-escuro);
+  text-decoration: none;
+}
+
+.caminho a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.caminho a:focus-visible {
+  outline: none;
+}
+
+.caminho:has(a:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.caminho:hover a {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rede,
+  .caminho {
+    transition: none;
+  }
+}

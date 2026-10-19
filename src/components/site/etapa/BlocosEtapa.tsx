@@ -19,6 +19,7 @@ import {
   type Transmissao,
 } from '@/lib/site'
 import type { Etapa, Midia } from '@/payload-types'
+import { Botao } from '../Botao'
 import { Foto } from '../Foto'
 import { semDemo, TextoDemo } from '../TextoDemo'
 import { Icone, iconeDoItem, type NomeIcone } from './Icones'
@@ -38,21 +39,16 @@ export function BotaoExterno({
 }: {
   href: string
   children: ReactNode
-  /** Complemento lido só pelo leitor de tela (ex.: "transmissão Profissional"). */
+  /** Complemento lido só pelo leitor de tela (ex.: "transmissão — Karts indoor"). */
   contexto?: string
   contorno?: boolean
   pequeno?: boolean
 }) {
   return (
-    <a
-      className={[s.botao, contorno && s.botaoContorno, pequeno && s.botaoPequeno].filter(Boolean).join(' ')}
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      {children} <span aria-hidden="true">↗</span>
-      <span className="visualmente-oculto">{contexto ? ` (${contexto}; abre em nova aba)` : ' (abre em nova aba)'}</span>
-    </a>
+    <Botao href={href} externo seta variante={contorno ? 'secundario' : 'primario'} pequeno={pequeno} className={s.botao}>
+      {children}
+      {contexto && <span className="visualmente-oculto"> ({contexto})</span>}
+    </Botao>
   )
 }
 
@@ -60,7 +56,8 @@ export function BotaoExterno({
 export function Indisponivel({ texto, rotulo, compacto = false }: { texto: string; rotulo?: string; compacto?: boolean }) {
   return (
     <p className={`${s.indisponivel} ${compacto ? s.compacto : ''}`}>
-      <Icone nome="relogio" tamanho={18} className={s.indisponivelIcone} />
+      {/* No resumo do calendário o ícone já vem ao lado do título: aqui só a mensagem */}
+      {!compacto && <Icone nome="relogio" tamanho={18} className={s.indisponivelIcone} />}
       <span>
         {rotulo && <strong>{rotulo}: </strong>}
         {texto}
@@ -94,40 +91,39 @@ function LinkTreinosLivres({ situacao, compacto = false }: { situacao: SituacaoE
 
 /* ───────────────────────────── página da etapa ───────────────────────────── */
 
-/** Seção "Ingressos e treinos livres", nesta ordem: comprar a etapa, treinos livres (link) e a grade. */
+/**
+ * "Ingressos e treinos livres", na ordem pedida pelo cliente: 1. comprar a etapa, 2. comprar os treinos
+ * livres, 3. a grade horária dos treinos livres. Cada passo mostra o botão ou a mensagem exata.
+ */
 export function CompraETreinos({ etapa, situacao }: { etapa: EtapaSite; situacao: SituacaoEtapa }) {
   return (
-    <>
-      <ol className={s.duas}>
-        <li className={s.cartao}>
-          <CabecaCartao icone="ingresso" titulo="Comprar esta etapa" />
-          <CompraDaEtapa situacao={situacao} />
-        </li>
-        <li className={s.cartao}>
-          <CabecaCartao icone="relogio" titulo="Comprar treinos livres" />
-          <LinkTreinosLivres situacao={situacao} />
-        </li>
-      </ol>
-      <div id="grade-treinos" className={s.blocoGrade}>
-        <div className={s.cabecaGrade}>
-          <span className={s.cartaoIcone}>
-            <Icone nome="calendario" />
-          </span>
-          <h3 className="h3">Grade horária dos treinos livres</h3>
-        </div>
+    <ol className={s.passos}>
+      <li className={s.passo}>
+        <CabecaCartao icone="ingresso" titulo="Comprar esta etapa" numero={1} />
+        <CompraDaEtapa situacao={situacao} />
+      </li>
+      <li className={s.passo}>
+        <CabecaCartao icone="relogio" titulo="Comprar treinos livres" numero={2} />
+        <LinkTreinosLivres situacao={situacao} />
+      </li>
+      <li id="grade-treinos" className={`${s.passo} ${s.passoLargo}`}>
+        <CabecaCartao icone="calendario" titulo="Grade horária dos treinos livres" numero={3} />
         <GradeTreinosLivres etapa={etapa} />
-      </div>
-    </>
+      </li>
+    </ol>
   )
 }
 
-export function CabecaCartao({ icone, titulo }: { icone: NomeIcone; titulo: string }) {
+export function CabecaCartao({ icone, titulo, numero }: { icone: NomeIcone; titulo: string; numero?: number }) {
   return (
     <div className={s.cartaoCabeca}>
       <span className={s.cartaoIcone}>
         <Icone nome={icone} />
       </span>
-      <h3 className={s.cartaoTitulo}>{titulo}</h3>
+      <h3 className={s.cartaoTitulo}>
+        {numero !== undefined && <span className={s.cartaoNumero}>{numero}. </span>}
+        {titulo}
+      </h3>
     </div>
   )
 }
@@ -138,49 +134,51 @@ export function GradeTreinosLivres({ etapa }: { etapa: EtapaSite }) {
   const imagem = etapa.imagemGradeTreinosLivres && typeof etapa.imagemGradeTreinosLivres === 'object' ? (etapa.imagemGradeTreinosLivres as Midia) : null
   if (!dias.length && !imagem?.url) return <Indisponivel texto={MENSAGENS_ETAPA.semGradeTreinos} />
   return (
-    <>
+    <div className={s.grade}>
       {dias.length > 0 && (
         <div className={s.dias}>
           {dias.map((d) => (
-            <table key={d.chave} className={s.tabelaTreinos}>
-              <caption>{d.titulo}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Horário</th>
-                  <th scope="col">Categorias e observações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.horarios.map((h, i) => (
-                  <tr key={i}>
-                    <th scope="row" className="mono">
-                      {h.inicio}
-                      {h.fim && (
-                        <>
-                          <span aria-hidden="true">–</span>
-                          <span className="visualmente-oculto"> às </span>
-                          {h.fim}
-                        </>
-                      )}
-                    </th>
-                    <td>
-                      {h.categorias.length > 0 && (
-                        <span className={s.categorias}>
-                          {h.categorias.map((c, j) => (
-                            <span key={j} className={s.categoria}>
-                              <span className={s.corCategoria} style={{ background: c.cor ?? 'var(--camp-p, var(--marca-primaria))' }} aria-hidden="true" />
-                              <TextoDemo texto={c.nome} />
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                      {h.observacao && <span className={s.observacao}>{semDemo(h.observacao)}</span>}
-                      {!h.categorias.length && !h.observacao && <span className="texto-2">Treino livre</span>}
-                    </td>
+            <div key={d.chave} className={`rolagem-x ${s.rolagemTreinos}`}>
+              <table className={s.tabelaTreinos}>
+                <caption>{d.titulo}</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Horário</th>
+                    <th scope="col">Categorias e observações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {d.horarios.map((h, i) => (
+                    <tr key={i}>
+                      <th scope="row" className={s.horario}>
+                        {h.inicio}
+                        {h.fim && (
+                          <>
+                            <span aria-hidden="true"> – </span>
+                            <span className="visualmente-oculto"> às </span>
+                            {h.fim}
+                          </>
+                        )}
+                      </th>
+                      <td>
+                        {h.categorias.length > 0 && (
+                          <span className={s.categorias}>
+                            {h.categorias.map((c, j) => (
+                              <span key={j} className={s.categoria}>
+                                <span className={s.corCategoria} style={{ background: c.cor ?? 'var(--verde)' }} aria-hidden="true" />
+                                <TextoDemo texto={c.nome} />
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                        {h.observacao && <span className={s.observacao}>{semDemo(h.observacao)}</span>}
+                        {!h.categorias.length && !h.observacao && <span className="texto-2">Treino livre</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ))}
         </div>
       )}
@@ -188,14 +186,14 @@ export function GradeTreinosLivres({ etapa }: { etapa: EtapaSite }) {
         <figure className={s.imagemGrade}>
           <Foto midia={imagem} ate="destaque" sizes="(min-width: 840px) 760px, 100vw" alt={semDemo(imagem.alt) || 'Grade dos treinos livres (imagem)'} />
           <figcaption>
-            <a href={imagem.url} target="_blank" rel="noopener noreferrer">
-              Abrir a imagem da grade em tamanho real <span aria-hidden="true">↗</span>
+            <a href={imagem.url} target="_blank" rel="noopener noreferrer" className="link-seta">
+              Abrir a imagem da grade em tamanho real
               <span className="visualmente-oculto"> (abre em nova aba)</span>
             </a>
           </figcaption>
         </figure>
       )}
-    </>
+    </div>
   )
 }
 
@@ -210,7 +208,7 @@ export function ItensEventoPublico({ itens }: { itens: ItemEventoPublico[] }) {
       {itens.map((item, i) => (
         <li key={i} className={s.itemPublico}>
           <span className={s.chipIcone}>
-            <Icone nome={iconeDoItem(`${item.titulo} ${item.descricao ?? ''}`)} tamanho={20} />
+            <Icone nome={iconeDoItem(`${item.titulo} ${item.descricao ?? ''}`)} tamanho={22} />
           </span>
           <span className={s.itemPublicoTexto}>
             <strong>{item.titulo}</strong>
@@ -232,11 +230,11 @@ export function EventoPublico({ info }: { info: InfoEventoPublico }) {
   )
 }
 
-/** "Esta etapa já aconteceu em …" (no lugar da compra e dos treinos livres, depois da etapa). */
-export function AvisoJaOcorreu({ etapa, children }: { etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>; children?: ReactNode }) {
+/** "Esta etapa já ocorreu em …" (no lugar da compra e dos treinos livres, depois da etapa). */
+export function AvisoJaOcorreu({ etapa, children, compacto = false }: { etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>; children?: ReactNode; compacto?: boolean }) {
   return (
-    <div className={s.aviso}>
-      <Icone nome="feito" />
+    <div className={`${s.aviso} ${compacto ? s.avisoCompacto : ''}`}>
+      <Icone nome="feito" tamanho={compacto ? 18 : 22} className={s.avisoIcone} />
       <div className={s.avisoTexto}>
         <p>{mensagemJaOcorreu(etapa)}</p>
         {children}
@@ -248,17 +246,34 @@ export function AvisoJaOcorreu({ etapa, children }: { etapa: Pick<Etapa, 'inicio
 /** Faixa com o aviso, na página da etapa. */
 export function FaixaJaOcorreu({ etapa, children }: { etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>; children?: ReactNode }) {
   return (
-    <div className={`conteiner ${s.faixaAviso}`}>
-      <AvisoJaOcorreu etapa={etapa}>{children}</AvisoJaOcorreu>
+    <div className={s.faixaAviso}>
+      <div className="conteiner">
+        <AvisoJaOcorreu etapa={etapa}>{children}</AvisoJaOcorreu>
+      </div>
     </div>
   )
 }
 
 /* ───────────────────────────── versão compacta (calendário) ───────────────────────────── */
 
+/** Uma linha do resumo: ícone + título e, embaixo, o botão ou a mensagem. */
+function ItemResumo({ icone, titulo, children, mostrarTitulo = true }: { icone: NomeIcone; titulo: string; children: ReactNode; mostrarTitulo?: boolean }) {
+  return (
+    <li className={s.itemResumo}>
+      <span className={s.itemResumoIcone}>
+        <Icone nome={icone} tamanho={18} />
+      </span>
+      <div className={s.itemResumoCorpo}>
+        <p className={mostrarTitulo ? s.itemResumoTitulo : 'visualmente-oculto'}>{titulo}</p>
+        {children}
+      </div>
+    </li>
+  )
+}
+
 /**
  * Resumo da etapa no cartão do calendário do BKS: a mesma lógica da página da etapa, em pouco espaço.
- * Antes: comprar, treinos livres, grade, transmissões e "Aberto ao público". Depois: o aviso e a transmissão.
+ * Antes: comprar, treinos livres, grade e a transmissão. Depois: o aviso e a transmissão (se tiver link).
  * Na área de uma modalidade (karts profissionais ou indoor), só a transmissão dela.
  */
 export function ResumoEtapa({
@@ -276,56 +291,60 @@ export function ResumoEtapa({
   const nenhumaTransmissao = situacao.antes && !transmissoes.some((t) => t.href)
   return (
     <div className={s.resumo}>
-      {situacao.jaOcorreu && <AvisoJaOcorreu etapa={etapa} />}
+      {situacao.jaOcorreu && <AvisoJaOcorreu etapa={etapa} compacto />}
 
       {situacao.antes && (
         <div className={s.resumoGrupo}>
-          <h3 className="rotulo">Ingressos e treinos livres</h3>
-          <CompraDaEtapa situacao={situacao} compacto />
-          <LinkTreinosLivres situacao={situacao} compacto />
-          {situacao.temGradeTreinos ? (
-            <Link className={s.linkInterno} href={`/etapas/${etapa.id}#grade-treinos`}>
-              Ver a grade dos treinos livres <span aria-hidden="true">→</span>
-            </Link>
-          ) : (
-            <Indisponivel texto={MENSAGENS_ETAPA.semGradeTreinos} compacto />
-          )}
+          <h3 className={`rotulo ${s.resumoRotulo}`}>Ingressos e treinos livres</h3>
+          <ul className={s.listaResumo}>
+            <ItemResumo icone="ingresso" titulo="Comprar esta etapa" mostrarTitulo={!situacao.linkCompra}>
+              <CompraDaEtapa situacao={situacao} compacto />
+            </ItemResumo>
+            <ItemResumo icone="relogio" titulo="Comprar treinos livres" mostrarTitulo={!situacao.linkTreinosLivres}>
+              <LinkTreinosLivres situacao={situacao} compacto />
+            </ItemResumo>
+            <ItemResumo icone="calendario" titulo="Grade horária dos treinos livres">
+              {situacao.temGradeTreinos ? (
+                <Link className="link-seta" href={`/etapas/${etapa.id}#grade-treinos`}>
+                  Ver a grade dos treinos livres
+                </Link>
+              ) : (
+                <Indisponivel texto={MENSAGENS_ETAPA.semGradeTreinos} compacto />
+              )}
+            </ItemResumo>
+          </ul>
         </div>
       )}
 
       {transmissoes.length > 0 && (
         <div className={s.resumoGrupo}>
-          <h3 className="rotulo">{situacao.jaOcorreu ? 'Transmissão' : 'Transmissão ao vivo'}</h3>
-          {nenhumaTransmissao ? (
-            <Indisponivel texto={MENSAGENS_ETAPA.semTransmissao} compacto />
-          ) : (
-            transmissoes.map((t) =>
-              t.href ? (
-                <BotaoExterno key={t.tipo} href={t.href} contexto={`transmissão — ${t.rotulo}`} contorno pequeno>
-                  {modalidade ? 'Assistir à transmissão' : `Assistir à transmissão: ${t.rotulo}`}
-                </BotaoExterno>
-              ) : (
-                <Indisponivel key={t.tipo} rotulo={t.rotulo} texto={MENSAGENS_ETAPA.semTransmissao} compacto />
-              ),
-            )
-          )}
+          <h3 className={`rotulo ${s.resumoRotulo}`}>{situacao.jaOcorreu ? 'Transmissão' : 'Transmissão ao vivo'}</h3>
+          <ul className={s.listaResumo}>
+            {nenhumaTransmissao ? (
+              <ItemResumo icone="transmissao" titulo={modalidade ? `Transmissão — ${transmissoes[0]?.rotulo ?? ''}` : 'Transmissão'}>
+                <Indisponivel texto={MENSAGENS_ETAPA.semTransmissao} compacto />
+              </ItemResumo>
+            ) : (
+              transmissoes.map((t) => (
+                <ItemResumo key={t.tipo} icone="transmissao" titulo={`Transmissão — ${t.rotulo}`} mostrarTitulo={!t.href}>
+                  {t.href ? (
+                    <BotaoExterno href={t.href} contexto={`transmissão — ${t.rotulo}`} contorno pequeno>
+                      {modalidade ? 'Assistir à transmissão' : `Assistir: ${t.rotulo}`}
+                    </BotaoExterno>
+                  ) : (
+                    <Indisponivel texto={MENSAGENS_ETAPA.semTransmissao} compacto />
+                  )}
+                </ItemResumo>
+              ))
+            )}
+          </ul>
         </div>
       )}
 
       {situacao.antes && publico && (
         <div className={s.resumoGrupo}>
-          <h3 className="rotulo">Aberto ao público</h3>
-          <div className={s.publicoCompacto}>
-            <p>{publico.texto}</p>
-            <ul className={s.itensCompactos}>
-              {publico.itens.map((item, i) => (
-                <li key={i}>
-                  <Icone nome={iconeDoItem(item.titulo)} tamanho={16} />
-                  {item.titulo}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h3 className={`rotulo ${s.resumoRotulo}`}>Aberto ao público</h3>
+          <p className={s.publicoCompacto}>{publico.texto}</p>
         </div>
       )}
     </div>
