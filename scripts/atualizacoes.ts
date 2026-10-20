@@ -681,6 +681,53 @@ async function topoDaAskart(payload: Payload): Promise<string> {
     .join('; ')
 }
 
+/**
+ * Só na prévia com exemplos: o Kart indoor entra na temporada de demonstração (as etapas futuras acompanham)
+ * e cada subcategoria indoor ganha warm-up, classificação, corrida 1 e corrida 2 com horários de exemplo.
+ */
+async function exemplosDoIndoor(payload: Payload): Promise<string> {
+  const { docs: cats } = await payload.find({
+    collection: 'categorias',
+    where: { nome: { in: [...Object.keys(SUBCATEGORIAS), 'Kart indoor'] } },
+    limit: 20,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const subsDe = (c: (typeof cats)[number]) => (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean)
+  const indoor = cats.find((c) => c.nome === 'Kart indoor')
+  if (!indoor || !subsDe(indoor).length) return 'nada a fazer: Kart indoor sem subcategorias'
+  const { docs: temporadas } = await payload.find({ collection: 'temporadas', limit: 50, depth: 0, overrideAccess: true })
+  const demo = temporadas.filter((t) => String(t.nome ?? '').includes(DEMO) && t.status !== 'encerrada')
+  if (!demo.length) return 'nenhuma temporada de demonstração aberta: nada a fazer'
+  let criadas = 0
+  for (const t of demo) {
+    const atuais = (t.categorias ?? []).map((x) => idDaRel(x as IdRel))
+    if (!atuais.includes(indoor.id)) {
+      await payload.update({
+        collection: 'temporadas',
+        id: t.id,
+        data: { categorias: [...atuais, indoor.id] } as never,
+        overrideAccess: true,
+        context: { ...contexto },
+      })
+    }
+    const { docs: etapas } = await payload.find({
+      collection: 'etapas',
+      where: { temporada: { equals: t.id } },
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const ordem = [...cats.filter((c) => c.nome !== 'Kart indoor'), indoor].map((c) => ({ id: c.id, subcategorias: subsDe(c) }))
+    for (const e of etapas) {
+      const futura = Boolean(e.inicio) && new Date(e.inicio as string).getTime() > Date.now() && e.status !== 'realizada' && e.status !== 'cancelada'
+      if (!futura || !(e.categorias ?? []).some((x) => idDaRel(x as IdRel) === indoor.id)) continue
+      criadas += await criarSessoesDeExemplo(payload, { id: e.id, inicio: e.inicio as string }, ordem.filter((c) => c.subcategorias.length))
+    }
+  }
+  return `${criadas} sessão(ões) de exemplo do Kart indoor nas etapas futuras de demonstração`
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -697,6 +744,8 @@ const ATUALIZACOES: Atualizacao[] = [
     descricao: 'Exemplos de horários por subcategoria',
     aplicar: exemplosDeHorariosPorSubcategoria,
   },
+  { chave: 'atualizacao:2026-10-exemplos-do-indoor', descricao: 'Exemplos do Kart indoor por subcategoria', aplicar: exemplosDoIndoor },
+
   {
     chave: 'atualizacao:2026-10-etapa-pela-media-das-corridas',
     descricao: 'Regra do BKS: etapa pela média das corridas, por subcategoria',
