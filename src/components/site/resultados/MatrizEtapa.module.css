@@ -37,13 +37,11 @@
   place-items: center;
   width: 1.375rem;
   height: 1.375rem;
-  border-radius: 4px;
-  background: var(--roxo);
-  color: var(--sobre-roxo);
+  color: var(--roxo);
 }
 
 .amostra .marca {
-  color: var(--sobre-roxo);
+  color: var(--roxo);
 }
 
 /* Exemplo de posição na legenda ("1º"), sem cor: só o formato */
@@ -357,25 +355,15 @@
   color: var(--texto-2);
 }
 
-/* Melhor tempo da sessão (na subcategoria): célula inteira em roxo, texto branco e o losango junto do tempo. */
-.melhor {
-  background: var(--roxo);
-  color: var(--sobre-roxo);
-}
-
-.melhor .situacao,
-.melhor .media,
-.melhor .detalhe,
+/* Melhor tempo da sessão (na subcategoria): só os números do tempo em roxo (pedido do cliente), com o losango
+   junto; a célula fica como as outras. #6B21A8 sobre branco: contraste 8,7:1. */
 .melhor .volta,
-.melhor .geral,
-.melhor .etiqueta,
 .melhor .marca {
-  color: var(--sobre-roxo);
+  color: var(--roxo);
 }
 
 .melhor .volta {
-  font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 @media (min-width: 48rem) {
@@ -390,9 +378,8 @@
 }
 
 @media (forced-colors: active) {
-  .melhor,
-  .amostra {
-    border: 2px solid CanvasText;
+  .melhor .volta {
+    text-decoration: underline;
   }
 
   .aba[aria-selected='true'] {
