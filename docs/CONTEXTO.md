@@ -68,7 +68,7 @@ Site oficial e painel de administração da **ASKART — Associação de Pilotos
 - O kartódromo é **só para treinos e corridas**. **Não tem aluguel de kart** (nem indoor de aluguel).
 - Tem **treino quase todo dia**, além do campeonato.
 - **Grade semanal oficial de treinos**, editável pelo moderador. Veio de uma imagem oficial da ASKART/Secretaria de Esporte e Lazer e foi carregada por `scripts/dados-oficiais.ts`, com as cores oficiais das turmas.
-- **Taxas:** taxa de ambulância **R$ 50,00 por piloto por dia de treino**; taxa de pista **avulsa R$ 80,00** (cliente, 21/10/2026).
+- **Taxas:** taxa de ambulância **R$ 50,00 por piloto por dia de treino**; taxa de pista **avulsa R$ 80,00** (cliente, 21/10/2026). **Quem treina no horário de iniciante não paga a taxa de pista, só a de ambulância** (cliente, 21/10/2026).
 - **Mensalidade da taxa de pista** (cliente, 21/10/2026): é **só para quem não corre no horário de iniciante**. Vem de um comunicado afixado no kartódromo, datado "Brasília, 12 de Fevereiro de 2026" (sem nome de quem assina; não atribuir a ninguém): "opções para o pagamento da mensalidade da taxa de pista que concedem algumas taxas de ambulância".
 
   | Taxas de ambulância incluídas | Sem desconto (pista + ambulâncias = total) | Com desconto bônus (pista + ambulâncias = total) |
@@ -176,7 +176,7 @@ Ficam concentradas em código para trocar fácil (veja SITE.md, motor de pontua�
     - **BKS:** cores da logo, azul royal #0A1AB4, vermelho #D52E20 e branco, editáveis em Campeonatos → Cores;
     - **Kartódromo:** identidade própria, com asfalto grafite, verde-gramado e amarelo de sinalização, e faixa tracejada de pista;
     - cabeçalho, rodapé e página inicial seguem a ASKART.
-16. **Taxa de pista e mensalidade** (21/10/2026): taxa de pista avulsa R$ 80,00 e a seção "Mensalidade da taxa de pista" na aba Kartódromo (tabela "Sem desconto" × "Com desconto bônus" com o total em destaque e as regras do comunicado de 12/02/2026), editável no painel. O site já publicado recebe os dados pelo passo 9 de `scripts/atualizacoes.ts` (só preenche o que ainda está vazio ou "a confirmar").
+16. **Taxa de pista e mensalidade** (21/10/2026): taxa de pista avulsa R$ 80,00 e a seção "Mensalidade da taxa de pista" na aba Kartódromo (tabela "Sem desconto" × "Com desconto bônus" com o total em destaque e as regras do comunicado de 12/02/2026), editável no painel. O site já publicado recebe os dados pelo passo 9 de `scripts/atualizacoes.ts` (só preenche o que ainda está vazio ou "a confirmar"). Depois, o aviso de que quem treina no horário de iniciante paga só a ambulância (texto das taxas, cartão da taxa de pista, passo "Como treinar" e pergunta frequente), pelo passo 10.
 
 ---
 

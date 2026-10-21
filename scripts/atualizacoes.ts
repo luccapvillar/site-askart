@@ -42,7 +42,14 @@ import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
 import { CORES_BKS, coresDoBksSemEscolha } from '../src/lib/site'
-import { taxasDe2026 } from '../src/lib/taxas'
+import { textoParaLexical } from '../src/collections/conteudo/editores'
+import {
+  iniciantesSemTaxaDePista,
+  PERGUNTA_TAXAS,
+  RESPOSTA_TAXAS,
+  RESPOSTA_TAXAS_ANTIGA,
+  taxasDe2026,
+} from '../src/lib/taxas'
 import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
@@ -790,7 +797,42 @@ async function coresDoBks(payload: Payload): Promise<string> {
  * e, se havia um rascunho em edição, grava-o de novo (com os mesmos cuidados) para ele continuar sendo o mais
  * recente no painel — o mesmo jeito do topo da página inicial.
  */
-async function taxaDePistaEMensalidade(payload: Payload): Promise<string> {
+type MudancaNoKartodromo = (doc: Record<string, unknown>) => { dados: Record<string, unknown>; feitos: string[]; avisos: string[] }
+
+const taxaDePistaEMensalidade = (payload: Payload) => atualizarKartodromo(payload, taxasDe2026)
+
+/** Aviso de que quem treina no horário de iniciante paga só a ambulância, no Kartódromo e na pergunta frequente. */
+async function iniciantesSoAmbulancia(payload: Payload): Promise<string> {
+  const noKartodromo = await atualizarKartodromo(payload, iniciantesSemTaxaDePista)
+  const { docs } = await payload.find({
+    collection: 'perguntas',
+    where: { pergunta: { equals: PERGUNTA_TAXAS } },
+    depth: 0,
+    limit: 10,
+    overrideAccess: true,
+  })
+  const textoDe = (no: unknown): string => {
+    if (!no || typeof no !== 'object') return ''
+    const n = no as { text?: unknown; children?: unknown[]; root?: unknown }
+    if (n.root) return textoDe(n.root)
+    return (typeof n.text === 'string' ? n.text : '') + (n.children ?? []).map(textoDe).join('')
+  }
+  let perguntas = 0
+  for (const d of docs) {
+    if (textoDe(d.resposta).trim() !== RESPOSTA_TAXAS_ANTIGA) continue
+    await payload.update({
+      collection: 'perguntas',
+      id: d.id,
+      data: { resposta: textoParaLexical(RESPOSTA_TAXAS) as never },
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+    perguntas++
+  }
+  return `${noKartodromo}. Pergunta frequente das taxas: ${perguntas ? 'resposta atualizada' : 'mantida (já mudada no painel ou inexistente)'}`
+}
+
+async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodromo): Promise<string> {
   const slug = 'kartodromo' as const
   const global = payload.config.globals.find((g) => g.slug === slug)
   if (!global) return 'global do kartódromo não encontrado: nada feito'
@@ -802,8 +844,8 @@ async function taxaDePistaEMensalidade(payload: Payload): Promise<string> {
     : null
   const rascunho = ultima?._status === 'draft' ? ultima : null
 
-  const noPublicado = taxasDe2026(publicado)
-  const noRascunho = rascunho ? taxasDe2026(rascunho) : null
+  const noPublicado = mudanca(publicado)
+  const noRascunho = rascunho ? mudanca(rascunho) : null
   const mudaPublicado = noPublicado.feitos.length > 0
   const mudaRascunho = Boolean(noRascunho?.feitos.length)
   if (!mudaPublicado && !mudaRascunho) return `nada a fazer: ${noPublicado.avisos.join('; ') || 'tudo já estava preenchido'}`
@@ -864,6 +906,11 @@ const ATUALIZACOES: Atualizacao[] = [
     chave: 'atualizacao:2026-10-taxa-de-pista-e-mensalidade',
     descricao: 'Taxa de pista R$ 80,00 (avulsa) e mensalidade da taxa de pista',
     aplicar: taxaDePistaEMensalidade,
+  },
+  {
+    chave: 'atualizacao:2026-10-iniciante-so-ambulancia',
+    descricao: 'Quem treina no horário de iniciante paga só a taxa de ambulância',
+    aplicar: iniciantesSoAmbulancia,
   },
 ]
 

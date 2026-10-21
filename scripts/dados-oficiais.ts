@@ -21,8 +21,12 @@ import { ITENS_EVENTO_PUBLICO_PADRAO, TEXTO_EVENTO_PUBLICO_PADRAO } from '../src
 import { CORES_BKS } from '../src/lib/site'
 import {
   INTRODUCAO_MENSALIDADE_PADRAO,
+  INTRODUCAO_TAXAS,
+  OBSERVACAO_TAXA_DE_PISTA,
+  PERGUNTA_TAXAS,
   PLANOS_MENSALIDADE_OFICIAIS,
   REGRAS_MENSALIDADE_OFICIAIS,
+  RESPOSTA_TAXAS,
   TAXA_DE_PISTA_AVULSA,
   TEXTO_PASSO_TAXAS,
 } from '../src/lib/taxas'
@@ -143,9 +147,8 @@ const PERGUNTAS: Array<{ pergunta: string; resposta: string; secao: 'kartodromo'
     secao: 'kartodromo',
   },
   {
-    pergunta: 'Quais taxas preciso pagar para andar na pista?',
-    resposta:
-      'A taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista são obrigatórias. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.',
+    pergunta: PERGUNTA_TAXAS,
+    resposta: RESPOSTA_TAXAS,
     secao: 'kartodromo',
   },
   {
@@ -303,11 +306,10 @@ export async function carregarDadosOficiais(payload: Payload) {
         'Kartódromo administrado pela ASKART, no Guará, em Brasília. Tem treino quase todos os dias da semana e recebe as etapas do BKS. Uso exclusivo para treinos e corridas — não há aluguel de karts.',
       imagemTopo: fotos.aereo,
       galerias: [galeria.id],
-      taxasIntroducao:
-        'Para andar na pista são obrigatórias a taxa de ambulância e a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.',
+      taxasIntroducao: INTRODUCAO_TAXAS,
       taxas: [
         { item: 'Taxa de ambulância', valor: 50, aConfirmar: false, obrigatoria: true, observacao: 'Por piloto, por dia de treino' },
-        { item: 'Taxa de pista', valor: TAXA_DE_PISTA_AVULSA, aConfirmar: false, obrigatoria: true, observacao: 'Avulsa' },
+        { item: 'Taxa de pista', valor: TAXA_DE_PISTA_AVULSA, aConfirmar: false, obrigatoria: true, observacao: OBSERVACAO_TAXA_DE_PISTA },
       ],
       mensalidadeIntroducao: INTRODUCAO_MENSALIDADE_PADRAO,
       mensalidadePlanos: PLANOS_MENSALIDADE_OFICIAIS.map((p) => ({

@@ -5,6 +5,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatarReais,
+  iniciantesSemTaxaDePista,
+  INTRODUCAO_TAXAS,
+  INTRODUCAO_TAXAS_ANTIGA,
+  OBSERVACAO_TAXA_DE_PISTA,
   opcaoDaMensalidade,
   planosDaMensalidade,
   PLANOS_MENSALIDADE_OFICIAIS,
@@ -14,6 +18,7 @@ import {
   taxasDe2026,
   taxasDeAmbulancia,
   TEXTO_PASSO_TAXAS,
+  TEXTO_PASSO_TAXAS_80,
   TEXTO_PASSO_TAXAS_ANTIGO,
   VALOR_A_CONFIRMAR,
   valorDaTaxa,
@@ -96,13 +101,13 @@ describe('atualização do site já publicado (21/10/2026)', () => {
     const { dados, feitos } = taxasDe2026(original())
     const taxas = dados.taxas as { id: string; valor: number; aConfirmar: boolean; observacao: string }[]
     expect(taxas[0]).toEqual(original().taxas[0])
-    expect(taxas[1]).toMatchObject({ id: '2', valor: 80, aConfirmar: false, observacao: 'Avulsa' })
+    expect(taxas[1]).toMatchObject({ id: '2', valor: 80, aConfirmar: false, observacao: OBSERVACAO_TAXA_DE_PISTA })
     expect(dados.mensalidadePlanos).toHaveLength(3)
     expect((dados.mensalidadeRegras as { texto: string }[]).map((r) => r.texto)).toEqual([...REGRAS_MENSALIDADE_OFICIAIS])
     expect(typeof dados.mensalidadeIntroducao).toBe('string')
     const passos = dados.comoTreinar as { id: string; texto: string }[]
     expect(passos[1]).toEqual({ id: 'p2', titulo: 'Pague as taxas na Administração', texto: TEXTO_PASSO_TAXAS })
-    expect(passos[1].texto).toContain('a taxa de pista (R$ 80,00 avulsa, ou a mensalidade para quem não treina no horário de iniciante)')
+    expect(passos[1].texto).toContain('Quem treina no horário de iniciante paga só a taxa de ambulância.')
     expect(feitos.length).toBe(5)
   })
 
@@ -120,5 +125,41 @@ describe('atualização do site já publicado (21/10/2026)', () => {
     const segunda = taxasDe2026(aplicado)
     expect(segunda.feitos).toEqual([])
     expect(segunda.dados).toEqual({})
+  })
+})
+
+describe('quem treina no horário de iniciante paga só a ambulância (21/10/2026)', () => {
+  const doc = (mudar: Record<string, unknown> = {}) => ({
+    taxasIntroducao: INTRODUCAO_TAXAS_ANTIGA,
+    taxas: [
+      { id: '1', item: 'Taxa de ambulância', valor: 50, observacao: 'Por piloto, por dia de treino' },
+      { id: '2', item: 'Taxa de pista', valor: 80, observacao: 'Avulsa' },
+    ],
+    comoTreinar: [{ id: 'p1', titulo: 'Pague as taxas na Administração', texto: TEXTO_PASSO_TAXAS_80 }],
+    ...mudar,
+  })
+
+  it('troca os textos que ainda são os gravados pelo site', () => {
+    const { dados, feitos } = iniciantesSemTaxaDePista(doc())
+    expect(dados.taxasIntroducao).toBe(INTRODUCAO_TAXAS)
+    expect((dados.taxas as { observacao: string }[])[1].observacao).toBe(OBSERVACAO_TAXA_DE_PISTA)
+    expect((dados.taxas as { observacao: string }[])[0].observacao).toBe('Por piloto, por dia de treino')
+    expect((dados.comoTreinar as { texto: string }[])[0].texto).toBe(TEXTO_PASSO_TAXAS)
+    expect(feitos).toHaveLength(3)
+  })
+
+  it('mantém o que o moderador reescreveu e não repete o que já foi feito', () => {
+    const { dados, avisos } = iniciantesSemTaxaDePista(
+      doc({
+        taxasIntroducao: 'Texto do moderador',
+        taxas: [{ id: '2', item: 'Taxa de pista', valor: 80, observacao: 'Por dia' }],
+        comoTreinar: [{ id: 'p1', texto: 'Outro texto' }],
+      }),
+    )
+    expect(dados).toEqual({})
+    expect(avisos).toHaveLength(2)
+    const jaFeito = iniciantesSemTaxaDePista({ ...doc(), ...iniciantesSemTaxaDePista(doc()).dados })
+    expect(jaFeito.dados).toEqual({})
+    expect(jaFeito.avisos).toEqual([])
   })
 })
