@@ -47,7 +47,7 @@ import {
   iniciantesSemTaxaDePista,
   PERGUNTA_TAXAS,
   RESPOSTA_TAXAS,
-  RESPOSTA_TAXAS_ANTIGA,
+  RESPOSTAS_TAXAS_DO_SITE,
   taxasDe2026,
 } from '../src/lib/taxas'
 import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
@@ -819,7 +819,7 @@ async function iniciantesSoAmbulancia(payload: Payload): Promise<string> {
   }
   let perguntas = 0
   for (const d of docs) {
-    if (textoDe(d.resposta).trim() !== RESPOSTA_TAXAS_ANTIGA) continue
+    if (!RESPOSTAS_TAXAS_DO_SITE.includes(textoDe(d.resposta).trim())) continue
     await payload.update({
       collection: 'perguntas',
       id: d.id,
@@ -915,6 +915,11 @@ const ATUALIZACOES: Atualizacao[] = [
   {
     chave: 'atualizacao:2026-10-iniciante-so-ambulancia-texto-claro',
     descricao: 'Aviso dos iniciantes mais claro e taxa de pista sem o selo "Obrigatória"',
+    aplicar: iniciantesSoAmbulancia,
+  },
+  {
+    chave: 'atualizacao:2026-10-pista-obrigatoria-fora-do-iniciante',
+    descricao: 'Fora do horário de iniciante: taxa de pista e de ambulância obrigatórias, ou a mensalidade com as duas',
     aplicar: iniciantesSoAmbulancia,
   },
 ]

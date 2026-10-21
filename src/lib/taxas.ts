@@ -88,6 +88,9 @@ export const TAXA_DE_PISTA_AVULSA = 80
 
 /** Introdução da mensalidade (padrão do painel e dos dados oficiais). */
 export const INTRODUCAO_MENSALIDADE_PADRAO =
+  'Quem não treina no horário de iniciante pode pagar a mensalidade, que inclui a taxa de pista e as taxas de ambulância do plano escolhido.'
+/** Introdução da mensalidade publicada antes (21/10/2026), trocada pela de cima. */
+export const INTRODUCAO_MENSALIDADE_ANTIGA =
   'A taxa de pista também pode ser paga por mês. A mensalidade é só para quem não corre no horário de iniciante e já inclui algumas taxas de ambulância.'
 
 /**
@@ -122,9 +125,15 @@ export const TEXTO_PASSO_TAXAS_80 =
 export const TEXTO_PASSO_TAXAS_V2 =
   'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista (R$ 80,00 avulsa, ou a mensalidade). Quem treina no horário de iniciante paga só a taxa de ambulância.'
 
-/** Pedido do cliente (21/10/2026): quem treina no horário de iniciante paga só a taxa de ambulância. */
-export const TEXTO_PASSO_TAXAS =
+export const TEXTO_PASSO_TAXAS_V3 =
   'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino). Quem não treina no horário de iniciante paga também a taxa de pista (R$ 80,00 avulsa, ou a mensalidade).'
+
+/**
+ * Pedido do cliente (21/10/2026): quem treina no horário de iniciante paga só a taxa de ambulância; quem não
+ * treina paga obrigatoriamente a taxa de pista e a de ambulância, ou a mensalidade, que inclui as duas.
+ */
+export const TEXTO_PASSO_TAXAS =
+  'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino). Quem não treina no horário de iniciante paga obrigatoriamente também a taxa de pista (R$ 80,00 avulsa), ou pode pagar a mensalidade, que inclui as duas taxas.'
 
 /** Texto antes dos cartões de taxa: original (16/10/2026), primeira versão do aviso dos iniciantes e a atual. */
 export const INTRODUCAO_TAXAS_ANTIGA =
@@ -132,18 +141,22 @@ export const INTRODUCAO_TAXAS_ANTIGA =
 export const INTRODUCAO_TAXAS_V2 =
   'Para andar na pista são obrigatórias a taxa de ambulância e a taxa de pista. Quem treina no horário de iniciante não paga a taxa de pista, só a de ambulância. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
 
-export const INTRODUCAO_TAXAS =
+export const INTRODUCAO_TAXAS_V3 =
   'A taxa de ambulância é obrigatória para todos. Quem treina no horário de iniciante paga apenas a taxa de ambulância e não precisa pagar a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
 
-/** Observação do cartão "Taxa de pista" (a primeira versão e a atual). */
+export const INTRODUCAO_TAXAS =
+  'Quem não treina no horário de iniciante paga obrigatoriamente a taxa de pista e a taxa de ambulância, ou pode pagar a mensalidade, que inclui as duas. Quem treina no horário de iniciante paga apenas a taxa de ambulância e não precisa pagar a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
+
+/** Observação do cartão "Taxa de pista" (versões anteriores e a atual). */
 export const OBSERVACAO_TAXA_DE_PISTA_V2 = 'Avulsa. Quem treina no horário de iniciante não paga'
-export const OBSERVACAO_TAXA_DE_PISTA = 'Avulsa. Quem treina no horário de iniciante não precisa pagar'
+export const OBSERVACAO_TAXA_DE_PISTA_V3 = 'Avulsa. Quem treina no horário de iniciante não precisa pagar'
+export const OBSERVACAO_TAXA_DE_PISTA = 'Avulsa. Obrigatória para quem não treina no horário de iniciante; quem treina no horário de iniciante não paga'
 
 /** Pergunta frequente sobre as taxas: resposta original e com o aviso dos iniciantes. */
 export const PERGUNTA_TAXAS = 'Quais taxas preciso pagar para andar na pista?'
 export const RESPOSTA_TAXAS_ANTIGA =
   'A taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista são obrigatórias. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
-export const RESPOSTA_TAXAS =
+export const RESPOSTA_TAXAS_V2 =
   'A taxa de ambulância (R$ 50,00 por piloto, por dia de treino) é obrigatória para todos. A taxa de pista (R$ 80,00 avulsa, ou a mensalidade) só é cobrada de quem não treina no horário de iniciante. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
 
 /* ───────────────────── Atualização do site já publicado ───────────────────── */
@@ -204,15 +217,19 @@ export function taxasDe2026(doc: Record<string, unknown>): { dados: Record<strin
     feitos.push(`passo "${passos[passo].titulo ?? 'Pague as taxas na Administração'}" do "Como treinar" com o valor da taxa de pista`)
   } else if (!passos.length) {
     avisos.push('o "Como treinar" está sem passos: nada mudado nele')
-  } else if (!passos.some((p) => [TEXTO_PASSO_TAXAS, TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_V2].includes(p.texto ?? ''))) {
+  } else if (!passos.some((p) => [TEXTO_PASSO_TAXAS, TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_V2, TEXTO_PASSO_TAXAS_V3].includes(p.texto ?? ''))) {
     avisos.push('o texto do passo das taxas no "Como treinar" não é mais o original (mudado no painel): mantido')
   }
 
   return { dados, feitos, avisos }
 }
+export const RESPOSTA_TAXAS =
+  'A taxa de ambulância (R$ 50,00 por piloto, por dia de treino) é obrigatória para todos. Quem não treina no horário de iniciante paga obrigatoriamente também a taxa de pista (R$ 80,00 avulsa), ou pode pagar a mensalidade, que inclui as duas. Quem treina no horário de iniciante paga apenas a taxa de ambulância. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
+/** Respostas que o site já gravou na pergunta das taxas (o moderador não mexeu se ainda for uma delas). */
+export const RESPOSTAS_TAXAS_DO_SITE = [RESPOSTA_TAXAS_ANTIGA, RESPOSTA_TAXAS_V2]
 
 /**
- * Atualização do site já publicado (scripts/atualizacoes.ts, passo 10): avisa que quem treina no horário de
+ * Atualização do site já publicado (scripts/atualizacoes.ts, passos 10 a 12): avisa que quem treina no horário de
  * iniciante paga só a taxa de ambulância. Só troca textos que ainda são os que o site gravou; o que o moderador
  * reescreveu fica como está.
  */
@@ -221,14 +238,14 @@ export function iniciantesSemTaxaDePista(doc: Record<string, unknown>): { dados:
   const feitos: string[] = []
   const avisos: string[] = []
 
-  if (doc.taxasIntroducao === INTRODUCAO_TAXAS_ANTIGA || doc.taxasIntroducao === INTRODUCAO_TAXAS_V2) {
+  if ([INTRODUCAO_TAXAS_ANTIGA, INTRODUCAO_TAXAS_V2, INTRODUCAO_TAXAS_V3].includes(String(doc.taxasIntroducao ?? ''))) {
     dados.taxasIntroducao = INTRODUCAO_TAXAS
     feitos.push('texto antes das taxas')
   } else if (doc.taxasIntroducao !== INTRODUCAO_TAXAS) avisos.push('texto antes das taxas mudado no painel: mantido')
 
   const taxas = (doc.taxas ?? []) as TaxaGravada[]
   const pista = taxas.findIndex(ehTaxaDePista)
-  const observacoesDoSite = ['', 'avulsa', OBSERVACAO_TAXA_DE_PISTA_V2.toLowerCase()]
+  const observacoesDoSite = ['', 'avulsa', OBSERVACAO_TAXA_DE_PISTA_V2.toLowerCase(), OBSERVACAO_TAXA_DE_PISTA_V3.toLowerCase()]
   if (pista >= 0 && observacoesDoSite.includes((taxas[pista].observacao ?? '').trim().toLowerCase())) {
     // Sem o selo "Obrigatória": quem treina no horário de iniciante não paga
     dados.taxas = taxas.map((x, i) => (i === pista ? { ...x, observacao: OBSERVACAO_TAXA_DE_PISTA, obrigatoria: false } : x))
@@ -237,7 +254,11 @@ export function iniciantesSemTaxaDePista(doc: Record<string, unknown>): { dados:
     avisos.push('observação da taxa de pista mudada no painel: mantida')
 
   const passos = (doc.comoTreinar ?? []) as PassoGravado[]
-  const passo = passos.findIndex((p) => [TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_ANTIGO, TEXTO_PASSO_TAXAS_V2].includes(p.texto ?? ''))
+  const passo = passos.findIndex((p) => [TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_ANTIGO, TEXTO_PASSO_TAXAS_V2, TEXTO_PASSO_TAXAS_V3].includes(p.texto ?? ''))
+  if (doc.mensalidadeIntroducao === INTRODUCAO_MENSALIDADE_ANTIGA) {
+    dados.mensalidadeIntroducao = INTRODUCAO_MENSALIDADE_PADRAO
+    feitos.push('introdução da mensalidade')
+  }
   if (passo >= 0) {
     dados.comoTreinar = passos.map((p, i) => (i === passo ? { ...p, texto: TEXTO_PASSO_TAXAS } : p))
     feitos.push('passo das taxas no "Como treinar"')

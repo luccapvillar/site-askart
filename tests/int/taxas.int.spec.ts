@@ -107,7 +107,7 @@ describe('atualização do site já publicado (21/10/2026)', () => {
     expect(typeof dados.mensalidadeIntroducao).toBe('string')
     const passos = dados.comoTreinar as { id: string; texto: string }[]
     expect(passos[1]).toEqual({ id: 'p2', titulo: 'Pague as taxas na Administração', texto: TEXTO_PASSO_TAXAS })
-    expect(passos[1].texto).toContain('Quem não treina no horário de iniciante paga também a taxa de pista')
+    expect(passos[1].texto).toContain('Quem não treina no horário de iniciante paga obrigatoriamente também a taxa de pista')
     expect(feitos.length).toBe(5)
   })
 
