@@ -33,7 +33,7 @@
 
 .escuro .icone {
   background: rgb(255 255 255 / 0.08);
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .textos {
@@ -73,7 +73,7 @@ a.valor {
 }
 
 .escuro a.valor {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .provisorio {

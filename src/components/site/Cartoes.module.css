@@ -132,7 +132,7 @@
 }
 
 :global(.escuro) .ler {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .seta {
@@ -176,7 +176,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .semana {

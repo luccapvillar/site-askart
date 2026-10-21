@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { BotaoIzy } from '@/components/site/bks/pecas'
 import s from '@/components/site/bks/Bks.module.css'
 import { Foto } from '@/components/site/Foto'
 import { semDemo } from '@/components/site/TextoDemo'
 import { lerBks, lerConfiguracoes } from '@/lib/publico'
+import { variaveisDoTemaBks } from '@/lib/site'
 import type { Midia } from '@/payload-types'
 
 export const revalidate = 60
@@ -11,9 +12,11 @@ export const revalidate = 60
 const STATUS_TEMPORADA: Record<string, string> = { planejada: 'Planejada', 'em-andamento': 'Em andamento', encerrada: 'Encerrada' }
 
 /**
- * Aba BKS: topo escuro com a foto do campeonato, a logo do BKS (o título da página), a temporada e a
- * compra pela IZY Pass. Logo abaixo, cada página põe a navegação (Karts profissionais | Karts indoor e as
- * seções), para dizer onde o visitante está sem JavaScript.
+ * Aba BKS, com a identidade da logo do BKS (tema em Bks.module.css: azul royal, vermelho e branco; as cores do
+ * campeonato no painel podem trocar o azul e o vermelho). Topo em azul royal com a foto do campeonato como
+ * textura, a logo do BKS (o título da página), a temporada, a compra pela IZY Pass e a onda vermelha da
+ * bandeira. Logo abaixo, cada página põe a navegação (Karts profissionais | Karts indoor e as seções), para
+ * dizer onde o visitante está sem JavaScript. Cabeçalho, menu e rodapé continuam com a identidade da ASKART.
  */
 export default async function LayoutBks({ children }: { children: ReactNode }) {
   const [bks, config] = await Promise.all([lerBks(), lerConfiguracoes()])
@@ -24,7 +27,7 @@ export default async function LayoutBks({ children }: { children: ReactNode }) {
   const nome = semDemo(campeonato?.nome) || 'Brasília Kart Series'
   const sigla = semDemo(campeonato?.sigla) || 'BKS'
   return (
-    <div className={s.tema}>
+    <div className={s.tema} style={variaveisDoTemaBks(campeonato?.cores) as CSSProperties}>
       <section className={`${s.topo} ${banner?.url ? s.topoComFoto : ''}`} aria-labelledby="titulo-bks">
         {banner?.url && <Foto midia={banner} className={s.topoFoto} prioridade sizes="100vw" alt="" />}
         <div className={`conteiner ${s.topoConteudo}`}>

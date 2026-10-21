@@ -1,6 +1,119 @@
 /* ==========================================================================
-   Aba Kartódromo — peças só desta página (o resto vem do sistema visual base)
+   Aba Kartódromo — peças só desta página (o resto vem do sistema visual base, com o tema abaixo)
    ========================================================================== */
+
+/* ==========================================================================
+   Tema do Kartódromo: a pista vista de cima (foto aérea, marca/recebidos/kartodromo-aereo-story.jpg).
+   Asfalto grafite nas faixas escuras, cinza-asfalto claro nas superfícies, verde do gramado (diferente do
+   verde da ASKART), amarelo de sinalização e branco. Detalhe da casa: a faixa tracejada de pista (linha
+   amarela tracejada fina) como divisor e marca dos títulos. Nada de quadriculado nem zebra.
+   Vale só no miolo da página (page.tsx); cabeçalho, menu e rodapé continuam com a identidade da ASKART.
+   Os tokens da ASKART são remapeados aqui dentro e as peças do site herdam. As cores das turmas da grade de
+   treinos são dados oficiais (vêm do painel) e não mudam; as cores de estado (ok, atenção, perigo) também não.
+
+   Mapa:  --verde (ação principal, links, rótulos, "hoje"/"agora" da grade) → verde-gramado
+          --amarelo (destaque: botões sobre o asfalto, placa do passo, selos) → amarelo de sinalização,
+                    sempre com texto escuro — nunca como texto sobre fundo claro (1,6:1)
+          --noite (faixas escuras, nome do dia na grade, botão escolhido) → asfalto
+          --destaque-escuro (rótulos, ícones e foco sobre o asfalto) → amarelo de sinalização
+
+   Contrastes (WCAG 2.1):
+     branco / asfalto #2B3230 .............. 13,1:1  topo, nome do dia na grade, cartão do Instagram
+     amarelo #F2C80F / asfalto ............. 8,1:1   rótulos, ícones e anel de foco no escuro
+     amarelo / asfalto-2 #3D4442 ........... 6,2:1
+     texto #191E1C / amarelo ............... 10,5:1  botão de destaque, placa numerada do passo
+     texto / amarelo-escuro #CCA80B ........ 7,4:1   hover do botão de destaque
+     branco / gramado #4E7A3A .............. 5,0:1   botão principal, "Hoje" e "Agora" da grade
+     gramado-escuro #355627 / branco 8,4:1 · / papel 7,3:1 · / tinta 7,4:1   links e rótulos
+     branco / gramado-escuro ............... 8,4:1   hover do botão principal
+     gramado-claro #B2C6AA / asfalto ....... 7,2:1
+     texto / papel #EEF0EF 14,8:1 · texto-2 #4B5350 / papel 6,9:1, / papel-2 #DEE2E0 6,1:1, / branco 7,9:1
+     texto-claro-2 (branco 78%) / asfalto 7,9:1, / asfalto-2 6,3:1
+     anel de foco: texto / claro 16,9:1 · amarelo / asfalto 8,1:1
+     tracejado: amarelo / asfalto 8,1:1 · gramado / branco 5,0:1 (enfeite; mín. 3:1 se fosse informação)
+     borda do seletor de subcategoria / branco 4,3:1 (mín. 3:1)
+   ========================================================================== */
+.tema {
+  /* Cores da pista */
+  --kart-asfalto: #2b3230;
+  --kart-asfalto-2: #3d4442;
+  --kart-asfalto-3: #505654;
+  --kart-cinza: #eef0ef; /* cinza-asfalto claro: superfícies */
+  --kart-cinza-2: #dee2e0;
+  --kart-gramado: #4e7a3a;
+  --kart-gramado-escuro: #355627;
+  --kart-gramado-claro: #b2c6aa;
+  --kart-gramado-tinta: #eef3ec;
+  --kart-amarelo: #f2c80f; /* sinalização: só em fundo escuro ou como fundo com texto escuro */
+  --kart-amarelo-escuro: #cca80b;
+  --kart-amarelo-tinta: #fcf5db;
+  --kart-texto: #191e1c;
+  /* Faixa tracejada de pista */
+  --kart-tracejado: repeating-linear-gradient(90deg, var(--kart-amarelo) 0 22px, transparent 22px 36px);
+
+  /* Remapeamento dos tokens da ASKART */
+  --marca-primaria: var(--kart-gramado);
+  --marca-secundaria: var(--kart-amarelo);
+  --marca-destaque: var(--kart-amarelo);
+  --marca-escuro: var(--kart-texto);
+  --sobre-primaria: #ffffff;
+  --sobre-secundaria: var(--kart-texto);
+
+  --verde: var(--kart-gramado);
+  --verde-escuro: var(--kart-gramado-escuro);
+  --verde-claro: color-mix(in oklab, var(--kart-gramado) 55%, white);
+  --verde-tinta: var(--kart-gramado-tinta);
+  --verde-sobre-escuro: var(--kart-gramado-claro);
+
+  --amarelo: var(--kart-amarelo);
+  --amarelo-escuro: var(--kart-amarelo-escuro);
+  --amarelo-tinta: var(--kart-amarelo-tinta);
+
+  --noite: var(--kart-asfalto);
+  --noite-2: var(--kart-asfalto-2);
+  --noite-3: var(--kart-asfalto-3);
+  --asfalto: var(--kart-asfalto);
+  --asfalto-2: var(--kart-asfalto-2);
+  --asfalto-3: var(--kart-asfalto-3);
+
+  --papel: var(--kart-cinza);
+  --papel-2: var(--kart-cinza-2);
+  --texto: var(--kart-texto);
+  --texto-2: #4b5350;
+  --texto-claro: #f3f5f4;
+  --texto-claro-2: rgb(243 245 244 / 0.78);
+  --linha: rgb(25 30 28 / 0.12);
+  --linha-forte: rgb(25 30 28 / 0.26);
+  --linha-clara: rgb(243 245 244 / 0.16);
+
+  /* Assinatura: a faixa tracejada no lugar da faixa do capacete, também na marca dos títulos */
+  --faixa-marca: var(--kart-tracejado);
+  --marcador-secao: repeating-linear-gradient(90deg, var(--kart-gramado) 0 8px, transparent 8px 12px);
+  --marcador-secao-escuro: repeating-linear-gradient(90deg, var(--kart-amarelo) 0 8px, transparent 8px 12px);
+
+  --foco: var(--texto);
+  --destaque-escuro: var(--kart-amarelo);
+  /* Véu das fotos (topo, faixa com foto): asfalto escuro */
+  --veu-foto: #1a1f1d;
+
+  /* A cor do texto é herdada já calculada do <body>: o tema precisa declarar de novo */
+  background: var(--papel);
+  color: var(--texto);
+}
+
+.tema ::selection {
+  background: var(--kart-amarelo);
+  color: var(--kart-texto);
+}
+
+/* Divisor "pista": tira de asfalto com a linha amarela tracejada no meio (enfeite, aria-hidden) */
+.divisorPista {
+  height: 8px;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, var(--kart-amarelo) 0 18px, transparent 18px 30px) center / 100% 2px no-repeat,
+    var(--kart-asfalto);
+}
 
 .secao {
   scroll-margin-top: calc(var(--cabecalho) + 56px);
@@ -81,13 +194,13 @@
   object-fit: cover;
 }
 
-/* Véu para o botão ficar legível sobre a foto */
+/* Véu (asfalto) para o botão ficar legível sobre a foto */
 .mapa::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(0deg, rgb(8 14 10 / 0.72) 0%, rgb(8 14 10 / 0.25) 60%, rgb(8 14 10 / 0.1) 100%);
+  background: linear-gradient(0deg, rgb(25 30 28 / 0.74) 0%, rgb(25 30 28 / 0.25) 60%, rgb(25 30 28 / 0.1) 100%);
   pointer-events: none;
 }
 
@@ -114,7 +227,7 @@
 }
 
 .mapaBotao:focus-visible {
-  outline: 3px solid var(--amarelo);
+  outline: 3px solid var(--destaque-escuro);
   outline-offset: -6px;
   border-radius: var(--raio-g);
 }
@@ -268,7 +381,7 @@ figure.fotoTreino img {
   box-shadow: var(--sombra-1);
 }
 
-/* Número do passo na placa amarela (identidade da placa do kart) */
+/* Número do passo na placa amarela de sinalização, com borda escura */
 .passoNumero {
   display: grid;
   place-items: center;
@@ -294,13 +407,15 @@ figure.fotoTreino img {
   color: var(--texto-2);
 }
 
-/* A pista e a estrutura (só aparece com dados cadastrados) */
+/* A pista e a estrutura (só aparece com dados cadastrados); abre com o divisor "pista" */
 .pista {
   display: grid;
   gap: 20px;
   margin-top: clamp(40px, 5vw, 64px);
-  padding-top: clamp(32px, 4vw, 48px);
-  border-top: 1px solid var(--linha);
+}
+
+.pista > .divisorPista {
+  margin-bottom: clamp(12px, 2vw, 20px);
 }
 
 .tracado {
@@ -491,7 +606,7 @@ figure.fotoTreino img {
 
 .instagramIcone {
   margin-bottom: 4px;
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .instagramPerfil {
@@ -506,13 +621,14 @@ figure.fotoTreino img {
   margin-top: 6px;
 }
 
+/* Outras redes, separadas pela linha tracejada de pista (amarela sobre o asfalto) */
 .redes {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 16px;
   margin-top: 6px;
-  padding-top: 12px;
-  border-top: 1px solid var(--linha-clara);
+  padding-top: 14px;
+  background: var(--kart-tracejado) top left / 100% 2px no-repeat;
 }
 
 .redes a {

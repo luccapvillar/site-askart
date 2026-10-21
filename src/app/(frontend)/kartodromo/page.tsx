@@ -104,6 +104,11 @@ function tituloDosCanais(tipos: string[]): string {
 
 /* ───────────────────────────── página ───────────────────────────── */
 
+/**
+ * Página do Kartódromo, com identidade própria tirada da pista (tema em Kartodromo.module.css: asfalto,
+ * verde do gramado, amarelo de sinalização e a faixa tracejada de pista). Cabeçalho, menu e rodapé continuam
+ * com a identidade da ASKART; as cores das turmas da grade de treinos são as oficiais.
+ */
 export default async function PaginaKartodromo() {
   const [kartodromo, contato, config, grade, agenda, perguntas, textos, noticiasLidas] = await Promise.all([
     lerKartodromo(),
@@ -169,7 +174,7 @@ export default async function PaginaKartodromo() {
   ]
 
   return (
-    <>
+    <div className={k.tema}>
       <TopoPagina
         trilha={[{ rotulo: 'Kartódromo' }]}
         rotulo={`Administrado pela ${sigla}`}
@@ -309,6 +314,7 @@ export default async function PaginaKartodromo() {
 
         {temPista && (
           <div className={k.pista}>
+            <div className={k.divisorPista} aria-hidden="true" />
             <h3 className="titulo-marca h3">A pista e a estrutura</h3>
             {(kartodromo.dadosPista?.length ?? 0) > 0 && (
               <Dados
@@ -502,6 +508,6 @@ export default async function PaginaKartodromo() {
           </div>
         </div>
       </Secao>
-    </>
+    </div>
   )
 }

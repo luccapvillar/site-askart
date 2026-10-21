@@ -1030,19 +1030,19 @@ export interface Campeonato {
    */
   banner?: (number | null) | Midia;
   /**
-   * Opcional. Usadas na aba do campeonato (ex.: BKS em vermelho, azul e branco). Sem cores, o site usa as da ASKART.
+   * Opcional. Usadas na aba do BKS. Vazio: as cores da logo do BKS (azul royal #0A1AB4, vermelho #D52E20 e branco). Se a cor não der leitura com texto branco, o site escurece só o necessário (ou volta à da logo).
    */
   cores?: {
     /**
-     * Cor principal (faixas e títulos).
+     * Cor principal (topo, faixas, títulos e botões). Padrão: azul royal da logo.
      */
     primaria?: string | null;
     /**
-     * Cor de apoio (botões e detalhes).
+     * Cor de apoio (onda do topo, botões de compra e selos). Padrão: vermelho da logo.
      */
     secundaria?: string | null;
     /**
-     * Cor de destaque (pequenos detalhes).
+     * Cor de destaque (pequenos detalhes, como o fio da faixa). Padrão: branco.
      */
     destaque?: string | null;
   };

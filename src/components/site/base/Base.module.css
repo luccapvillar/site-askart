@@ -57,7 +57,7 @@
 
 /* ---------- Faixa com foto ---------- */
 .faixa {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
   position: relative;
   overflow: hidden;
   background: var(--noite);
@@ -74,20 +74,21 @@
   object-fit: cover;
 }
 
+/* Véu na cor do escuro da identidade (--veu-foto; ASKART: #080E0A; os temas das abas trocam) */
 .faixaComFoto::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgb(8 14 10 / 0.88) 0%, rgb(8 14 10 / 0.62) 50%, rgb(8 14 10 / 0.2) 100%),
-    linear-gradient(0deg, rgb(8 14 10 / 0.55), transparent 50%);
+    linear-gradient(90deg, color-mix(in srgb, var(--veu-foto, #080e0a) 88%, transparent) 0%, color-mix(in srgb, var(--veu-foto, #080e0a) 62%, transparent) 50%, color-mix(in srgb, var(--veu-foto, #080e0a) 20%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--veu-foto, #080e0a) 55%, transparent), transparent 50%);
 }
 
 .faixaDireita.faixaComFoto::before {
   background:
-    linear-gradient(270deg, rgb(8 14 10 / 0.88) 0%, rgb(8 14 10 / 0.62) 50%, rgb(8 14 10 / 0.2) 100%),
-    linear-gradient(0deg, rgb(8 14 10 / 0.55), transparent 50%);
+    linear-gradient(270deg, color-mix(in srgb, var(--veu-foto, #080e0a) 88%, transparent) 0%, color-mix(in srgb, var(--veu-foto, #080e0a) 62%, transparent) 50%, color-mix(in srgb, var(--veu-foto, #080e0a) 20%, transparent) 100%),
+    linear-gradient(0deg, color-mix(in srgb, var(--veu-foto, #080e0a) 55%, transparent), transparent 50%);
 }
 
 .faixaConteudo {
@@ -111,7 +112,7 @@
 }
 
 .faixaRotulo {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .faixaTexto {

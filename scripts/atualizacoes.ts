@@ -19,6 +19,10 @@
  * 7. Topo da página inicial da ASKART (pedido do cliente: "o começo do site é mais da ASKART, e não do
  *    kartódromo nem do BKS"): o título, o subtítulo e os botões do topo que ainda forem o padrão antigo do
  *    BKS voltam a vazio — e vazio agora é a apresentação da ASKART. O que o moderador escreveu fica.
+ * 8. Identidade da aba BKS pelas cores da logo (pedido do cliente): as cores do campeonato BKS passam a ser
+ *    as da logo — azul royal como principal, vermelho de apoio e branco de destaque — SÓ se ainda estiverem
+ *    vazias ou no padrão antigo (vermelho como principal, gravado pelo dados:oficiais). Cor escolhida no
+ *    painel fica como está.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -33,6 +37,7 @@ import {
 import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
+import { CORES_BKS, coresDoBksSemEscolha } from '../src/lib/site'
 import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
@@ -728,6 +733,51 @@ async function exemplosDoIndoor(payload: Payload): Promise<string> {
   return `${criadas} sessão(ões) de exemplo do Kart indoor nas etapas futuras de demonstração`
 }
 
+/* ─────────────────── 8. Cores do BKS: as da logo, com o azul como principal ─────────────────── */
+
+type CoresGravadas = { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined
+
+/**
+ * A aba BKS ganhou a identidade da logo: azul royal (principal: topo, faixas, títulos, botões), vermelho (apoio:
+ * onda do topo, compra, selos) e branco (destaque). O campeonato BKS (sigla BKS ou o campeonato principal das
+ * Configurações) recebe essas cores SÓ se as dele ainda estiverem vazias ou iguais às antigas do dados:oficiais
+ * (#D02D21 principal, #0201B8 apoio, #FFFFFF destaque). Qualquer cor escolhida no painel fica como está. O site já
+ * trata as antigas como "sem cores" (variaveisDoTemaBks); este passo só deixa o painel mostrando as certas.
+ */
+async function coresDoBks(payload: Payload): Promise<string> {
+  const configuracoes = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as {
+    campeonatoPrincipal?: IdRel
+  }
+  const principal = idDaRel(configuracoes.campeonatoPrincipal)
+  const { docs } = await payload.find({
+    collection: 'campeonatos',
+    where: principal !== null ? { or: [{ sigla: { equals: 'BKS' } }, { id: { equals: principal } }] } : { sigla: { equals: 'BKS' } },
+    limit: 10,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const campeonatos = docs as unknown as { id: number; nome?: string | null; cores?: CoresGravadas }[]
+  if (!campeonatos.length) return 'nada a fazer: campeonato BKS não encontrado'
+  const trocados: string[] = []
+  const mantidos: string[] = []
+  for (const c of campeonatos) {
+    if (!coresDoBksSemEscolha(c.cores)) {
+      mantidos.push(`"${c.nome ?? c.id}"`)
+      continue
+    }
+    await payload.update({ collection: 'campeonatos', id: c.id, data: { cores: { ...CORES_BKS } } as never, overrideAccess: true, context: { ...contexto } })
+    trocados.push(`"${c.nome ?? c.id}"`)
+  }
+  return [
+    trocados.length
+      ? `cores da logo gravadas em ${trocados.join(', ')} (principal ${CORES_BKS.primaria}, apoio ${CORES_BKS.secundaria}, destaque ${CORES_BKS.destaque})`
+      : null,
+    mantidos.length ? `cores escolhidas no painel mantidas em ${mantidos.join(', ')}` : null,
+  ]
+    .filter(Boolean)
+    .join('; ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -752,6 +802,7 @@ const ATUALIZACOES: Atualizacao[] = [
     aplicar: etapaPelaMediaDasCorridas,
   },
   { chave: 'atualizacao:2026-10-topo-da-askart', descricao: 'Topo da página inicial com a apresentação da ASKART', aplicar: topoDaAskart },
+  { chave: 'atualizacao:2026-10-cores-do-bks', descricao: 'Cores do BKS pela logo (azul royal, vermelho e branco)', aplicar: coresDoBks },
 ]
 
 async function principal() {

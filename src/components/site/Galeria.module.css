@@ -174,7 +174,7 @@
 }
 
 .dialogo {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
   width: 100%;
   max-width: 100%;
   height: 100%;
@@ -276,7 +276,7 @@
 }
 
 .controle:focus-visible {
-  outline: 3px solid var(--amarelo);
+  outline: 3px solid var(--destaque-escuro);
   outline-offset: 2px;
 }
 

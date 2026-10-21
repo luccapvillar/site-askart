@@ -1,24 +1,153 @@
 /* ==========================================================================
    Aba BKS — topo com a logo, divisão "Karts profissionais | Karts indoor", seções, calendário,
-   categorias, classificação, resultados, história, regulamento e fotos.
-   Identidade do capacete (verde, branco, vermelho) e placa amarela. Sem JavaScript no navegador.
+   categorias, classificação, resultados, história, regulamento e fotos. Sem JavaScript no navegador.
    ========================================================================== */
 
+/* ==========================================================================
+   Tema do BKS: as cores da logo (bandeira em ondas azul royal e vermelha, letras "BKS" brancas e, só
+   como detalhe, o verde-escuro do emblema). Vale dentro da aba BKS (bks/layout.tsx), na página da etapa e
+   nas galerias do BKS; cabeçalho, menu, rodapé e página inicial continuam com a identidade da ASKART.
+
+   As cores-base podem vir do painel (Campeonatos › Cores → variaveisDoTemaBks em src/lib/site.ts, que só
+   aceita cores com leitura em branco) e os tons derivados acompanham. Os tokens da ASKART (--verde,
+   --amarelo, --noite, --papel, --texto…) são remapeados aqui dentro: as peças do site herdam o tema sem
+   reescrever nada. O roxo do melhor tempo (MatrizEtapa) e as cores de estado (ok, atenção, perigo) não mudam.
+
+   Mapa:  --verde (ação principal, links, rótulos) → azul royal
+          --amarelo (destaque: compra, selos, placa do 1º, próxima etapa) → vermelho (texto branco)
+          --noite (faixas escuras, data em bloco, aba escolhida) → azul royal
+          --destaque-escuro (rótulos, links e foco sobre o azul) → branco
+
+   Contrastes (WCAG 2.1, com as cores padrão):
+     branco / azul #0A1AB4 ................. 11,5:1  topo, aba de área, botão principal, data em bloco
+     azul / branco 11,5:1 · azul / papel ... 10,5:1  links e rótulos
+     azul-forte #051085 / branco ........... 14,8:1  links, hover do botão principal
+     branco / vermelho #D52E20 ............. 4,95:1  botão de compra, selos, placa do 1º lugar
+     branco / vermelho-escuro #A32116 ...... 7,5:1   hover do botão de compra
+     vermelho / branco (traço) ............. 4,95:1  sublinhado da seção atual (mín. 3:1)
+     vermelho / azul-escuro #010548 ........ 3,8:1   botão de compra na caixa da IZY (mín. 3:1)
+     texto #0E1230 / papel #F3F4F9 ......... 16,7:1  · texto / tintas azul e vermelha 16:1
+     texto-2 #464C66 / papel 7,7:1 · / papel-2 #E4E7F1 6,8:1 · / branco 8,5:1
+     texto-claro-2 (branco 80%) / azul ..... 7,2:1   · aba de área não escolhida: branco / 9,4:1
+     branco / véu do topo sobre foto branca  10:1    (pior caso; com cor do painel no limite, 6,4:1)
+     anel de foco: texto / claro 18,3:1 · branco / azul 11,5:1
+     borda do seletor de subcategoria / branco 4,7:1 (mín. 3:1)
+   ========================================================================== */
 .tema {
-  /* Nome antigo usado por peças reaproveitadas: a cor de apoio da aba é o verde da marca */
-  --camp-p: var(--verde);
+  /* Cores da logo (as três primeiras podem vir do painel) */
+  --bks-azul: #0a1ab4;
+  --bks-vermelho: #d52e20;
+  --bks-detalhe: #ffffff;
+  --bks-verde: #294939; /* verde-escuro do emblema: só detalhe (branco sobre ele: 10:1) */
+
+  /* Tons derivados */
+  --bks-azul-forte: color-mix(in oklab, var(--bks-azul) 80%, black); /* #051085 */
+  --bks-azul-escuro: color-mix(in oklab, var(--bks-azul) 52%, black); /* #010548: véus e caixas sobre o azul */
+  --bks-azul-claro: color-mix(in oklab, var(--bks-azul) 30%, white); /* #ACC1EE: azul legível sobre o azul (6,4:1) */
+  --bks-tinta: color-mix(in oklab, var(--bks-azul) 7%, white); /* #EBF0FC: fundo suave */
+  --bks-vermelho-escuro: color-mix(in oklab, var(--bks-vermelho) 82%, black); /* #A32116 */
+  --bks-vermelho-tinta: color-mix(in oklab, var(--bks-vermelho) 10%, white); /* #FEECE9 */
+  --bks-texto: #0e1230;
+  /* Faixa da aba (no lugar da faixa do capacete): a dupla vermelho e azul, com um fio branco */
+  --bks-faixa: linear-gradient(90deg, var(--bks-vermelho) 0 60%, var(--bks-detalhe) 60% 62%, var(--bks-azul) 62% 100%);
+
+  /* Remapeamento dos tokens da ASKART */
+  --marca-primaria: var(--bks-azul);
+  --marca-secundaria: var(--bks-vermelho);
+  --marca-destaque: var(--bks-vermelho);
+  --marca-escuro: var(--bks-texto);
+  --sobre-primaria: #ffffff;
+  --sobre-secundaria: #ffffff;
+
+  --verde: var(--bks-azul);
+  --verde-escuro: var(--bks-azul-forte);
+  --verde-claro: color-mix(in oklab, var(--bks-azul) 55%, white);
+  --verde-tinta: var(--bks-tinta);
+  --verde-sobre-escuro: var(--bks-azul-claro);
+
+  --amarelo: var(--bks-vermelho);
+  --amarelo-escuro: var(--bks-vermelho-escuro);
+  --amarelo-tinta: var(--bks-vermelho-tinta);
+
+  --vermelho: var(--bks-vermelho);
+  --vermelho-escuro: var(--bks-vermelho-escuro);
+  --vermelho-tinta: var(--bks-vermelho-tinta);
+
+  --noite: var(--bks-azul);
+  --noite-2: color-mix(in oklab, var(--bks-azul) 90%, white);
+  --noite-3: color-mix(in oklab, var(--bks-azul) 80%, white);
+  --asfalto: var(--noite);
+  --asfalto-2: var(--noite-2);
+  --asfalto-3: var(--noite-3);
+
+  --papel: #f3f4f9;
+  --papel-2: #e4e7f1;
+  --texto: var(--bks-texto);
+  --texto-2: #464c66;
+  --texto-claro: #f5f6ff;
+  --texto-claro-2: rgb(245 246 255 / 0.8);
+  --linha: rgb(14 18 48 / 0.12);
+  --linha-forte: rgb(14 18 48 / 0.26);
+  --linha-clara: rgb(245 246 255 / 0.18);
+
+  --faixa-marca: var(--bks-faixa);
+  --foco: var(--texto);
+  --destaque-escuro: #ffffff;
+  /* Véu das fotos (topo das páginas, faixas com foto): azul-escuro. Branco / véu de 88% sobre foto branca: 14:1 */
+  --veu-foto: var(--bks-azul-escuro);
+  /* Placa de número sem cor de categoria: vermelha com número branco (4,95:1) */
+  --texto-placa: #ffffff;
+  /* Linha do líder na classificação: azul-claro (o vermelho fica para a placa do 1º) */
+  --lider-fundo: var(--bks-tinta);
+  /* Nome antigo usado por peças reaproveitadas */
+  --camp-p: var(--bks-azul);
+
+  /* A cor do texto é herdada já calculada do <body>: o tema precisa declarar de novo */
+  background: var(--papel);
+  color: var(--texto);
+}
+
+.tema ::selection {
+  background: var(--bks-azul);
+  color: #ffffff;
 }
 
 /* ==========================================================================
-   Topo da aba (logo do BKS sobre a foto do campeonato)
+   Topo da aba: faixa forte em azul royal (a foto do campeonato entra só como textura, sob o véu azul),
+   a logo do BKS em branco e colorido e uma onda vermelha desenhada em CSS, como as da bandeira da logo.
+   A faixa das áreas logo abaixo continua no mesmo azul: azul · onda vermelha · azul.
    ========================================================================== */
 .topo {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
+  /* Altura da onda: o conteúdo fica acima dela */
+  --onda: clamp(44px, 7vw, 92px);
   position: relative;
   overflow: hidden;
-  background: var(--noite);
-  color: var(--texto-claro);
+  background: var(--bks-azul);
+  color: #ffffff;
   isolation: isolate;
+}
+
+/* Onda vermelha (decorativa): uma faixa em S, como a dobra da bandeira, com um leve brilho de tecido.
+   Só CSS (clip-path em %), acompanha a largura da tela. Vermelho / azul 2,3:1: puro enfeite, sem texto. */
+.topo::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: var(--onda);
+  background: linear-gradient(
+    100deg,
+    var(--bks-vermelho) 0 30%,
+    color-mix(in oklab, var(--bks-vermelho) 86%, white) 48%,
+    var(--bks-vermelho) 66% 100%
+  );
+  clip-path: polygon(
+    0% 56%, 5% 56.6%, 10% 57%, 15% 57%, 20% 56.3%, 25% 55%, 30% 52.9%, 35% 50.2%, 40% 46.8%, 45% 43%, 50% 39%,
+    55% 35%, 60% 31.2%, 65% 27.8%, 70% 25.1%, 75% 23%, 80% 21.7%, 85% 21%, 90% 21%, 95% 21.4%, 100% 22%,
+    100% 52%, 95% 52.8%, 90% 53.8%, 85% 55.1%, 80% 57%, 75% 59.4%, 70% 62.3%, 65% 65.9%, 60% 69.8%, 55% 73.9%,
+    50% 78%, 45% 81.9%, 40% 85.4%, 35% 88.2%, 30% 90.2%, 25% 91.4%, 20% 91.6%, 15% 91.1%, 10% 89.8%, 5% 88%, 0% 86%
+  );
 }
 
 .topoFoto {
@@ -30,21 +159,23 @@
   object-fit: cover;
 }
 
-/* Véu: a base fica toda no verde-noite para emendar com as abas das áreas logo abaixo */
+/* Véu azul sobre a foto: a faixa continua azul royal e a foto vira textura. Na base, azul puro para emendar
+   com as abas das áreas. Branco sobre o véu, no pior caso (foto toda branca): 10:1. */
 .topoComFoto::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(0deg, var(--noite) 0%, rgb(14 22 16 / 0.82) 34%, rgb(14 22 16 / 0.5) 72%, rgb(14 22 16 / 0.42) 100%),
-    linear-gradient(90deg, rgb(14 22 16 / 0.7) 0%, rgb(14 22 16 / 0) 70%);
+    linear-gradient(0deg, var(--bks-azul) 0, transparent 26%),
+    linear-gradient(color-mix(in srgb, var(--bks-azul-escuro) 30%, transparent), color-mix(in srgb, var(--bks-azul-escuro) 30%, transparent)),
+    color-mix(in srgb, var(--bks-azul) 80%, transparent);
 }
 
 .topoConteudo {
   display: grid;
   gap: 28px;
-  padding-block: clamp(36px, 6vw, 80px) clamp(28px, 4vw, 44px);
+  padding-block: clamp(36px, 6vw, 80px) calc(var(--onda) + clamp(8px, 1.5vw, 16px));
 }
 
 @media (min-width: 960px) {
@@ -61,8 +192,21 @@
   justify-items: start;
 }
 
+/* Rótulo em branco com o traço vermelho e azul da aba */
 .topoRotulo {
-  color: var(--amarelo);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--destaque-escuro);
+}
+
+.topoRotulo::before {
+  content: '';
+  flex: none;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--bks-vermelho) 0 60%, var(--bks-detalhe) 60% 100%);
 }
 
 .logoTitulo {
@@ -104,18 +248,19 @@
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--amarelo);
+  background: var(--bks-vermelho);
+  box-shadow: 0 0 0 1.5px var(--bks-detalhe);
 }
 
-/* Compra pela IZY Pass */
+/* Compra pela IZY Pass: caixa azul-escura (branco 16,9:1; botão vermelho / caixa 3,8:1) */
 .topoIzy {
   display: grid;
   gap: 10px;
   justify-items: start;
   padding: 20px;
-  border: 1px solid rgb(255 255 255 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.2);
   border-radius: var(--raio-g);
-  background: rgb(8 14 10 / 0.62);
+  background: color-mix(in srgb, var(--bks-azul-escuro) 72%, transparent);
 }
 
 .topoIzyTitulo {
@@ -169,10 +314,11 @@
 }
 
 /* ==========================================================================
-   Divisão "Karts profissionais | Karts indoor" (abas presas ao topo escuro)
+   Divisão "Karts profissionais | Karts indoor" (abas presas ao topo azul). A área escolhida fica branca,
+   ligada ao conteúdo, com o traço vermelho em cima e aria-current: não é só a cor que muda.
    ========================================================================== */
 .areas {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
   background: var(--noite);
   color: var(--texto-claro);
 }
@@ -197,10 +343,10 @@
   gap: 10px;
   min-height: 60px;
   padding: 12px 16px;
-  border: 1px solid rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.24);
   border-bottom: 0;
   border-radius: var(--raio-g) var(--raio-g) 0 0;
-  background: rgb(255 255 255 / 0.07);
+  background: rgb(255 255 255 / 0.1);
   color: var(--texto-claro);
   font-variation-settings: 'wdth' 106;
   font-weight: 750;
@@ -219,19 +365,19 @@
 }
 
 .area:hover {
-  background: rgb(255 255 255 / 0.14);
+  background: rgb(255 255 255 / 0.18);
 }
 
 .area[aria-current='page'] {
   border-color: var(--branco);
   background: var(--branco);
   color: var(--texto);
-  box-shadow: inset 0 4px 0 var(--verde);
+  box-shadow: inset 0 4px 0 var(--amarelo);
 }
 
 .areaIcone {
   flex: none;
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .area[aria-current='page'] .areaIcone {
@@ -248,7 +394,7 @@
   outline-offset: -4px;
 }
 
-/* Na aba branca (área atual) o anel de foco amarelo não aparece: usa o escuro */
+/* Na aba branca (área atual) o anel de foco claro não aparece: usa o escuro */
 .area[aria-current='page']:focus-visible {
   outline-color: var(--texto);
 }
@@ -317,8 +463,9 @@
   font-weight: 750;
 }
 
+/* Seção atual: texto mais forte e o traço vermelho embaixo (vermelho / branco 4,95:1) */
 .secoesLista a[aria-current='page']::after {
-  background: var(--verde);
+  background: var(--amarelo);
 }
 
 .secoesLista a:focus-visible {
@@ -507,7 +654,8 @@
   text-underline-offset: 0.18em;
 }
 
-/* Data em bloco: verde-noite e mês em amarelo; etapas que já passaram ficam neutras */
+/* Data em bloco: fundo escuro da identidade (no BKS, o azul royal), traço vermelho embaixo e o mês na cor de
+   destaque sobre o escuro; etapas que já passaram ficam neutras */
 .data {
   display: grid;
   place-content: center;
@@ -559,7 +707,7 @@
   letter-spacing: 0.12em;
   line-height: 1.2;
   text-transform: uppercase;
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .dataApagada .mes {
@@ -1048,7 +1196,7 @@
   padding: 14px;
   border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: var(--raio);
-  background: rgb(8 14 10 / 0.6);
+  background: color-mix(in srgb, var(--bks-azul-escuro, #080e0a) 64%, transparent);
 }
 
 .publicoIcone {
@@ -1154,7 +1302,7 @@
   gap: 1px;
   padding: 10px 16px;
   border-radius: var(--raio);
-  background: var(--amarelo-tinta);
+  background: var(--lider-fundo, var(--amarelo-tinta));
   line-height: 1.3;
 }
 
@@ -1228,7 +1376,7 @@
   padding: 8px 12px;
   border-radius: var(--raio);
   background: var(--amarelo-tinta);
-  color: #3d3200;
+  color: var(--texto);
   font-size: 0.8125rem;
   line-height: 1.4;
 }
@@ -1237,7 +1385,7 @@
   padding: 1px 7px;
   border-radius: 3px;
   background: var(--amarelo);
-  color: #111;
+  color: var(--sobre-secundaria, #111);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -1290,7 +1438,7 @@
 }
 
 .seletorEtapas a[aria-current='page'] .seletorData {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .resultadoEtapa {
@@ -1671,7 +1819,7 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--raio-p);
-  background: rgb(8 14 10 / 0.8);
+  background: color-mix(in srgb, var(--bks-azul-escuro, #080e0a) 82%, transparent);
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 700;

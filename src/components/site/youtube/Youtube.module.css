@@ -41,7 +41,7 @@
 }
 
 .fachada:focus-visible {
-  outline: 3px solid var(--amarelo);
+  outline: 3px solid var(--destaque-escuro);
   outline-offset: -6px;
 }
 

@@ -164,6 +164,66 @@ export function variaveisDoCampeonato(cores: { primaria?: string | null; secunda
   return v
 }
 
+/* ───────────────────────────── tema da aba BKS ───────────────────────────── */
+
+type CoresCampeonato = { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined
+
+/**
+ * Cores da logo do BKS (bandeira em ondas azul royal e vermelha, letras brancas): o padrão da aba BKS.
+ * Principal = azul (topo, faixas, títulos e botões); apoio = vermelho (onda do topo, compra, selos);
+ * destaque = branco (fios e pequenos detalhes). Os mesmos valores estão em Bks.module.css (.tema).
+ */
+export const CORES_BKS = { primaria: '#0A1AB4', secundaria: '#D52E20', destaque: '#FFFFFF' } as const
+
+/**
+ * Cores gravadas antes no BKS (npm run dados:oficiais), com o vermelho como principal. Valem como "sem cores":
+ * a aba usa as da logo, e a atualização do banco (scripts/atualizacoes.ts) troca pelas novas.
+ */
+export const CORES_BKS_ANTIGAS = { primaria: '#D02D21', secundaria: '#0201B8', destaque: '#FFFFFF' } as const
+
+const vazia = (v: unknown) => !(typeof v === 'string' && v.trim())
+const igual = (v: unknown, cor: string) => typeof v === 'string' && v.trim().toUpperCase() === cor
+
+/** As cores do campeonato estão vazias ou ainda são as antigas (ninguém escolheu outras no painel)? */
+export function coresDoBksSemEscolha(cores: CoresCampeonato): boolean {
+  if (vazia(cores?.primaria) && vazia(cores?.secundaria) && vazia(cores?.destaque)) return true
+  return (
+    igual(cores?.primaria, CORES_BKS_ANTIGAS.primaria) &&
+    igual(cores?.secundaria, CORES_BKS_ANTIGAS.secundaria) &&
+    (vazia(cores?.destaque) || igual(cores?.destaque, CORES_BKS_ANTIGAS.destaque))
+  )
+}
+
+/**
+ * A cor, escurecida só o necessário para o texto branco ter o contraste pedido. Se precisar escurecer mais de
+ * um terço (a cor deixaria de parecer a escolhida, ex.: amarelo virando oliva): null.
+ */
+function escurecidaParaBranco(hex: string, minimo: number): string | null {
+  for (let t = 0; t <= 0.36; t += 0.04) {
+    const cor = t === 0 ? hex.toUpperCase() : misturar(hex, 0, t)
+    if (contraste(cor, '#FFFFFF') >= minimo) return cor
+  }
+  return null
+}
+
+/**
+ * Variáveis do tema da aba BKS a partir das cores do campeonato (painel › Campeonatos › Cores): --bks-azul
+ * (principal), --bks-vermelho (apoio) e --bks-detalhe. Os tons derivados (azul-escuro, tintas…) saem delas no
+ * CSS. Sem cores, com as antigas ou com uma cor que não dá leitura com texto branco, nada é trocado e a aba
+ * fica com as cores da logo. A principal leva texto branco em faixas e sobre fotos (com véu): pede 7:1; a de
+ * apoio leva texto branco em botões e selos: 4,5:1.
+ */
+export function variaveisDoTemaBks(cores: CoresCampeonato): Record<string, string> {
+  if (coresDoBksSemEscolha(cores)) return {}
+  const v: Record<string, string> = {}
+  const azul = hexValido(cores?.primaria) ? escurecidaParaBranco(cores.primaria, 7) : null
+  const vermelho = hexValido(cores?.secundaria) ? escurecidaParaBranco(cores.secundaria, 4.5) : null
+  if (azul && azul !== CORES_BKS.primaria) v['--bks-azul'] = azul
+  if (vermelho && vermelho !== CORES_BKS.secundaria) v['--bks-vermelho'] = vermelho
+  if (hexValido(cores?.destaque) && cores.destaque.toUpperCase() !== CORES_BKS.destaque) v['--bks-detalhe'] = cores.destaque.toUpperCase()
+  return v
+}
+
 /* ───────────────────────────── etapas ───────────────────────────── */
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']

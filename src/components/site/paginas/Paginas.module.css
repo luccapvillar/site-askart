@@ -2,7 +2,7 @@
    Topo das páginas internas
    ========================================================================== */
 .topo {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
   position: relative;
   overflow: hidden;
   background: var(--noite);
@@ -19,15 +19,16 @@
   object-fit: cover;
 }
 
-/* Véu para leitura: mais forte embaixo e à esquerda, onde fica o texto */
+/* Véu para leitura: mais forte embaixo e à esquerda, onde fica o texto. A cor do véu é a do escuro da
+   identidade (--veu-foto; ASKART: verde-quase-preto #080E0A; os temas do BKS e do Kartódromo trocam). */
 .comFoto::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(0deg, rgb(8 14 10 / 0.88) 0%, rgb(8 14 10 / 0.35) 55%, rgb(8 14 10 / 0.15) 100%),
-    linear-gradient(90deg, rgb(8 14 10 / 0.7) 0%, rgb(8 14 10 / 0) 70%);
+    linear-gradient(0deg, color-mix(in srgb, var(--veu-foto, #080e0a) 88%, transparent) 0%, color-mix(in srgb, var(--veu-foto, #080e0a) 35%, transparent) 55%, color-mix(in srgb, var(--veu-foto, #080e0a) 15%, transparent) 100%),
+    linear-gradient(90deg, color-mix(in srgb, var(--veu-foto, #080e0a) 70%, transparent) 0%, color-mix(in srgb, var(--veu-foto, #080e0a) 0%, transparent) 70%);
 }
 
 .topoConteudo {
@@ -56,7 +57,7 @@
 }
 
 .topoRotulo {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .intro {

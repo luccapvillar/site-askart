@@ -142,9 +142,9 @@
   margin-top: 2px;
 }
 
-/* Líder: faixa amarela suave em toda a linha */
+/* Líder: faixa amarela suave em toda a linha (o tema do BKS troca por --lider-fundo, azul-claro) */
 .lider > * {
-  background: color-mix(in oklab, var(--amarelo) 14%, white);
+  background: var(--lider-fundo, color-mix(in oklab, var(--amarelo) 14%, white));
 }
 
 .variacao {
@@ -199,7 +199,7 @@
   }
 
   .lider + .detalhe td {
-    background: color-mix(in oklab, var(--amarelo) 14%, white);
+    background: var(--lider-fundo, color-mix(in oklab, var(--amarelo) 14%, white));
   }
 
   .detalhes summary {

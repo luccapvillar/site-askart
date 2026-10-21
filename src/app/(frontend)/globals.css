@@ -96,6 +96,9 @@
 
   /* Anel de foco: escuro no claro; os fundos escuros trocam para o amarelo */
   --foco: var(--texto);
+  /* Destaque sobre fundo escuro (rótulos, links, ícones e anel de foco nas faixas escuras). Na ASKART é o
+     amarelo da placa; os temas das abas (BKS e Kartódromo) trocam por uma cor legível no escuro deles. */
+  --destaque-escuro: var(--amarelo);
 
   /* ---------- Tipografia ---------- */
   --fonte: var(--fonte-archivo), system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -407,7 +410,7 @@ main:focus {
 }
 
 .escuro {
-  --foco: var(--amarelo);
+  --foco: var(--destaque-escuro);
   background: var(--noite);
   color: var(--texto-claro);
 }
@@ -418,7 +421,7 @@ main:focus {
 }
 
 .escuro .link-seta {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 /* ==========================================================================
@@ -543,7 +546,7 @@ main:focus {
 }
 
 .escuro .prosa a {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 /* Cartão neutro reaproveitável */

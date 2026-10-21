@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { CSSProperties } from 'react'
 import s from '@/components/site/bks/Bks.module.css'
 import { infoDaGaleria } from '@/components/site/bks/CartoesGaleria'
 import { capaDaGaleria } from '@/components/site/bks/fotos'
@@ -9,7 +10,8 @@ import { TopoPagina, type ItemTrilha } from '@/components/site/paginas/TopoPagin
 import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { creditosDasFotos, fotosDaGaleria } from '@/lib/galeria'
 import { comoDoc, lerGaleria } from '@/lib/publico'
-import type { Etapa } from '@/payload-types'
+import { variaveisDoTemaBks } from '@/lib/site'
+import type { Campeonato, Etapa } from '@/payload-types'
 
 export const revalidate = 60
 export const dynamicParams = true
@@ -24,7 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 /**
  * Página de uma galeria: topo com a capa, a grade de fotos (mesma proporção, sem buracos) com legenda e
- * crédito, e a ampliação acessível ao tocar na foto. Galeria do BKS volta para a sub-aba Fotos.
+ * crédito, e a ampliação acessível ao tocar na foto. Galeria do BKS volta para a sub-aba Fotos e usa o tema
+ * da aba BKS (cores da logo, Bks.module.css).
  */
 export default async function PaginaGaleria({ params }: Props) {
   const g = await lerGaleria((await params).slug)
@@ -38,7 +41,7 @@ export default async function PaginaGaleria({ params }: Props) {
     ? [{ rotulo: 'BKS', href: '/bks' }, { rotulo: 'Fotos', href: '/bks/fotos' }, { rotulo: semDemo(g.titulo) }]
     : [{ rotulo: semDemo(g.titulo) }]
 
-  return (
+  const pagina = (
     <>
       <TopoPagina
         trilha={trilha}
@@ -80,5 +83,11 @@ export default async function PaginaGaleria({ params }: Props) {
         </div>
       </section>
     </>
+  )
+  if (!doBks) return pagina
+  return (
+    <div className={s.tema} style={variaveisDoTemaBks(comoDoc<Campeonato>(g.campeonato)?.cores) as CSSProperties}>
+      {pagina}
+    </div>
   )
 }

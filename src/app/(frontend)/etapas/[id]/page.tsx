@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { CSSProperties } from 'react'
 import { MatrizesDaModalidade, resultadoComCategorias } from '@/components/site/bks/AreaResultados'
 import b from '@/components/site/bks/Bks.module.css'
 import {
@@ -30,7 +31,17 @@ import { TextoRico } from '@/components/site/TextoRico'
 import { formatarData, formatarHora } from '@/lib/datas'
 import { creditosDasFotos, fotosDaGaleria } from '@/lib/galeria'
 import { comoDoc, lerBks, lerConfiguracoes, lerContato, lerConteudoDaEtapa, lerEtapa, lerProgramacao, lerResultadosEtapa } from '@/lib/publico'
-import { caminhoDaArea, corridaNaModalidade, eventoPublico, mapaDaEtapa, modalidadeDe, modalidadesDaEtapa, ROTULO_MODALIDADE, situacaoDaEtapa } from '@/lib/site'
+import {
+  caminhoDaArea,
+  corridaNaModalidade,
+  eventoPublico,
+  mapaDaEtapa,
+  modalidadeDe,
+  modalidadesDaEtapa,
+  ROTULO_MODALIDADE,
+  situacaoDaEtapa,
+  variaveisDoTemaBks,
+} from '@/lib/site'
 import type { Campeonato, Categoria, CategoriasNoticia, Midia, Temporada } from '@/payload-types'
 
 export const revalidate = 60
@@ -54,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * dos treinos livres e a transmissão (karts profissionais e karts indoor). Depois da etapa as compras somem
  * sozinhas e aparece "Esta etapa já ocorreu em …"; a transmissão continua (a gravação fica no link) e
  * entra o resultado (matriz por subcategoria, com o melhor tempo de cada sessão em roxo). A regra está em
- * situacaoDaEtapa (src/lib/site.ts).
+ * situacaoDaEtapa (src/lib/site.ts). A página é do BKS: usa o tema da aba (cores da logo, Bks.module.css).
  */
 export default async function PaginaEtapa({ params }: Props) {
   const id = Number((await params).id)
@@ -108,7 +119,7 @@ export default async function PaginaEtapa({ params }: Props) {
   ].filter((i): i is { id: string; rotulo: string } => Boolean(i))
 
   return (
-    <>
+    <div className={b.tema} style={variaveisDoTemaBks(campeonato?.cores) as CSSProperties}>
       <TopoPagina
         trilha={[
           { rotulo: 'BKS', href: '/bks' },
@@ -308,6 +319,6 @@ export default async function PaginaEtapa({ params }: Props) {
           </Link>
         </div>
       </nav>
-    </>
+    </div>
   )
 }

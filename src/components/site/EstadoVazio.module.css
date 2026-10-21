@@ -13,7 +13,7 @@
 
 :global(.escuro) .vazio {
   border-color: var(--linha-clara);
-  border-left-color: var(--amarelo);
+  border-left-color: var(--destaque-escuro);
   background: rgb(255 255 255 / 0.04);
 }
 
@@ -29,7 +29,7 @@
 
 :global(.escuro) .icone {
   background: rgb(255 255 255 / 0.08);
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 .texto {

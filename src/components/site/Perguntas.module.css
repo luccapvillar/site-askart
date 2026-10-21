@@ -102,7 +102,7 @@
 :global(.escuro) .sinal {
   border-color: var(--linha-clara);
   background: transparent;
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
 :global(.escuro) .resposta {

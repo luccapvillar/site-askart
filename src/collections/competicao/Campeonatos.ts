@@ -80,15 +80,15 @@ export const Campeonatos: CollectionConfig = comAcessoRestrito({
       type: 'group',
       admin: {
         description:
-          'Opcional. Usadas na aba do campeonato (ex.: BKS em vermelho, azul e branco). Sem cores, o site usa as da ASKART.',
+          'Opcional. Usadas na aba do BKS. Vazio: as cores da logo do BKS (azul royal #0A1AB4, vermelho #D52E20 e branco). Se a cor não der leitura com texto branco, o site escurece só o necessário (ou volta à da logo).',
       },
       fields: [
         {
           type: 'row',
           fields: [
-            campoCor('Cor principal (faixas e títulos).', 'primaria', 'Principal'),
-            campoCor('Cor de apoio (botões e detalhes).', 'secundaria', 'Secundária'),
-            campoCor('Cor de destaque (pequenos detalhes).', 'destaque', 'Destaque'),
+            campoCor('Cor principal (topo, faixas, títulos e botões). Padrão: azul royal da logo.', 'primaria', 'Principal'),
+            campoCor('Cor de apoio (onda do topo, botões de compra e selos). Padrão: vermelho da logo.', 'secundaria', 'Secundária'),
+            campoCor('Cor de destaque (pequenos detalhes, como o fio da faixa). Padrão: branco.', 'destaque', 'Destaque'),
           ],
         },
       ],

@@ -20,20 +20,21 @@
 }
 
 :global(.escuro) .rotulo {
-  color: var(--amarelo);
+  color: var(--destaque-escuro);
 }
 
-/* Marca do capacete: traço verde com ponta vermelha */
+/* Marca do capacete: traço verde com ponta vermelha. Os temas das abas podem trocar o desenho
+   (--marcador-secao e --marcador-secao-escuro; ex.: a faixa tracejada de pista do Kartódromo). */
 .marcador {
   flex: none;
   width: 28px;
   height: 4px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--verde) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%);
+  background: var(--marcador-secao, linear-gradient(90deg, var(--verde) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%));
 }
 
 :global(.escuro) .marcador {
-  background: linear-gradient(90deg, var(--verde-sobre-escuro) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%);
+  background: var(--marcador-secao-escuro, linear-gradient(90deg, var(--verde-sobre-escuro) 0 68%, transparent 68% 76%, var(--vermelho) 76% 100%));
 }
 
 .subtitulo {

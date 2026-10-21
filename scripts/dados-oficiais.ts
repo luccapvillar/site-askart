@@ -16,6 +16,7 @@ import config from '../src/payload.config'
 import { CATEGORIAS_INDOOR_OFICIAIS } from '../src/collections/competicao/Categorias'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import { ITENS_EVENTO_PUBLICO_PADRAO, TEXTO_EVENTO_PUBLICO_PADRAO } from '../src/globals/Configuracoes'
+import { CORES_BKS } from '../src/lib/site'
 import { contexto, fotosOficiais, type Id, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Dia = 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo'
@@ -236,7 +237,8 @@ export async function carregarDadosOficiais(payload: Payload) {
       sigla: 'BKS',
       logo: fotos.logoBks,
       banner: fotos.pelotao,
-      cores: { primaria: '#D02D21', secundaria: '#0201B8', destaque: '#FFFFFF' },
+      // Cores da logo: azul royal (principal), vermelho (apoio) e branco (destaque)
+      cores: { ...CORES_BKS },
       visibilidade: 'visivel',
     },
   })
