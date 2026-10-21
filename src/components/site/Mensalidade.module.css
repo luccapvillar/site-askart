@@ -1,0 +1,296 @@
+/* ==========================================================================
+   Mensalidade da taxa de pista (aba Kartódromo). Usa os tokens do tema da página (Kartodromo.module.css):
+   --verde = verde-gramado, --verde-tinta = gramado claro, --amarelo = amarelo de sinalização (sempre com
+   texto escuro), --papel = cinza-asfalto claro.
+   Celular: cada plano é um cartão. A partir de 540px de largura do bloco: tabela comparativa.
+   Contrastes: texto / branco 16,6:1 · texto-2 / branco 7,9:1, / gramado-tinta 7,0:1 ·
+   gramado-escuro / gramado-tinta 7,4:1 · texto / amarelo 10,5:1 (placa do plano).
+   ========================================================================== */
+
+.mensalidade {
+  container-type: inline-size;
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.cabeca {
+  display: grid;
+  gap: 10px;
+}
+
+.intro {
+  max-width: 62ch;
+  line-height: 1.55;
+  color: var(--texto-2);
+}
+
+/* ---------- Celular: um cartão por plano ---------- */
+.tabela {
+  display: block;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cabeçalho das colunas: só para o leitor de tela (cada valor já mostra o nome da coluna) */
+.tabela thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tabela tbody {
+  display: grid;
+  gap: 12px;
+}
+
+.plano {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-1);
+}
+
+.inclui {
+  display: block;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--linha);
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.incluiCaixa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Quantidade de taxas de ambulância na placa amarela de sinalização (a mesma dos passos do "Como treinar") */
+.placa {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 6px;
+  border: 2px solid var(--marca-escuro, #111);
+  border-radius: var(--raio);
+  background: var(--amarelo);
+  color: var(--sobre-secundaria, #111);
+  font-size: 1.125rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.celula {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 14px 16px 16px;
+}
+
+.celula + .celula {
+  border-top: 1px solid var(--linha);
+}
+
+.rotuloCelula {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.total {
+  justify-self: end;
+  font-size: clamp(1.375rem, 1.25rem + 0.6vw, 1.75rem);
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.detalhe {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--texto-2);
+}
+
+.parte {
+  white-space: nowrap;
+}
+
+.semValor {
+  justify-self: end;
+  color: var(--texto-2);
+  font-weight: 700;
+}
+
+/* Coluna com desconto: fundo de gramado claro e valores no verde-gramado escuro (o nome da coluna diz o que é) */
+.destaque {
+  background: var(--verde-tinta);
+}
+
+.destaque .total,
+.destaque .rotuloCelula,
+.destaque .colTitulo {
+  color: var(--verde-escuro);
+}
+
+/* ---------- Tabela comparativa (bloco a partir de 540px) ---------- */
+@container (min-width: 540px) {
+  .quadro {
+    overflow: hidden;
+    border: 1px solid var(--linha);
+    border-radius: var(--raio-g);
+    background: var(--branco);
+    box-shadow: var(--sombra-1);
+  }
+
+  .tabela {
+    display: table;
+    table-layout: fixed;
+  }
+
+  .tabela thead {
+    position: static;
+    display: table-header-group;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .tabela tbody {
+    display: table-row-group;
+  }
+
+  .tabela tr,
+  .plano {
+    display: table-row;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .tabela th,
+  .tabela td {
+    display: table-cell;
+    padding: 16px 20px;
+    border-top: 0;
+    border-bottom: 1px solid var(--linha);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .tabela .celula + .celula {
+    border-top: 0;
+  }
+
+  .tabela tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+
+  .tabela thead th {
+    padding-block: 14px 12px;
+    background: var(--papel);
+    vertical-align: bottom;
+  }
+
+  /* Faixa verde no alto da coluna com desconto (a mesma dos cartões de taxa) */
+  .tabela thead th.destaque {
+    background: var(--verde-tinta);
+    box-shadow: inset 0 4px 0 var(--verde);
+  }
+
+  .colInclui {
+    width: 34%;
+    font-size: var(--fs-mini);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-2);
+  }
+
+  .colTitulo {
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+
+  .colSub {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-mini);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-2);
+  }
+
+  .inclui {
+    font-size: 0.9375rem;
+  }
+
+  .rotuloCelula {
+    display: none;
+  }
+
+  /* Na tabela tudo alinha à esquerda, sob o nome da coluna */
+  .total,
+  .detalhe,
+  .semValor {
+    display: block;
+    justify-self: start;
+  }
+
+  .detalhe {
+    margin-top: 6px;
+  }
+}
+
+/* ---------- Regras ---------- */
+.regras {
+  display: grid;
+  gap: 12px;
+  padding: clamp(18px, 2.6vw, 24px);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio-g);
+  background: var(--papel);
+}
+
+.listaRegras {
+  display: grid;
+  gap: 8px;
+}
+
+/* Marcador: traço curto em verde-gramado */
+.listaRegras li {
+  position: relative;
+  padding-left: 22px;
+  line-height: 1.5;
+}
+
+.listaRegras li::before {
+  content: '';
+  position: absolute;
+  top: 0.68em;
+  left: 2px;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--verde);
+}

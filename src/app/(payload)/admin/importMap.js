@@ -27,6 +27,8 @@ import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e0
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { RotuloPlano as RotuloPlano_637405e4d23e031a1c70eb5bc7b3e81c } from '../../../components/admin/RotulosMensalidade'
+import { RotuloRegra as RotuloRegra_637405e4d23e031a1c70eb5bc7b3e81c } from '../../../components/admin/RotulosMensalidade'
 import { RotuloCanal as RotuloCanal_171176381e23a3b1d03f55f2a461b70d } from '../../../components/admin/RotuloCanal'
 import { Icone as Icone_537198a1497cc84b83ad7a2ad3cc48bd } from '../../../components/admin/Marca'
 import { Logo as Logo_537198a1497cc84b83ad7a2ad3cc48bd } from '../../../components/admin/Marca'
@@ -36,6 +38,7 @@ import { VisaoAssistente as VisaoAssistente_7e338fe29a8ac31f49161468b4d05666 } f
 import { VisaoEditor as VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9 } from '../../../components/admin/editor/VisaoEditor'
 import { VisaoGrade as VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3 } from '../../../components/admin/grade/VisaoGrade'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -68,6 +71,8 @@ export const importMap = {
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
+  "/components/admin/RotulosMensalidade#RotuloPlano": RotuloPlano_637405e4d23e031a1c70eb5bc7b3e81c,
+  "/components/admin/RotulosMensalidade#RotuloRegra": RotuloRegra_637405e4d23e031a1c70eb5bc7b3e81c,
   "/components/admin/RotuloCanal#RotuloCanal": RotuloCanal_171176381e23a3b1d03f55f2a461b70d,
   "/components/admin/Marca#Icone": Icone_537198a1497cc84b83ad7a2ad3cc48bd,
   "/components/admin/Marca#Logo": Logo_537198a1497cc84b83ad7a2ad3cc48bd,
@@ -76,5 +81,6 @@ export const importMap = {
   "/components/admin/assistente/VisaoAssistente#VisaoAssistente": VisaoAssistente_7e338fe29a8ac31f49161468b4d05666,
   "/components/admin/editor/VisaoEditor#VisaoEditor": VisaoEditor_a1794888fe656569c1e1c0100f1aa1e9,
   "/components/admin/grade/VisaoGrade#VisaoGrade": VisaoGrade_49550af66716a7ad9dc3d56ba9d9d2b3,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }

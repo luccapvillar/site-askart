@@ -1,9 +1,14 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig, NumberField } from 'payload'
 import { comAcessoRestrito, editores, lerGlobalPublicado, membros } from '../access'
 import { editorPadrao, editorSimples } from '../collections/conteudo/editores'
+import { INTRODUCAO_MENSALIDADE_PADRAO } from '../lib/taxas'
+import { validarInteiro } from '../hooks/competicao/validacoes'
 import { campoImagem, GRUPO_SITE, RASCUNHO_GLOBAL, HOOKS_GLOBAL } from './comum'
 
 export { VALOR_A_CONFIRMAR, valorDaTaxa } from '../lib/taxas'
+
+/** Valor em reais (opcional, a partir de zero). */
+const campoReais = (name: string, label: string): NumberField => ({ name, label, type: 'number', min: 0 })
 
 /**
  * Aba Kartódromo: onde fica, história, taxas, como treinar, estrutura e informações.
@@ -114,6 +119,90 @@ export const Kartodromo: GlobalConfig = comAcessoRestrito(
                     type: 'text',
                     maxLength: 160,
                     admin: { placeholder: 'Ex.: por dia de treino; por piloto; pago na secretaria' },
+                  },
+                ],
+              },
+              {
+                type: 'collapsible',
+                label: 'Mensalidade da taxa de pista',
+                admin: {
+                  initCollapsed: false,
+                  description:
+                    'Aparece no site logo depois das taxas, com uma tabela "Sem desconto" × "Com desconto bônus". Sem nenhum plano cadastrado, a mensalidade não aparece.',
+                },
+                fields: [
+                  {
+                    name: 'mensalidadeIntroducao',
+                    label: 'Texto antes da tabela da mensalidade',
+                    type: 'textarea',
+                    maxLength: 400,
+                    defaultValue: INTRODUCAO_MENSALIDADE_PADRAO,
+                  },
+                  {
+                    name: 'mensalidadePlanos',
+                    label: 'Planos da mensalidade',
+                    labels: { singular: 'Plano', plural: 'Planos' },
+                    type: 'array',
+                    admin: {
+                      description:
+                        'Um plano para cada quantidade de taxas de ambulância incluídas (ex.: 4, 8 e 12). Digite só a mensalidade da pista e o valor das taxas de ambulância: o site soma e mostra o valor total. Arraste para mudar a ordem.',
+                      components: { RowLabel: '/components/admin/RotulosMensalidade#RotuloPlano' },
+                    },
+                    fields: [
+                      {
+                        name: 'ambulanciasIncluidas',
+                        label: 'Taxas de ambulância incluídas',
+                        type: 'number',
+                        required: true,
+                        min: 1,
+                        validate: (valor: unknown) =>
+                          valor === null || valor === undefined || valor === ''
+                            ? 'Informe quantas taxas de ambulância o plano inclui.'
+                            : validarInteiro(1, 99, 'A quantidade de taxas de ambulância')(valor),
+                        admin: { step: 1, placeholder: 'Ex.: 4', description: 'Quantas taxas de ambulância o plano inclui.' },
+                      },
+                      {
+                        name: 'semDesconto',
+                        label: 'Sem desconto',
+                        type: 'group',
+                        admin: { description: 'Valores sem desconto. Deixe em branco se não houver.' },
+                        fields: [
+                          {
+                            type: 'row',
+                            fields: [
+                              { ...campoReais('pista', 'Mensalidade da pista (R$)'), admin: { width: '50%', step: 0.01, placeholder: 'Ex.: 320' } },
+                              { ...campoReais('ambulancias', 'Taxas de ambulância (R$)'), admin: { width: '50%', step: 0.01, placeholder: 'Ex.: 200' } },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        name: 'comDesconto',
+                        label: 'Com desconto bônus',
+                        type: 'group',
+                        admin: { description: 'Valores com o desconto bônus. Deixe em branco se não houver desconto.' },
+                        fields: [
+                          {
+                            type: 'row',
+                            fields: [
+                              { ...campoReais('pista', 'Mensalidade da pista (R$)'), admin: { width: '50%', step: 0.01, placeholder: 'Ex.: 300' } },
+                              { ...campoReais('ambulancias', 'Taxas de ambulância (R$)'), admin: { width: '50%', step: 0.01, placeholder: 'Ex.: 150' } },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    name: 'mensalidadeRegras',
+                    label: 'Regras da mensalidade',
+                    labels: { singular: 'Regra', plural: 'Regras' },
+                    type: 'array',
+                    admin: {
+                      description: 'Frases curtas, uma por linha, mostradas em lista abaixo da tabela. Ex.: "O desconto é intransferível e não pode ser acumulado."',
+                      components: { RowLabel: '/components/admin/RotulosMensalidade#RotuloRegra' },
+                    },
+                    fields: [{ name: 'texto', label: 'Regra', type: 'text', required: true, maxLength: 200 }],
                   },
                 ],
               },

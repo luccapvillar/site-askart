@@ -4,6 +4,7 @@ import { Canais } from '@/components/site/Canais'
 import { CartaoNoticia, GradeCartoes } from '@/components/site/Cartoes'
 import { EstadoVazio } from '@/components/site/EstadoVazio'
 import { Foto, imagemDoCartao } from '@/components/site/Foto'
+import { Mensalidade } from '@/components/site/Mensalidade'
 import { Perguntas } from '@/components/site/Perguntas'
 import { Taxas } from '@/components/site/Taxas'
 import { separarDemo, semDemo, TextoDemo } from '@/components/site/TextoDemo'
@@ -253,11 +254,15 @@ export default async function PaginaKartodromo() {
       {/* ───────── Taxas ───────── */}
       <Secao id="taxas" rotulo="Para andar na pista" titulo="Taxas" fundo="branco">
         <div className={k.taxas}>
-          {(kartodromo.taxas?.length ?? 0) > 0 ? (
-            <Taxas taxas={kartodromo.taxas ?? []} introducao={kartodromo.taxasIntroducao} />
-          ) : (
-            <EstadoVazio texto="Os valores das taxas ainda não foram publicados." />
-          )}
+          <div className={k.taxasPrincipal}>
+            {(kartodromo.taxas?.length ?? 0) > 0 ? (
+              <Taxas taxas={kartodromo.taxas ?? []} introducao={kartodromo.taxasIntroducao} />
+            ) : (
+              <EstadoVazio texto="Os valores das taxas ainda não foram publicados." />
+            )}
+            {/* Mensalidade da taxa de pista (só aparece com plano cadastrado) */}
+            <Mensalidade planos={kartodromo.mensalidadePlanos} introducao={kartodromo.mensalidadeIntroducao} regras={kartodromo.mensalidadeRegras} />
+          </div>
           <aside className={k.lado} aria-labelledby="izy-titulo">
             <p className="rotulo texto-2">Etapas do BKS</p>
             <h3 id="izy-titulo" className="h3">

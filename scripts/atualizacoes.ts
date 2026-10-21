@@ -23,6 +23,10 @@
  *    as da logo — azul royal como principal, vermelho de apoio e branco de destaque — SÓ se ainda estiverem
  *    vazias ou no padrão antigo (vermelho como principal, gravado pelo dados:oficiais). Cor escolhida no
  *    painel fica como está.
+ * 9. Taxa de pista e mensalidade (enviadas pelo cliente em 21/10/2026): a "Taxa de pista" passa a R$ 80,00
+ *    (avulsa) SÓ se ainda estiver "a confirmar"/sem valor; a introdução, os planos e as regras da mensalidade
+ *    são preenchidos SÓ se estiverem vazios; o passo "Pague as taxas na Administração" do "Como treinar" ganha
+ *    o valor da taxa de pista SÓ se o texto ainda for exatamente o original. O que o moderador mudou fica.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
@@ -38,6 +42,7 @@ import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
 import { CORES_BKS, coresDoBksSemEscolha } from '../src/lib/site'
+import { taxasDe2026 } from '../src/lib/taxas'
 import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
@@ -778,6 +783,58 @@ async function coresDoBks(payload: Payload): Promise<string> {
     .join('; ')
 }
 
+/* ─────────────────── 9. Taxa de pista (R$ 80,00 avulsa) e mensalidade ─────────────────── */
+
+/**
+ * Kartódromo com rascunho: grava a versão PUBLICADA (só com os campos trocados; nada do rascunho vai para o site)
+ * e, se havia um rascunho em edição, grava-o de novo (com os mesmos cuidados) para ele continuar sendo o mais
+ * recente no painel — o mesmo jeito do topo da página inicial.
+ */
+async function taxaDePistaEMensalidade(payload: Payload): Promise<string> {
+  const slug = 'kartodromo' as const
+  const global = payload.config.globals.find((g) => g.slug === slug)
+  if (!global) return 'global do kartódromo não encontrado: nada feito'
+  const comRascunho = Boolean(global.versions && global.versions.drafts)
+
+  const publicado = (await payload.findGlobal({ slug, depth: 0, draft: false, overrideAccess: true })) as unknown as Record<string, unknown>
+  const ultima = comRascunho
+    ? ((await payload.findGlobal({ slug, depth: 0, draft: true, overrideAccess: true })) as unknown as Record<string, unknown>)
+    : null
+  const rascunho = ultima?._status === 'draft' ? ultima : null
+
+  const noPublicado = taxasDe2026(publicado)
+  const noRascunho = rascunho ? taxasDe2026(rascunho) : null
+  const mudaPublicado = noPublicado.feitos.length > 0
+  const mudaRascunho = Boolean(noRascunho?.feitos.length)
+  if (!mudaPublicado && !mudaRascunho) return `nada a fazer: ${noPublicado.avisos.join('; ') || 'tudo já estava preenchido'}`
+
+  if (mudaPublicado) {
+    await payload.updateGlobal({
+      slug,
+      draft: false,
+      overrideAccess: true,
+      context: { ...contexto },
+      data: { ...semControle(publicado), ...noPublicado.dados, ...(comRascunho ? { _status: 'published' } : {}) } as never,
+    })
+  }
+  if (rascunho) {
+    await payload.updateGlobal({
+      slug,
+      draft: true,
+      overrideAccess: true,
+      context: { ...contexto },
+      data: { ...semControle(rascunho), ...(noRascunho?.dados ?? {}), _status: 'draft' } as never,
+    })
+  }
+  return [
+    mudaPublicado ? `site (versão publicada): ${noPublicado.feitos.join(', ')}` : 'versão publicada sem mudança',
+    noPublicado.avisos.length ? `mantido no publicado: ${noPublicado.avisos.join('; ')}` : null,
+    rascunho ? (mudaRascunho ? `rascunho em edição: ${noRascunho!.feitos.join(', ')}` : 'o rascunho em edição foi mantido') : null,
+  ]
+    .filter(Boolean)
+    .join('. ')
+}
+
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
@@ -803,6 +860,11 @@ const ATUALIZACOES: Atualizacao[] = [
   },
   { chave: 'atualizacao:2026-10-topo-da-askart', descricao: 'Topo da página inicial com a apresentação da ASKART', aplicar: topoDaAskart },
   { chave: 'atualizacao:2026-10-cores-do-bks', descricao: 'Cores do BKS pela logo (azul royal, vermelho e branco)', aplicar: coresDoBks },
+  {
+    chave: 'atualizacao:2026-10-taxa-de-pista-e-mensalidade',
+    descricao: 'Taxa de pista R$ 80,00 (avulsa) e mensalidade da taxa de pista',
+    aplicar: taxaDePistaEMensalidade,
+  },
 ]
 
 async function principal() {

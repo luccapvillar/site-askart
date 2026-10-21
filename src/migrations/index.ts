@@ -4,6 +4,7 @@ import * as migration_20261018_224830_bks_modalidades_warmup from './20261018_22
 import * as migration_20261019_081030_subcategoria_inscricao from './20261019_081030_subcategoria_inscricao';
 import * as migration_20261019_172930_subcategorias_corridas from './20261019_172930_subcategorias_corridas';
 import * as migration_20261019_221415_calculo_da_etapa from './20261019_221415_calculo_da_etapa';
+import * as migration_20261021_193455_taxa_pista_mensalidade from './20261021_193455_taxa_pista_mensalidade';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20261019_221415_calculo_da_etapa.up,
     down: migration_20261019_221415_calculo_da_etapa.down,
-    name: '20261019_221415_calculo_da_etapa'
+    name: '20261019_221415_calculo_da_etapa',
+  },
+  {
+    up: migration_20261021_193455_taxa_pista_mensalidade.up,
+    down: migration_20261021_193455_taxa_pista_mensalidade.down,
+    name: '20261021_193455_taxa_pista_mensalidade'
   },
 ];

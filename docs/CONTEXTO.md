@@ -68,7 +68,17 @@ Site oficial e painel de administração da **ASKART — Associação de Pilotos
 - O kartódromo é **só para treinos e corridas**. **Não tem aluguel de kart** (nem indoor de aluguel).
 - Tem **treino quase todo dia**, além do campeonato.
 - **Grade semanal oficial de treinos**, editável pelo moderador. Veio de uma imagem oficial da ASKART/Secretaria de Esporte e Lazer e foi carregada por `scripts/dados-oficiais.ts`, com as cores oficiais das turmas.
-- **Taxas:** taxa de ambulância **R$ 50,00 por piloto por dia de treino**; taxa de pista **"R$ X"** (valor ainda não informado).
+- **Taxas:** taxa de ambulância **R$ 50,00 por piloto por dia de treino**; taxa de pista **avulsa R$ 80,00** (cliente, 21/10/2026).
+- **Mensalidade da taxa de pista** (cliente, 21/10/2026): é **só para quem não corre no horário de iniciante**. Vem de um comunicado afixado no kartódromo, datado "Brasília, 12 de Fevereiro de 2026" (sem nome de quem assina; não atribuir a ninguém): "opções para o pagamento da mensalidade da taxa de pista que concedem algumas taxas de ambulância".
+
+  | Taxas de ambulância incluídas | Sem desconto (pista + ambulâncias = total) | Com desconto bônus (pista + ambulâncias = total) |
+  |---|---|---|
+  | 4 | R$ 320 + R$ 200 = **R$ 520** | R$ 300 + R$ 150 = **R$ 450** |
+  | 8 | R$ 320 + R$ 400 = **R$ 720** | R$ 300 + R$ 300 = **R$ 600** |
+  | 12 | R$ 320 + R$ 600 = **R$ 920** | R$ 300 + R$ 450 = **R$ 750** |
+
+  Regras do comunicado: o desconto passa a valer a partir da data do pagamento da pista; vale somente para pilotos mensalistas; é intransferível e inacumulável; treinos além dos incluídos no combo pagam a taxa de ambulância integral; valores com o bônus de desconto vigoram a partir de 12/02/2026. **Não informados (não inventar):** preço por treino, treinos por semana, quem emitiu o comunicado, formas de pagamento, validade da mensalidade além do que está acima.
+  No painel: Kartódromo › Taxas e valores › "Mensalidade da taxa de pista" (o total é calculado pelo site). Os dados ficam em `src/lib/taxas.ts`.
 - Informações úteis do site da equipe Pro Kart (prokartracing.com.br/informacoes-importantes/) foram usadas como referência de conteúdo, sem copiar contato.
 - Categorias de treino: Mirim, Cadete, 125cc, F400 e Moto. Turmas de iniciante: 5–11 anos e 12+. Não há tolerância de horário.
 
@@ -166,6 +176,7 @@ Ficam concentradas em código para trocar fácil (veja SITE.md, motor de pontua�
     - **BKS:** cores da logo, azul royal #0A1AB4, vermelho #D52E20 e branco, editáveis em Campeonatos → Cores;
     - **Kartódromo:** identidade própria, com asfalto grafite, verde-gramado e amarelo de sinalização, e faixa tracejada de pista;
     - cabeçalho, rodapé e página inicial seguem a ASKART.
+16. **Taxa de pista e mensalidade** (21/10/2026): taxa de pista avulsa R$ 80,00 e a seção "Mensalidade da taxa de pista" na aba Kartódromo (tabela "Sem desconto" × "Com desconto bônus" com o total em destaque e as regras do comunicado de 12/02/2026), editável no painel. O site já publicado recebe os dados pelo passo 9 de `scripts/atualizacoes.ts` (só preenche o que ainda está vazio ou "a confirmar").
 
 ---
 
@@ -173,7 +184,6 @@ Ficam concentradas em código para trocar fácil (veja SITE.md, motor de pontua�
 
 **Dados que faltam do cliente (o site já mostra "ainda não disponível")**
 - Contatos oficiais da ASKART (telefone, WhatsApp, e-mail), no lugar do provisório.
-- Valor da **taxa de pista** (hoje "R$ X").
 - **Link geral da IZY Pass** e os links de cada etapa.
 - **Instagram oficial**.
 - **Calendário real**: etapas profissionais e indoor, horários de cada sessão por subcategoria, grades de treinos livres e links de transmissão.
@@ -187,7 +197,7 @@ Ficam concentradas em código para trocar fácil (veja SITE.md, motor de pontua�
 **Antes do lançamento oficial** (lista detalhada em PAINEL.md)
 - Rodar `npm run seed:limpar` (ou apagar os exemplos) e tirar `DADOS_DEMONSTRACAO` das variáveis da Vercel.
 - Desligar a faixa "Versão de demonstração" em Configurações gerais → Prévia.
-- Trocar o contato provisório e preencher taxa, IZY e Instagram.
+- Trocar o contato provisório e preencher IZY e Instagram.
 - Ligar um domínio próprio e definir `NEXT_PUBLIC_SERVER_URL`.
 
 **Problemas conhecidos**

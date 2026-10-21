@@ -5,9 +5,11 @@
  * cliente em 16/10/2026); informações publicadas pela equipe Pro Kart Racing (uso autorizado pelo cliente):
  * taxa de ambulância de R$ 50,00 por piloto por dia de treino, endereço, turmas de iniciantes por idade e regra
  * de horários; informações do cliente: o kartódromo é só para treinos e corridas (sem aluguel de kart), há treino
- * quase todos os dias, BKS = Brasília Kart Series, taxa de pista (valor ainda não informado: "R$ X"); a categoria
- * "Kart indoor" com as subcategorias informadas (só os nomes) e o texto do evento aberto ao público (food trucks,
- * telão, mesas e cadeiras, narrador).
+ * quase todos os dias, BKS = Brasília Kart Series; a categoria "Kart indoor" com as subcategorias informadas (só os
+ * nomes) e o texto do evento aberto ao público (food trucks, telão, mesas e cadeiras, narrador). Enviado pelo cliente
+ * em 21/10/2026: taxa de pista avulsa de R$ 80,00 e a mensalidade da taxa de pista (só para quem não corre no
+ * horário de iniciante), com os planos e as regras do comunicado afixado no kartódromo ("Brasília, 12 de Fevereiro
+ * de 2026") — src/lib/taxas.ts.
  *
  * Roda uma vez só (marca em Configurações): depois disso, o moderador é dono dos dados e nada é sobrescrito.
  */
@@ -17,6 +19,13 @@ import { CATEGORIAS_INDOOR_OFICIAIS } from '../src/collections/competicao/Catego
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import { ITENS_EVENTO_PUBLICO_PADRAO, TEXTO_EVENTO_PUBLICO_PADRAO } from '../src/globals/Configuracoes'
 import { CORES_BKS } from '../src/lib/site'
+import {
+  INTRODUCAO_MENSALIDADE_PADRAO,
+  PLANOS_MENSALIDADE_OFICIAIS,
+  REGRAS_MENSALIDADE_OFICIAIS,
+  TAXA_DE_PISTA_AVULSA,
+  TEXTO_PASSO_TAXAS,
+} from '../src/lib/taxas'
 import { contexto, fotosOficiais, type Id, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
 type Dia = 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo'
@@ -298,8 +307,15 @@ export async function carregarDadosOficiais(payload: Payload) {
         'Para andar na pista são obrigatórias a taxa de ambulância e a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.',
       taxas: [
         { item: 'Taxa de ambulância', valor: 50, aConfirmar: false, obrigatoria: true, observacao: 'Por piloto, por dia de treino' },
-        { item: 'Taxa de pista', aConfirmar: true, obrigatoria: true },
+        { item: 'Taxa de pista', valor: TAXA_DE_PISTA_AVULSA, aConfirmar: false, obrigatoria: true, observacao: 'Avulsa' },
       ],
+      mensalidadeIntroducao: INTRODUCAO_MENSALIDADE_PADRAO,
+      mensalidadePlanos: PLANOS_MENSALIDADE_OFICIAIS.map((p) => ({
+        ambulanciasIncluidas: p.ambulanciasIncluidas,
+        semDesconto: { ...p.semDesconto },
+        comDesconto: { ...p.comDesconto },
+      })),
+      mensalidadeRegras: REGRAS_MENSALIDADE_OFICIAIS.map((texto) => ({ texto })),
       comoTreinar: [
         {
           titulo: 'Escolha o horário da sua turma',
@@ -308,7 +324,7 @@ export async function carregarDadosOficiais(payload: Payload) {
         },
         {
           titulo: 'Pague as taxas na Administração',
-          texto: 'Antes de entrar na pista, pague a taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista na Administração do Kartódromo.',
+          texto: TEXTO_PASSO_TAXAS,
         },
         {
           titulo: 'Respeite o horário da turma',

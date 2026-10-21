@@ -10,7 +10,7 @@ Site da **ASKART — Associação de Pilotos de Kart de Brasília**, do **Kartó
 
 **Site (4 abas):**
 - **BKS** — calendário (tocar na etapa mostra os horários de cada categoria, o local com mapa e o botão da IZY Pass), classificação por categoria, resultados por etapa, história e campeões, fotos, regulamento.
-- **Kartódromo** — onde fica, taxas (taxa de pista e taxa de ambulância mostram **"R$ X"** até o valor ser informado), tabela de treinos por categoria e agenda dos próximos 7 dias, como treinar, história, notícias, dúvidas recorrentes, contatos e Instagram.
+- **Kartódromo** — onde fica, taxas (taxa de ambulância R$ 50,00, taxa de pista R$ 80,00 avulsa e a mensalidade da taxa de pista; taxa sem valor informado aparece como **"R$ X"**), tabela de treinos por categoria e agenda dos próximos 7 dias, como treinar, história, notícias, dúvidas recorrentes, contatos e Instagram.
 - **Notícias** — notícias, anúncios e comunicados oficiais.
 - **Contato** — telefones, WhatsApp, e-mail, endereço, mapa, redes sociais e dúvidas.
 

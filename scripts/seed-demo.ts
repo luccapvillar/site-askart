@@ -4,8 +4,11 @@
  * Regras (docs/ARQUITETURA.md §2): nenhum dado oficial inventado. Tudo o que não foi informado pelo
  * cliente leva o prefixo "[DEMONSTRAÇÃO]" (pilotos, categorias, equipes, etapas, notícias…) e sai com
  * `npm run seed:limpar`. Fatos confirmados entram sem prefixo: nome do kartódromo, BKS — Brasília Kart
- * Series, taxas de pista e de ambulância (valor "R$ X"), IZY Pass como canal de compra.
+ * Series, IZY Pass como canal de compra.
  * O único contato fictício é +55 61 00000-0000, marcado sozinho como provisório.
+ * Roda em toda publicação da prévia (DADOS_DEMONSTRACAO=1): por isso NÃO grava taxas, mensalidade da taxa de
+ * pista nem "Como treinar" (dados oficiais, de scripts/dados-oficiais.ts e scripts/atualizacoes.ts). No kartódromo,
+ * só a história de exemplo — e o Payload mantém os demais campos do global como estão.
  */
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'

@@ -6356,6 +6356,42 @@ export interface Kartodromo {
         id?: string | null;
       }[]
     | null;
+  mensalidadeIntroducao?: string | null;
+  /**
+   * Um plano para cada quantidade de taxas de ambulância incluídas (ex.: 4, 8 e 12). Digite só a mensalidade da pista e o valor das taxas de ambulância: o site soma e mostra o valor total. Arraste para mudar a ordem.
+   */
+  mensalidadePlanos?:
+    | {
+        /**
+         * Quantas taxas de ambulância o plano inclui.
+         */
+        ambulanciasIncluidas: number;
+        /**
+         * Valores sem desconto. Deixe em branco se não houver.
+         */
+        semDesconto?: {
+          pista?: number | null;
+          ambulancias?: number | null;
+        };
+        /**
+         * Valores com o desconto bônus. Deixe em branco se não houver desconto.
+         */
+        comDesconto?: {
+          pista?: number | null;
+          ambulancias?: number | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Frases curtas, uma por linha, mostradas em lista abaixo da tabela. Ex.: "O desconto é intransferível e não pode ser acumulado."
+   */
+  mensalidadeRegras?:
+    | {
+        texto: string;
+        id?: string | null;
+      }[]
+    | null;
   comoTreinarIntroducao?: {
     root: {
       type: string;
@@ -7388,6 +7424,31 @@ export interface KartodromoSelect<T extends boolean = true> {
         aConfirmar?: T;
         obrigatoria?: T;
         observacao?: T;
+        id?: T;
+      };
+  mensalidadeIntroducao?: T;
+  mensalidadePlanos?:
+    | T
+    | {
+        ambulanciasIncluidas?: T;
+        semDesconto?:
+          | T
+          | {
+              pista?: T;
+              ambulancias?: T;
+            };
+        comDesconto?:
+          | T
+          | {
+              pista?: T;
+              ambulancias?: T;
+            };
+        id?: T;
+      };
+  mensalidadeRegras?:
+    | T
+    | {
+        texto?: T;
         id?: T;
       };
   comoTreinarIntroducao?: T;
