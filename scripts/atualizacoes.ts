@@ -41,7 +41,7 @@ import {
 import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
-import { CORES_BKS, coresDoBksSemEscolha } from '../src/lib/site'
+import { CORES_BKS, coresDoBksSemEscolha, IZY_PASS_BKS } from '../src/lib/site'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import {
   iniciantesSemTaxaDePista,
@@ -388,6 +388,14 @@ const itensAntigos = (itens: ItemEvento[]) =>
  * Troca o texto e os itens do evento aberto ao público pelo texto do cliente SÓ quando ainda estão no
  * padrão antigo ou vazios: o que o administrador já tiver escrito fica como está.
  */
+/** Link geral da IZY Pass, que vale para todas as etapas (só se o painel ainda estiver sem link). */
+async function linkGeralDaIzy(payload: Payload): Promise<string> {
+  const atual = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as { izyPass?: string | null }
+  if (atual.izyPass?.trim()) return `nada a fazer: o painel já tem o link ${atual.izyPass}`
+  await payload.updateGlobal({ slug: 'configuracoes', data: { izyPass: IZY_PASS_BKS } as never, overrideAccess: true, context: { ...contexto } })
+  return `link geral da IZY Pass: ${IZY_PASS_BKS}`
+}
+
 async function atualizarEventoPublico(payload: Payload): Promise<string> {
   const atual = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as {
     textoEventoPublico?: string | null
@@ -922,6 +930,7 @@ const ATUALIZACOES: Atualizacao[] = [
     descricao: 'Fora do horário de iniciante: taxa de pista e de ambulância obrigatórias, ou a mensalidade com as duas',
     aplicar: iniciantesSoAmbulancia,
   },
+  { chave: 'atualizacao:2026-10-izy-pass-geral', descricao: 'Link geral da IZY Pass do BKS (todas as etapas)', aplicar: linkGeralDaIzy },
 ]
 
 async function principal() {

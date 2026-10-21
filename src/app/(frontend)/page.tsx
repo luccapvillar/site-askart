@@ -153,7 +153,7 @@ export default async function Inicio() {
   const cartaoProxima = blocoProxima ? (
     <CartaoProximaEtapa
       etapa={proxima}
-      situacao={proxima ? situacaoDaEtapa(proxima) : null}
+      situacao={proxima ? situacaoDaEtapa(proxima, undefined, config.izyPass) : null}
       mapa={proxima ? mapaDaEtapa(proxima, contato) : null}
       contagem={blocoProxima.contagem !== false}
       rotulo={tituloDe(blocoProxima, 'Próxima etapa')}

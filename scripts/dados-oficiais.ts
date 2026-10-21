@@ -18,7 +18,7 @@ import config from '../src/payload.config'
 import { CATEGORIAS_INDOOR_OFICIAIS } from '../src/collections/competicao/Categorias'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import { ITENS_EVENTO_PUBLICO_PADRAO, TEXTO_EVENTO_PUBLICO_PADRAO } from '../src/globals/Configuracoes'
-import { CORES_BKS } from '../src/lib/site'
+import { CORES_BKS, IZY_PASS_BKS } from '../src/lib/site'
 import {
   INTRODUCAO_MENSALIDADE_PADRAO,
   INTRODUCAO_TAXAS,
@@ -285,6 +285,7 @@ export async function carregarDadosOficiais(payload: Payload) {
     data: {
       logo: fotos.logoAskart,
       campeonatoPrincipal: bks.id,
+      izyPass: IZY_PASS_BKS,
       imagemCompartilhamento: fotos.pelotao,
       descricao:
         'ASKART — associação responsável pela administração do Kartódromo Ayrton Senna do Guará e pela organização dos campeonatos de kart de Brasília.',

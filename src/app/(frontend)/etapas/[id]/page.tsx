@@ -88,7 +88,7 @@ export default async function PaginaEtapa({ params }: Props) {
   const modalidadesResultado = modalidadesDaEtapa({ categorias: comResultado.map((c) => porId.get(String(c.categoria)) ?? { id: c.categoria }) })
   const temResultado = comResultado.length > 0
   // Antes da etapa: compra, treinos livres e grade. Depois: o aviso no lugar (a página se atualiza a cada minuto).
-  const situacao = situacaoDaEtapa(etapa)
+  const situacao = situacaoDaEtapa(etapa, undefined, config.izyPass)
   const publico = situacao.antes ? eventoPublico(config) : null
   const mostrarTransmissao = transmissoesVisiveis(situacao).length > 0
   const temDescricao = Boolean((etapa.descricao as { root?: { children?: unknown[] } } | null)?.root?.children?.length)

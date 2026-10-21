@@ -228,7 +228,7 @@ export const Etapas: CollectionConfig = comAcessoRestrito({
             campoLink(
               'linkIngressos',
               'Link para comprar esta etapa (IZY Pass)',
-              'Link da IZY Pass desta etapa específica. Vazio = "O link para comprar esta etapa ainda não foi disponibilizado."',
+              'Só se esta etapa tiver um link próprio. Vazio = usa o link geral da IZY Pass (Configurações gerais), que vale para todas as etapas, profissionais e indoor. Sem nenhum dos dois = "O link para comprar esta etapa ainda não foi disponibilizado."',
             ),
             campoLink(
               'linkTreinosLivres',

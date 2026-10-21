@@ -133,7 +133,7 @@ export async function AreaCalendario({ modalidade }: { modalidade: Modalidade })
                 {etapas.map((etapa) => {
                   const programacao = corridas.filter((c) => idDe(c.etapa) === etapa.id)
                   // Compra, treinos livres e grade somem sozinhos depois da etapa (página revalidada a cada minuto)
-                  const situacao = situacaoDaEtapa(etapa)
+                  const situacao = situacaoDaEtapa(etapa, undefined, config.izyPass)
                   const ehProxima = proxima?.id === etapa.id
                   const categoriasDaEtapa = (etapa.categorias ?? []).filter(
                     (c): c is Categoria => typeof c === 'object' && c !== null && modalidadeDe(c) === modalidade,

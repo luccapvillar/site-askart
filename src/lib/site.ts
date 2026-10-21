@@ -398,8 +398,13 @@ export type SituacaoEtapa = {
 /**
  * O que o site mostra de uma etapa. Depois dela, a compra, o link e a grade dos treinos livres saem
  * sozinhos (as páginas se atualizam a cada minuto); a transmissão continua, para quem quiser rever.
+ * Etapa sem link de compra próprio usa o link geral da IZY Pass (Configurações gerais), que vale para
+ * todas as etapas, profissionais e indoor (cliente, 21/10/2026).
  */
-export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date()): SituacaoEtapa {
+/** Link da IZY Pass do BKS para todas as etapas, profissionais e indoor (cliente, 21/10/2026). */
+export const IZY_PASS_BKS = 'https://izypass.com.br/produtor/eventos/bks'
+
+export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date(), linkGeral: string | null = null): SituacaoEtapa {
   const cancelada = etapa.status === 'cancelada'
   const jaOcorreu = etapaJaOcorreu(etapa, agora)
   const antes = !cancelada && !jaOcorreu
@@ -412,7 +417,7 @@ export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date()
     cancelada,
     jaOcorreu,
     antes,
-    linkCompra: antes ? linkExterno(etapa.linkIngressos) : null,
+    linkCompra: antes ? linkExterno(etapa.linkIngressos) || linkExterno(linkGeral) : null,
     linkTreinosLivres: antes ? linkExterno(etapa.linkTreinosLivres) : null,
     temGradeTreinos: antes && (Boolean(etapa.gradeTreinosLivres?.length) || Boolean(etapa.imagemGradeTreinosLivres)),
     transmissoes,
