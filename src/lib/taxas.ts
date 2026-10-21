@@ -118,18 +118,26 @@ export const TEXTO_PASSO_TAXAS_ANTIGO =
 export const TEXTO_PASSO_TAXAS_80 =
   'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista (R$ 80,00 avulsa, ou a mensalidade para quem não treina no horário de iniciante).'
 
-/** Pedido do cliente (21/10/2026): quem treina no horário de iniciante paga só a taxa de ambulância. */
-export const TEXTO_PASSO_TAXAS =
+/** Primeira versão do aviso dos iniciantes (21/10/2026), trocada pela de baixo, mais clara. */
+export const TEXTO_PASSO_TAXAS_V2 =
   'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino) e a taxa de pista (R$ 80,00 avulsa, ou a mensalidade). Quem treina no horário de iniciante paga só a taxa de ambulância.'
 
-/** Texto antes dos cartões de taxa: original (16/10/2026) e com o aviso dos iniciantes. */
+/** Pedido do cliente (21/10/2026): quem treina no horário de iniciante paga só a taxa de ambulância. */
+export const TEXTO_PASSO_TAXAS =
+  'Antes de entrar na pista, pague na Administração do Kartódromo a taxa de ambulância (R$ 50,00 por piloto, por dia de treino). Quem não treina no horário de iniciante paga também a taxa de pista (R$ 80,00 avulsa, ou a mensalidade).'
+
+/** Texto antes dos cartões de taxa: original (16/10/2026), primeira versão do aviso dos iniciantes e a atual. */
 export const INTRODUCAO_TAXAS_ANTIGA =
   'Para andar na pista são obrigatórias a taxa de ambulância e a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
-export const INTRODUCAO_TAXAS =
+export const INTRODUCAO_TAXAS_V2 =
   'Para andar na pista são obrigatórias a taxa de ambulância e a taxa de pista. Quem treina no horário de iniciante não paga a taxa de pista, só a de ambulância. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
 
-/** Observação do cartão "Taxa de pista". */
-export const OBSERVACAO_TAXA_DE_PISTA = 'Avulsa. Quem treina no horário de iniciante não paga'
+export const INTRODUCAO_TAXAS =
+  'A taxa de ambulância é obrigatória para todos. Quem treina no horário de iniciante paga apenas a taxa de ambulância e não precisa pagar a taxa de pista. O pagamento é feito na Administração do Kartódromo, antes de entrar na pista.'
+
+/** Observação do cartão "Taxa de pista" (a primeira versão e a atual). */
+export const OBSERVACAO_TAXA_DE_PISTA_V2 = 'Avulsa. Quem treina no horário de iniciante não paga'
+export const OBSERVACAO_TAXA_DE_PISTA = 'Avulsa. Quem treina no horário de iniciante não precisa pagar'
 
 /** Pergunta frequente sobre as taxas: resposta original e com o aviso dos iniciantes. */
 export const PERGUNTA_TAXAS = 'Quais taxas preciso pagar para andar na pista?'
@@ -196,7 +204,7 @@ export function taxasDe2026(doc: Record<string, unknown>): { dados: Record<strin
     feitos.push(`passo "${passos[passo].titulo ?? 'Pague as taxas na Administração'}" do "Como treinar" com o valor da taxa de pista`)
   } else if (!passos.length) {
     avisos.push('o "Como treinar" está sem passos: nada mudado nele')
-  } else if (!passos.some((p) => p.texto === TEXTO_PASSO_TAXAS || p.texto === TEXTO_PASSO_TAXAS_80)) {
+  } else if (!passos.some((p) => [TEXTO_PASSO_TAXAS, TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_V2].includes(p.texto ?? ''))) {
     avisos.push('o texto do passo das taxas no "Como treinar" não é mais o original (mudado no painel): mantido')
   }
 
@@ -213,21 +221,23 @@ export function iniciantesSemTaxaDePista(doc: Record<string, unknown>): { dados:
   const feitos: string[] = []
   const avisos: string[] = []
 
-  if (doc.taxasIntroducao === INTRODUCAO_TAXAS_ANTIGA) {
+  if (doc.taxasIntroducao === INTRODUCAO_TAXAS_ANTIGA || doc.taxasIntroducao === INTRODUCAO_TAXAS_V2) {
     dados.taxasIntroducao = INTRODUCAO_TAXAS
     feitos.push('texto antes das taxas')
   } else if (doc.taxasIntroducao !== INTRODUCAO_TAXAS) avisos.push('texto antes das taxas mudado no painel: mantido')
 
   const taxas = (doc.taxas ?? []) as TaxaGravada[]
   const pista = taxas.findIndex(ehTaxaDePista)
-  if (pista >= 0 && ['avulsa', ''].includes((taxas[pista].observacao ?? '').trim().toLowerCase())) {
-    dados.taxas = taxas.map((x, i) => (i === pista ? { ...x, observacao: OBSERVACAO_TAXA_DE_PISTA } : x))
+  const observacoesDoSite = ['', 'avulsa', OBSERVACAO_TAXA_DE_PISTA_V2.toLowerCase()]
+  if (pista >= 0 && observacoesDoSite.includes((taxas[pista].observacao ?? '').trim().toLowerCase())) {
+    // Sem o selo "Obrigatória": quem treina no horário de iniciante não paga
+    dados.taxas = taxas.map((x, i) => (i === pista ? { ...x, observacao: OBSERVACAO_TAXA_DE_PISTA, obrigatoria: false } : x))
     feitos.push('observação da taxa de pista')
   } else if (pista >= 0 && taxas[pista].observacao !== OBSERVACAO_TAXA_DE_PISTA)
     avisos.push('observação da taxa de pista mudada no painel: mantida')
 
   const passos = (doc.comoTreinar ?? []) as PassoGravado[]
-  const passo = passos.findIndex((p) => p.texto === TEXTO_PASSO_TAXAS_80 || p.texto === TEXTO_PASSO_TAXAS_ANTIGO)
+  const passo = passos.findIndex((p) => [TEXTO_PASSO_TAXAS_80, TEXTO_PASSO_TAXAS_ANTIGO, TEXTO_PASSO_TAXAS_V2].includes(p.texto ?? ''))
   if (passo >= 0) {
     dados.comoTreinar = passos.map((p, i) => (i === passo ? { ...p, texto: TEXTO_PASSO_TAXAS } : p))
     feitos.push('passo das taxas no "Como treinar"')

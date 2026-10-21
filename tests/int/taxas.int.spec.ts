@@ -107,7 +107,7 @@ describe('atualização do site já publicado (21/10/2026)', () => {
     expect(typeof dados.mensalidadeIntroducao).toBe('string')
     const passos = dados.comoTreinar as { id: string; texto: string }[]
     expect(passos[1]).toEqual({ id: 'p2', titulo: 'Pague as taxas na Administração', texto: TEXTO_PASSO_TAXAS })
-    expect(passos[1].texto).toContain('Quem treina no horário de iniciante paga só a taxa de ambulância.')
+    expect(passos[1].texto).toContain('Quem não treina no horário de iniciante paga também a taxa de pista')
     expect(feitos.length).toBe(5)
   })
 
@@ -143,6 +143,7 @@ describe('quem treina no horário de iniciante paga só a ambulância (21/10/202
     const { dados, feitos } = iniciantesSemTaxaDePista(doc())
     expect(dados.taxasIntroducao).toBe(INTRODUCAO_TAXAS)
     expect((dados.taxas as { observacao: string }[])[1].observacao).toBe(OBSERVACAO_TAXA_DE_PISTA)
+    expect((dados.taxas as { obrigatoria: boolean }[])[1].obrigatoria).toBe(false)
     expect((dados.taxas as { observacao: string }[])[0].observacao).toBe('Por piloto, por dia de treino')
     expect((dados.comoTreinar as { texto: string }[])[0].texto).toBe(TEXTO_PASSO_TAXAS)
     expect(feitos).toHaveLength(3)

@@ -309,7 +309,7 @@ export async function carregarDadosOficiais(payload: Payload) {
       taxasIntroducao: INTRODUCAO_TAXAS,
       taxas: [
         { item: 'Taxa de ambulância', valor: 50, aConfirmar: false, obrigatoria: true, observacao: 'Por piloto, por dia de treino' },
-        { item: 'Taxa de pista', valor: TAXA_DE_PISTA_AVULSA, aConfirmar: false, obrigatoria: true, observacao: OBSERVACAO_TAXA_DE_PISTA },
+        { item: 'Taxa de pista', valor: TAXA_DE_PISTA_AVULSA, aConfirmar: false, obrigatoria: false, observacao: OBSERVACAO_TAXA_DE_PISTA },
       ],
       mensalidadeIntroducao: INTRODUCAO_MENSALIDADE_PADRAO,
       mensalidadePlanos: PLANOS_MENSALIDADE_OFICIAIS.map((p) => ({

@@ -912,6 +912,11 @@ const ATUALIZACOES: Atualizacao[] = [
     descricao: 'Quem treina no horário de iniciante paga só a taxa de ambulância',
     aplicar: iniciantesSoAmbulancia,
   },
+  {
+    chave: 'atualizacao:2026-10-iniciante-so-ambulancia-texto-claro',
+    descricao: 'Aviso dos iniciantes mais claro e taxa de pista sem o selo "Obrigatória"',
+    aplicar: iniciantesSoAmbulancia,
+  },
 ]
 
 async function principal() {
