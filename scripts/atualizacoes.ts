@@ -41,7 +41,7 @@ import {
 import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
-import { CORES_BKS, coresDoBksSemEscolha, IZY_PASS_BKS } from '../src/lib/site'
+import { CORES_BKS, coresDoBksSemEscolha, INSTAGRAM_BKS, IZY_PASS_BKS } from '../src/lib/site'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import {
   iniciantesSemTaxaDePista,
@@ -50,10 +50,18 @@ import {
   RESPOSTAS_TAXAS_DO_SITE,
   taxasDe2026,
 } from '../src/lib/taxas'
-import { ehBotoesAntigosDoTopo, ehSubtituloAntigoDoTopo, ehTituloAntigoDoTopo } from '../src/lib/topo-inicio'
+import {
+  ehBotoesAntigosDoTopo,
+  ehSubtituloAntigoDoTopo,
+  ehTituloAntigoDoTopo,
+} from '../src/lib/topo-inicio'
 import { contexto, criarSessoesDeExemplo, DEMO, SUBCATEGORIAS, publicarPorPadrao } from './comum'
 
-type Atualizacao = { chave: string; descricao: string; aplicar: (payload: Payload) => Promise<string> }
+type Atualizacao = {
+  chave: string
+  descricao: string
+  aplicar: (payload: Payload) => Promise<string>
+}
 
 /* ───────────────────────────── 1. Aba "Avisos" no menu ───────────────────────────── */
 
@@ -66,11 +74,20 @@ const MAXIMO_ABAS = 6
  * A aba nova aponta para a seção fixa "comunicados" (src/fields/link.ts): o endereço /comunicados leva
  * a /avisos, e a seção pode passar a apontar direto para /avisos sem mudar o que está gravado.
  */
-const abaAvisos = (): Aba => ({ link: { tipo: 'rota', rota: 'comunicados', rotulo: 'Avisos', novaAba: false }, subitens: [] })
+const abaAvisos = (): Aba => ({
+  link: { tipo: 'rota', rota: 'comunicados', rotulo: 'Avisos', novaAba: false },
+  subitens: [],
+})
 
 /** Menu padrão (o mesmo do painel e do site), para o caso de o menu gravado estar vazio. */
 const rota = (r: string): Aba => ({ link: { tipo: 'rota', rota: r }, subitens: [] })
-const menuPadrao = (): Aba[] => [rota('bks'), rota('kartodromo'), rota('noticias'), abaAvisos(), rota('contato')]
+const menuPadrao = (): Aba[] => [
+  rota('bks'),
+  rota('kartodromo'),
+  rota('noticias'),
+  abaAvisos(),
+  rota('contato'),
+]
 
 /** Caminho de um endereço do menu, sem barra no fim ("https://site/avisos/" → "/avisos"). */
 function caminho(link: ValorLink | null | undefined): string | null {
@@ -116,9 +133,19 @@ async function adicionarAbaAvisos(payload: Payload): Promise<string> {
   const comRascunho = Boolean(global.versions && global.versions.drafts)
 
   // Versão publicada (é a que o site mostra) e, se houver, o rascunho em edição no painel
-  const publicado = (await payload.findGlobal({ slug, depth: 0, draft: false, overrideAccess: true })) as unknown as Record<string, unknown>
+  const publicado = (await payload.findGlobal({
+    slug,
+    depth: 0,
+    draft: false,
+    overrideAccess: true,
+  })) as unknown as Record<string, unknown>
   const ultima = comRascunho
-    ? ((await payload.findGlobal({ slug, depth: 0, draft: true, overrideAccess: true })) as unknown as Record<string, unknown>)
+    ? ((await payload.findGlobal({
+        slug,
+        depth: 0,
+        draft: true,
+        overrideAccess: true,
+      })) as unknown as Record<string, unknown>)
     : null
   const rascunho = ultima?._status === 'draft' ? ultima : null
 
@@ -131,13 +158,19 @@ async function adicionarAbaAvisos(payload: Payload): Promise<string> {
     draft: false,
     overrideAccess: true,
     context: { ...contexto },
-    data: { ...semControle(publicado), menu: resultado.menu, ...(comRascunho ? { _status: 'published' } : {}) } as never,
+    data: {
+      ...semControle(publicado),
+      menu: resultado.menu,
+      ...(comRascunho ? { _status: 'published' } : {}),
+    } as never,
   })
 
   // Havia um rascunho em edição: grava-o de novo (com a aba, se faltar) para ele continuar sendo o mais recente
   if (rascunho) {
     const menuRascunho = (rascunho.menu ?? []) as Aba[]
-    const noRascunho = menuRascunho.length ? comAbaAvisos(menuRascunho) : { motivo: 'menu vazio no rascunho' }
+    const noRascunho = menuRascunho.length
+      ? comAbaAvisos(menuRascunho)
+      : { motivo: 'menu vazio no rascunho' }
     await payload.updateGlobal({
       slug,
       draft: true,
@@ -159,7 +192,12 @@ async function adicionarAbaAvisos(payload: Payload): Promise<string> {
 async function preencherSubcategorias(payload: Payload): Promise<string> {
   const feitas: string[] = []
   for (const [nome, subs] of Object.entries(SUBCATEGORIAS)) {
-    const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0 })
+    const { docs } = await payload.find({
+      collection: 'categorias',
+      where: { nome: { equals: nome } },
+      limit: 1,
+      depth: 0,
+    })
     const cat = docs[0] as { id: number; subcategorias?: unknown[] | null } | undefined
     if (!cat || cat.subcategorias?.length) continue
     await payload.update({
@@ -184,9 +222,19 @@ async function removerAvisosDeDemonstracao(payload: Payload): Promise<string> {
     draft: true,
     overrideAccess: true,
   })
-  const demo = docs.filter((d) => String((d as { titulo?: string }).titulo ?? '').startsWith('[DEMONSTRAÇÃO]'))
-  for (const d of demo) await payload.delete({ collection: 'avisos', id: d.id, overrideAccess: true, context: { ...contexto } })
-  return demo.length ? `${demo.length} aviso(s) de demonstração removido(s)` : 'nenhum aviso de demonstração'
+  const demo = docs.filter((d) =>
+    String((d as { titulo?: string }).titulo ?? '').startsWith('[DEMONSTRAÇÃO]'),
+  )
+  for (const d of demo)
+    await payload.delete({
+      collection: 'avisos',
+      id: d.id,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
+  return demo.length
+    ? `${demo.length} aviso(s) de demonstração removido(s)`
+    : 'nenhum aviso de demonstração'
 }
 
 /**
@@ -197,19 +245,42 @@ async function criarVersoesIniciais(payload: Payload): Promise<string> {
   let total = 0
   const falhas: string[] = []
   for (const collection of ['etapas', 'perguntas'] as const) {
-    const { docs } = await payload.find({ collection, limit: 1000, depth: 0, overrideAccess: true, pagination: false })
+    const { docs } = await payload.find({
+      collection,
+      limit: 1000,
+      depth: 0,
+      overrideAccess: true,
+      pagination: false,
+    })
     for (const d of docs) {
-      const versoes = await payload.countVersions({ collection, where: { parent: { equals: d.id } }, overrideAccess: true })
+      const versoes = await payload.countVersions({
+        collection,
+        where: { parent: { equals: d.id } },
+        overrideAccess: true,
+      })
       if (versoes.totalDocs) continue
       try {
-        await payload.update({ collection, id: d.id, data: {}, overrideAccess: true, context: { ...contexto } })
+        await payload.update({
+          collection,
+          id: d.id,
+          data: {},
+          overrideAccess: true,
+          context: { ...contexto },
+        })
         total++
       } catch (erro) {
         falhas.push(`${collection} ${d.id}: ${(erro as Error).message}`)
       }
     }
   }
-  for (const slug of ['pagina-inicial', 'kartodromo', 'contato', 'institucional', 'textos-paginas', 'navegacao'] as const) {
+  for (const slug of [
+    'pagina-inicial',
+    'kartodromo',
+    'contato',
+    'institucional',
+    'textos-paginas',
+    'navegacao',
+  ] as const) {
     try {
       await payload.updateGlobal({ slug, data: {}, overrideAccess: true, context: { ...contexto } })
       total++
@@ -239,20 +310,40 @@ async function criarCategoriasIndoor(payload: Payload): Promise<string> {
     overrideAccess: true,
   })
   for (const c of semModalidade.docs) {
-    await payload.update({ collection: 'categorias', id: c.id, data: { modalidade: 'profissional' } as never, overrideAccess: true, context: { ...contexto } })
+    await payload.update({
+      collection: 'categorias',
+      id: c.id,
+      data: { modalidade: 'profissional' } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
   }
 
   const ajustadas: string[] = []
   for (const nome of CATEGORIAS_INDOOR_OFICIAIS) {
-    const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0, overrideAccess: true })
+    const { docs } = await payload.find({
+      collection: 'categorias',
+      where: { nome: { equals: nome } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
     const existente = docs[0] as { id: number; modalidade?: string | null } | undefined
     if (existente && existente.modalidade !== 'indoor') {
-      await payload.update({ collection: 'categorias', id: existente.id, data: { modalidade: 'indoor' } as never, overrideAccess: true, context: { ...contexto } })
+      await payload.update({
+        collection: 'categorias',
+        id: existente.id,
+        data: { modalidade: 'indoor' } as never,
+        overrideAccess: true,
+        context: { ...contexto },
+      })
       ajustadas.push(nome)
     }
   }
   const partes = [
-    semModalidade.docs.length ? `${semModalidade.docs.length} categoria(s) marcada(s) como karts profissionais` : null,
+    semModalidade.docs.length
+      ? `${semModalidade.docs.length} categoria(s) marcada(s) como karts profissionais`
+      : null,
     ajustadas.length ? `marcadas como indoor: ${ajustadas.join(', ')}` : null,
   ].filter(Boolean)
   return partes.length ? partes.join('; ') : 'nada a fazer: as modalidades já estavam certas'
@@ -273,7 +364,11 @@ const SUBCATEGORIAS_INDOOR: string[] = [...CATEGORIAS_INDOOR_OFICIAIS]
 /** Onde uma categoria pode estar em uso: se estiver em qualquer um, ela NÃO é excluída. */
 const USOS_DA_CATEGORIA = [
   { collection: 'etapas', campo: 'categorias', rotulo: 'etapas' },
-  { collection: 'etapas', campo: 'gradeTreinosLivres.categorias', rotulo: 'grade de treinos livres de etapas' },
+  {
+    collection: 'etapas',
+    campo: 'gradeTreinosLivres.categorias',
+    rotulo: 'grade de treinos livres de etapas',
+  },
   { collection: 'inscricoes', campo: 'categoria', rotulo: 'inscrições' },
   { collection: 'corridas', campo: 'categorias', rotulo: 'corridas' },
   { collection: 'temporada-categorias', campo: 'categoria', rotulo: 'categorias de temporada' },
@@ -319,16 +414,29 @@ async function usosDaCategoria(payload: Payload, id: number): Promise<string[]> 
 async function unificarKartIndoor(payload: Payload): Promise<string> {
   const partes: string[] = []
 
-  const { docs } = await payload.find({ collection: 'categorias', where: { nome: { equals: KART_INDOOR } }, limit: 1, depth: 0, overrideAccess: true })
+  const { docs } = await payload.find({
+    collection: 'categorias',
+    where: { nome: { equals: KART_INDOOR } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
   const existente = docs[0] as { id: number; subcategorias?: unknown[] | null } | undefined
   if (!existente) {
     await payload.create({
       collection: 'categorias',
-      data: { nome: KART_INDOOR, modalidade: 'indoor', visibilidade: 'visivel', subcategorias: SUBCATEGORIAS_INDOOR.map((nome) => ({ nome })) } as never,
+      data: {
+        nome: KART_INDOOR,
+        modalidade: 'indoor',
+        visibilidade: 'visivel',
+        subcategorias: SUBCATEGORIAS_INDOOR.map((nome) => ({ nome })),
+      } as never,
       overrideAccess: true,
       context: { ...contexto },
     })
-    partes.push(`categoria "${KART_INDOOR}" criada com ${SUBCATEGORIAS_INDOOR.length} subcategorias`)
+    partes.push(
+      `categoria "${KART_INDOOR}" criada com ${SUBCATEGORIAS_INDOOR.length} subcategorias`,
+    )
   } else if (!existente.subcategorias?.length) {
     await payload.update({
       collection: 'categorias',
@@ -359,7 +467,12 @@ async function unificarKartIndoor(payload: Payload): Promise<string> {
         continue
       }
       try {
-        await payload.delete({ collection: 'categorias', id: antiga.id, overrideAccess: true, context: { ...contexto } })
+        await payload.delete({
+          collection: 'categorias',
+          id: antiga.id,
+          overrideAccess: true,
+          context: { ...contexto },
+        })
         excluidas.push(`"${nome}"`)
       } catch (erro) {
         // A exclusão do painel recusa categoria com qualquer outro vínculo (notícias, treinos…): fica como está
@@ -367,10 +480,13 @@ async function unificarKartIndoor(payload: Payload): Promise<string> {
       }
     }
   }
-  if (excluidas.length) partes.push(`categorias indoor separadas excluídas: ${excluidas.join(', ')}`)
+  if (excluidas.length)
+    partes.push(`categorias indoor separadas excluídas: ${excluidas.join(', ')}`)
   if (mantidas.length) {
     partes.push(`categorias indoor separadas mantidas: ${mantidas.join('; ')}`)
-    payload.logger.warn(`Kart indoor: categorias antigas mantidas porque estão em uso — ${mantidas.join('; ')}. Revise no painel (Competição › Categorias).`)
+    payload.logger.warn(
+      `Kart indoor: categorias antigas mantidas porque estão em uso — ${mantidas.join('; ')}. Revise no painel (Competição › Categorias).`,
+    )
   }
   return partes.join('; ')
 }
@@ -382,7 +498,9 @@ type ItemEvento = { texto?: string | null; descricao?: string | null }
 /** Lista ainda igual à padrão antiga (Food trucks, Telão, Mesas e cadeiras, Narrador, sem explicação)? */
 const itensAntigos = (itens: ItemEvento[]) =>
   itens.length === ITENS_EVENTO_PUBLICO_ANTIGOS.length &&
-  itens.every((item, i) => item.texto?.trim() === ITENS_EVENTO_PUBLICO_ANTIGOS[i] && !item.descricao?.trim())
+  itens.every(
+    (item, i) => item.texto?.trim() === ITENS_EVENTO_PUBLICO_ANTIGOS[i] && !item.descricao?.trim(),
+  )
 
 /**
  * Troca o texto e os itens do evento aberto ao público pelo texto do cliente SÓ quando ainda estão no
@@ -390,25 +508,50 @@ const itensAntigos = (itens: ItemEvento[]) =>
  */
 /** Link geral da IZY Pass, que vale para todas as etapas (só se o painel ainda estiver sem link). */
 async function linkGeralDaIzy(payload: Payload): Promise<string> {
-  const atual = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as { izyPass?: string | null }
+  const atual = (await payload.findGlobal({
+    slug: 'configuracoes',
+    depth: 0,
+    overrideAccess: true,
+  })) as unknown as { izyPass?: string | null }
   if (atual.izyPass?.trim()) return `nada a fazer: o painel já tem o link ${atual.izyPass}`
-  await payload.updateGlobal({ slug: 'configuracoes', data: { izyPass: IZY_PASS_BKS } as never, overrideAccess: true, context: { ...contexto } })
+  await payload.updateGlobal({
+    slug: 'configuracoes',
+    data: { izyPass: IZY_PASS_BKS } as never,
+    overrideAccess: true,
+    context: { ...contexto },
+  })
   return `link geral da IZY Pass: ${IZY_PASS_BKS}`
 }
 
 async function atualizarEventoPublico(payload: Payload): Promise<string> {
-  const atual = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as {
+  const atual = (await payload.findGlobal({
+    slug: 'configuracoes',
+    depth: 0,
+    overrideAccess: true,
+  })) as unknown as {
     textoEventoPublico?: string | null
     itensEventoPublico?: ItemEvento[] | null
   }
   const texto = atual.textoEventoPublico?.trim() ?? ''
   const itens = atual.itensEventoPublico ?? []
   const data: Record<string, unknown> = {}
-  if (!texto || texto === TEXTO_EVENTO_PUBLICO_ANTIGO) data.textoEventoPublico = TEXTO_EVENTO_PUBLICO_PADRAO
-  if (!itens.length || itensAntigos(itens)) data.itensEventoPublico = ITENS_EVENTO_PUBLICO_PADRAO.map((i) => ({ ...i }))
+  if (!texto || texto === TEXTO_EVENTO_PUBLICO_ANTIGO)
+    data.textoEventoPublico = TEXTO_EVENTO_PUBLICO_PADRAO
+  if (!itens.length || itensAntigos(itens))
+    data.itensEventoPublico = ITENS_EVENTO_PUBLICO_PADRAO.map((i) => ({ ...i }))
   if (!Object.keys(data).length) return 'nada a fazer: o texto e os itens já foram personalizados'
-  await payload.updateGlobal({ slug: 'configuracoes', data: data as never, overrideAccess: true, context: { ...contexto } })
-  return [data.textoEventoPublico && 'texto atualizado', data.itensEventoPublico && 'itens atualizados'].filter(Boolean).join(' e ')
+  await payload.updateGlobal({
+    slug: 'configuracoes',
+    data: data as never,
+    overrideAccess: true,
+    context: { ...contexto },
+  })
+  return [
+    data.textoEventoPublico && 'texto atualizado',
+    data.itensEventoPublico && 'itens atualizados',
+  ]
+    .filter(Boolean)
+    .join(' e ')
 }
 
 /**
@@ -416,16 +559,35 @@ async function atualizarEventoPublico(payload: Payload): Promise<string> {
  * melhor volta, para os resultados por subcategoria aparecerem. Não toca em dado real.
  */
 async function exemplosComSubcategorias(payload: Payload): Promise<string> {
-  const { docs: categorias } = await payload.find({ collection: 'categorias', limit: 100, depth: 0, overrideAccess: true })
+  const { docs: categorias } = await payload.find({
+    collection: 'categorias',
+    limit: 100,
+    depth: 0,
+    overrideAccess: true,
+  })
   const subsDe = new Map(
     (categorias as { id: number; subcategorias?: { nome?: string | null }[] | null }[]).map((c) => [
       c.id,
       (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean),
     ]),
   )
-  const { docs } = await payload.find({ collection: 'inscricoes', limit: 2000, depth: 1, sort: 'id', overrideAccess: true, pagination: false })
-  type Insc = { id: number; categoria?: number | { id: number }; subcategoria?: string | null; piloto?: { nome?: string } | number }
-  const demo = (docs as Insc[]).filter((d) => typeof d.piloto === 'object' && String(d.piloto?.nome ?? '').startsWith(DEMO))
+  const { docs } = await payload.find({
+    collection: 'inscricoes',
+    limit: 2000,
+    depth: 1,
+    sort: 'id',
+    overrideAccess: true,
+    pagination: false,
+  })
+  type Insc = {
+    id: number
+    categoria?: number | { id: number }
+    subcategoria?: string | null
+    piloto?: { nome?: string } | number
+  }
+  const demo = (docs as Insc[]).filter(
+    (d) => typeof d.piloto === 'object' && String(d.piloto?.nome ?? '').startsWith(DEMO),
+  )
   const idsDemo = new Set(demo.map((d) => d.id))
   let inscricoes = 0
   const porCategoria = new Map<number, Insc[]>()
@@ -449,16 +611,32 @@ async function exemplosComSubcategorias(payload: Payload): Promise<string> {
     }
   }
   let corridas = 0
-  const { docs: lista } = await payload.find({ collection: 'corridas', limit: 1000, depth: 0, overrideAccess: true, pagination: false })
+  const { docs: lista } = await payload.find({
+    collection: 'corridas',
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+    pagination: false,
+  })
   type Res = { inscricao?: number | { id: number }; melhorVoltaMs?: number | null }
   for (const [ci, c] of (lista as { id: number; resultados?: Res[] }[]).entries()) {
     const res = c.resultados ?? []
-    const soDemo = res.length > 0 && res.every((r) => idsDemo.has(Number(typeof r.inscricao === 'object' ? r.inscricao?.id : r.inscricao)))
+    const soDemo =
+      res.length > 0 &&
+      res.every((r) =>
+        idsDemo.has(Number(typeof r.inscricao === 'object' ? r.inscricao?.id : r.inscricao)),
+      )
     if (!soDemo || res.some((r) => r.melhorVoltaMs)) continue
     await payload.update({
       collection: 'corridas',
       id: c.id,
-      data: { resultados: res.map((r, pos) => ({ ...r, melhorVoltaMs: 50_000 + (ci % 4) * 1_500 + pos * 110 + ((pos * 7_919 + ci * 104_729) % 640) })) } as never,
+      data: {
+        resultados: res.map((r, pos) => ({
+          ...r,
+          melhorVoltaMs:
+            50_000 + (ci % 4) * 1_500 + pos * 110 + ((pos * 7_919 + ci * 104_729) % 640),
+        })),
+      } as never,
       overrideAccess: true,
       context: { ...contexto },
     })
@@ -489,11 +667,20 @@ async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<stri
     overrideAccess: true,
   })
   const categorias = cats
-    .map((c) => ({ id: c.id, subcategorias: (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean) }))
+    .map((c) => ({
+      id: c.id,
+      subcategorias: (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean),
+    }))
     .filter((c) => c.subcategorias.length > 0)
   if (!categorias.length) return 'nada a fazer: F400 e 125cc ainda sem subcategorias'
 
-  const { docs: etapas } = await payload.find({ collection: 'etapas', limit: 500, depth: 1, pagination: false, overrideAccess: true })
+  const { docs: etapas } = await payload.find({
+    collection: 'etapas',
+    limit: 500,
+    depth: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
   const agora = Date.now()
   let etapasDeExemplo = 0
   let criadas = 0
@@ -501,14 +688,24 @@ async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<stri
   const mantidas: string[] = []
   for (const etapa of etapas) {
     const temporada = typeof etapa.temporada === 'object' ? etapa.temporada : null
-    const demo = String(etapa.nome ?? '').includes(DEMO) || String(temporada?.nome ?? '').includes(DEMO)
+    const demo =
+      String(etapa.nome ?? '').includes(DEMO) || String(temporada?.nome ?? '').includes(DEMO)
     const futura =
-      Boolean(etapa.inicio) && new Date(etapa.inicio as string).getTime() > agora && etapa.status !== 'realizada' && etapa.status !== 'cancelada'
+      Boolean(etapa.inicio) &&
+      new Date(etapa.inicio as string).getTime() > agora &&
+      etapa.status !== 'realizada' &&
+      etapa.status !== 'cancelada'
     if (!demo || !futura || temporada?.status === 'encerrada') continue
-    const daEtapa = categorias.filter((c) => (etapa.categorias ?? []).some((x) => idDaRel(x as IdRel) === c.id))
+    const daEtapa = categorias.filter((c) =>
+      (etapa.categorias ?? []).some((x) => idDaRel(x as IdRel) === c.id),
+    )
     if (!daEtapa.length) continue
     etapasDeExemplo++
-    criadas += await criarSessoesDeExemplo(payload, { id: etapa.id, inicio: etapa.inicio as string }, daEtapa)
+    criadas += await criarSessoesDeExemplo(
+      payload,
+      { id: etapa.id, inicio: etapa.inicio as string },
+      daEtapa,
+    )
 
     const { docs: corridas } = await payload.find({
       collection: 'corridas',
@@ -530,7 +727,12 @@ async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<stri
         daEtapa.some((x) => x.id === categoriasDaCorrida[0])
       if (!finalDeExemplo) continue
       try {
-        await payload.delete({ collection: 'corridas', id: c.id, overrideAccess: true, context: { ...contexto } })
+        await payload.delete({
+          collection: 'corridas',
+          id: c.id,
+          overrideAccess: true,
+          context: { ...contexto },
+        })
         removidas++
       } catch (erro) {
         mantidas.push(`${c.titulo ?? c.id} (${(erro as Error).message})`)
@@ -565,25 +767,49 @@ async function exemplosDeHorariosPorSubcategoria(payload: Payload): Promise<stri
  *    no log os avisos para o administrador. Temporada encerrada continua com a fotografia final gravada.
  */
 async function etapaPelaMediaDasCorridas(payload: Payload): Promise<string> {
-  const lerTodos = async <T,>(collection: 'regras-pontuacao' | 'temporadas' | 'temporada-categorias', select: Record<string, true>) =>
-    (await payload.find({ collection, limit: 0, depth: 0, pagination: false, overrideAccess: true, select })).docs as unknown as T[]
+  const lerTodos = async <T>(
+    collection: 'regras-pontuacao' | 'temporadas' | 'temporada-categorias',
+    select: Record<string, true>,
+  ) =>
+    (
+      await payload.find({
+        collection,
+        limit: 0,
+        depth: 0,
+        pagination: false,
+        overrideAccess: true,
+        select,
+      })
+    ).docs as unknown as T[]
   type Regra = { id: number; nome?: string | null; calculoDaEtapa?: string | null }
   type Temporada = { id: number; nome?: string | null; status?: string | null; regra?: IdRel }
   type Classificacao = { id: number; temporada?: IdRel; regra?: IdRel }
   const regras = await lerTodos<Regra>('regras-pontuacao', { nome: true, calculoDaEtapa: true })
-  const temporadas = await lerTodos<Temporada>('temporadas', { nome: true, status: true, regra: true })
-  const classificacoes = await lerTodos<Classificacao>('temporada-categorias', { temporada: true, regra: true })
+  const temporadas = await lerTodos<Temporada>('temporadas', {
+    nome: true,
+    status: true,
+    regra: true,
+  })
+  const classificacoes = await lerTodos<Classificacao>('temporada-categorias', {
+    temporada: true,
+    regra: true,
+  })
 
   // Regras usadas por temporada encerrada (na temporada ou como regra própria de uma categoria dela)
   const encerradas = new Set(temporadas.filter((t) => t.status === 'encerrada').map((t) => t.id))
   const daEncerrada = new Set(
     [
       ...temporadas.filter((t) => encerradas.has(t.id)).map((t) => idDaRel(t.regra)),
-      ...classificacoes.filter((c) => encerradas.has(Number(idDaRel(c.temporada)))).map((c) => idDaRel(c.regra)),
+      ...classificacoes
+        .filter((c) => encerradas.has(Number(idDaRel(c.temporada))))
+        .map((c) => idDaRel(c.regra)),
     ].filter((id): id is number => id !== null),
   )
 
-  const preenchidas: Record<CalculoDaEtapa, string[]> = { 'media-das-corridas': [], 'por-corrida': [] }
+  const preenchidas: Record<CalculoDaEtapa, string[]> = {
+    'media-das-corridas': [],
+    'por-corrida': [],
+  }
   const falhas: string[] = []
   for (const r of regras) {
     const valor: CalculoDaEtapa | null = daEncerrada.has(r.id)
@@ -614,24 +840,42 @@ async function etapaPelaMediaDasCorridas(payload: Payload): Promise<string> {
     const lista = await classificacoesDaTemporada({ payload, temporada: t.id })
     const porSubcategoria = lista.filter((c) => c.porSubcategoria).length
     const avisos = [...new Set(lista.flatMap((c) => c.avisos))]
-    if (avisos.length) payload.logger.warn(`Temporada "${t.nome ?? t.id}" recalculada com ${avisos.length} aviso(s): ${avisos.join(' | ')}`)
-    recalculadas.push(`"${t.nome ?? t.id}" (${lista.length} categoria(s), ${porSubcategoria} pela média por subcategoria)`)
+    if (avisos.length)
+      payload.logger.warn(
+        `Temporada "${t.nome ?? t.id}" recalculada com ${avisos.length} aviso(s): ${avisos.join(' | ')}`,
+      )
+    recalculadas.push(
+      `"${t.nome ?? t.id}" (${lista.length} categoria(s), ${porSubcategoria} pela média por subcategoria)`,
+    )
   }
 
   const partes = [
-    preenchidas['media-das-corridas'].length ? `média das corridas por subcategoria em: ${preenchidas['media-das-corridas'].join(', ')}` : null,
-    preenchidas['por-corrida'].length ? `mantidas por corrida (usadas por temporada encerrada): ${preenchidas['por-corrida'].join(', ')}` : null,
-    !preenchidas['media-das-corridas'].length && !preenchidas['por-corrida'].length ? 'nenhuma regra sem o cálculo da etapa' : null,
-    recalculadas.length ? `classificação recalculada: ${recalculadas.join('; ')}` : 'nenhuma temporada aberta para recalcular',
+    preenchidas['media-das-corridas'].length
+      ? `média das corridas por subcategoria em: ${preenchidas['media-das-corridas'].join(', ')}`
+      : null,
+    preenchidas['por-corrida'].length
+      ? `mantidas por corrida (usadas por temporada encerrada): ${preenchidas['por-corrida'].join(', ')}`
+      : null,
+    !preenchidas['media-das-corridas'].length && !preenchidas['por-corrida'].length
+      ? 'nenhuma regra sem o cálculo da etapa'
+      : null,
+    recalculadas.length
+      ? `classificação recalculada: ${recalculadas.join('; ')}`
+      : 'nenhuma temporada aberta para recalcular',
   ].filter(Boolean)
   // Falha: fica registrada e o passo é tentado de novo na próxima publicação (as já preenchidas são puladas)
-  if (falhas.length) throw new Error(`${partes.join('; ')}; não foi possível preencher: ${falhas.join('; ')}`)
+  if (falhas.length)
+    throw new Error(`${partes.join('; ')}; não foi possível preencher: ${falhas.join('; ')}`)
   return partes.join('; ')
 }
 
 /* ─────────────────── 7. Topo da página inicial: apresentação da ASKART ─────────────────── */
 
-type TopoGravado = { titulo?: string | null; subtitulo?: string | null; botoes?: { link?: ValorLink | null }[] | null } & Record<string, unknown>
+type TopoGravado = {
+  titulo?: string | null
+  subtitulo?: string | null
+  botoes?: { link?: ValorLink | null }[] | null
+} & Record<string, unknown>
 
 /**
  * O topo sem o padrão antigo do BKS: título ("Brasília Kart Series 2026"), subtítulo ("Calendário,
@@ -639,7 +883,9 @@ type TopoGravado = { titulo?: string | null; subtitulo?: string | null; botoes?:
  * padrão antigo ficam vazios — vazio = a apresentação da ASKART (src/lib/topo-inicio.ts). A foto e o que foi
  * escrito à mão ficam como estão. null = nada a trocar.
  */
-function topoSemPadraoAntigo(topo: TopoGravado | null | undefined): { topo: TopoGravado; trocados: string[] } | null {
+function topoSemPadraoAntigo(
+  topo: TopoGravado | null | undefined,
+): { topo: TopoGravado; trocados: string[] } | null {
   if (!topo) return null
   const novo: TopoGravado = { ...topo }
   const trocados: string[] = []
@@ -652,7 +898,10 @@ function topoSemPadraoAntigo(topo: TopoGravado | null | undefined): { topo: Topo
     trocados.push('subtítulo')
   }
   const botoes = topo.botoes ?? []
-  if (botoes.length && ehBotoesAntigosDoTopo(botoes.map((b) => ({ caminho: caminho(b.link), rotulo: b.link?.rotulo })))) {
+  if (
+    botoes.length &&
+    ehBotoesAntigosDoTopo(botoes.map((b) => ({ caminho: caminho(b.link), rotulo: b.link?.rotulo })))
+  ) {
     novo.botoes = []
     trocados.push('botões')
   }
@@ -670,15 +919,26 @@ async function topoDaAskart(payload: Payload): Promise<string> {
   if (!global) return 'global da página inicial não encontrado: nada feito'
   const comRascunho = Boolean(global.versions && global.versions.drafts)
 
-  const publicado = (await payload.findGlobal({ slug, depth: 0, draft: false, overrideAccess: true })) as unknown as Record<string, unknown>
+  const publicado = (await payload.findGlobal({
+    slug,
+    depth: 0,
+    draft: false,
+    overrideAccess: true,
+  })) as unknown as Record<string, unknown>
   const ultima = comRascunho
-    ? ((await payload.findGlobal({ slug, depth: 0, draft: true, overrideAccess: true })) as unknown as Record<string, unknown>)
+    ? ((await payload.findGlobal({
+        slug,
+        depth: 0,
+        draft: true,
+        overrideAccess: true,
+      })) as unknown as Record<string, unknown>)
     : null
   const rascunho = ultima?._status === 'draft' ? ultima : null
 
   const noPublicado = topoSemPadraoAntigo(publicado.topo as TopoGravado | null)
   const noRascunho = rascunho ? topoSemPadraoAntigo(rascunho.topo as TopoGravado | null) : null
-  if (!noPublicado && !noRascunho) return 'nada a fazer: o topo não tem o texto antigo do BKS (vazio já mostra a apresentação da ASKART)'
+  if (!noPublicado && !noRascunho)
+    return 'nada a fazer: o topo não tem o texto antigo do BKS (vazio já mostra a apresentação da ASKART)'
 
   if (noPublicado) {
     await payload.updateGlobal({
@@ -686,7 +946,11 @@ async function topoDaAskart(payload: Payload): Promise<string> {
       draft: false,
       overrideAccess: true,
       context: { ...contexto },
-      data: { ...semControle(publicado), topo: noPublicado.topo, ...(comRascunho ? { _status: 'published' } : {}) } as never,
+      data: {
+        ...semControle(publicado),
+        topo: noPublicado.topo,
+        ...(comRascunho ? { _status: 'published' } : {}),
+      } as never,
     })
   }
   if (rascunho) {
@@ -695,12 +959,22 @@ async function topoDaAskart(payload: Payload): Promise<string> {
       draft: true,
       overrideAccess: true,
       context: { ...contexto },
-      data: { ...semControle(rascunho), ...(noRascunho ? { topo: noRascunho.topo } : {}), _status: 'draft' } as never,
+      data: {
+        ...semControle(rascunho),
+        ...(noRascunho ? { topo: noRascunho.topo } : {}),
+        _status: 'draft',
+      } as never,
     })
   }
   return [
-    noPublicado ? `topo publicado: ${noPublicado.trocados.join(', ')} do BKS trocado(s) pela apresentação da ASKART` : null,
-    noRascunho ? `rascunho em edição: ${noRascunho.trocados.join(', ')} trocado(s)` : rascunho ? 'o rascunho em edição foi mantido' : null,
+    noPublicado
+      ? `topo publicado: ${noPublicado.trocados.join(', ')} do BKS trocado(s) pela apresentação da ASKART`
+      : null,
+    noRascunho
+      ? `rascunho em edição: ${noRascunho.trocados.join(', ')} trocado(s)`
+      : rascunho
+        ? 'o rascunho em edição foi mantido'
+        : null,
   ]
     .filter(Boolean)
     .join('; ')
@@ -718,11 +992,19 @@ async function exemplosDoIndoor(payload: Payload): Promise<string> {
     depth: 0,
     overrideAccess: true,
   })
-  const subsDe = (c: (typeof cats)[number]) => (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean)
+  const subsDe = (c: (typeof cats)[number]) =>
+    (c.subcategorias ?? []).map((x) => x.nome?.trim() ?? '').filter(Boolean)
   const indoor = cats.find((c) => c.nome === 'Kart indoor')
   if (!indoor || !subsDe(indoor).length) return 'nada a fazer: Kart indoor sem subcategorias'
-  const { docs: temporadas } = await payload.find({ collection: 'temporadas', limit: 50, depth: 0, overrideAccess: true })
-  const demo = temporadas.filter((t) => String(t.nome ?? '').includes(DEMO) && t.status !== 'encerrada')
+  const { docs: temporadas } = await payload.find({
+    collection: 'temporadas',
+    limit: 50,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const demo = temporadas.filter(
+    (t) => String(t.nome ?? '').includes(DEMO) && t.status !== 'encerrada',
+  )
   if (!demo.length) return 'nenhuma temporada de demonstração aberta: nada a fazer'
   let criadas = 0
   for (const t of demo) {
@@ -743,11 +1025,22 @@ async function exemplosDoIndoor(payload: Payload): Promise<string> {
       depth: 0,
       overrideAccess: true,
     })
-    const ordem = [...cats.filter((c) => c.nome !== 'Kart indoor'), indoor].map((c) => ({ id: c.id, subcategorias: subsDe(c) }))
+    const ordem = [...cats.filter((c) => c.nome !== 'Kart indoor'), indoor].map((c) => ({
+      id: c.id,
+      subcategorias: subsDe(c),
+    }))
     for (const e of etapas) {
-      const futura = Boolean(e.inicio) && new Date(e.inicio as string).getTime() > Date.now() && e.status !== 'realizada' && e.status !== 'cancelada'
+      const futura =
+        Boolean(e.inicio) &&
+        new Date(e.inicio as string).getTime() > Date.now() &&
+        e.status !== 'realizada' &&
+        e.status !== 'cancelada'
       if (!futura || !(e.categorias ?? []).some((x) => idDaRel(x as IdRel) === indoor.id)) continue
-      criadas += await criarSessoesDeExemplo(payload, { id: e.id, inicio: e.inicio as string }, ordem.filter((c) => c.subcategorias.length))
+      criadas += await criarSessoesDeExemplo(
+        payload,
+        { id: e.id, inicio: e.inicio as string },
+        ordem.filter((c) => c.subcategorias.length),
+      )
     }
   }
   return `${criadas} sessão(ões) de exemplo do Kart indoor nas etapas futuras de demonstração`
@@ -755,7 +1048,10 @@ async function exemplosDoIndoor(payload: Payload): Promise<string> {
 
 /* ─────────────────── 8. Cores do BKS: as da logo, com o azul como principal ─────────────────── */
 
-type CoresGravadas = { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined
+type CoresGravadas =
+  | { primaria?: string | null; secundaria?: string | null; destaque?: string | null }
+  | null
+  | undefined
 
 /**
  * A aba BKS ganhou a identidade da logo: azul royal (principal: topo, faixas, títulos, botões), vermelho (apoio:
@@ -765,18 +1061,29 @@ type CoresGravadas = { primaria?: string | null; secundaria?: string | null; des
  * trata as antigas como "sem cores" (variaveisDoTemaBks); este passo só deixa o painel mostrando as certas.
  */
 async function coresDoBks(payload: Payload): Promise<string> {
-  const configuracoes = (await payload.findGlobal({ slug: 'configuracoes', depth: 0, overrideAccess: true })) as unknown as {
+  const configuracoes = (await payload.findGlobal({
+    slug: 'configuracoes',
+    depth: 0,
+    overrideAccess: true,
+  })) as unknown as {
     campeonatoPrincipal?: IdRel
   }
   const principal = idDaRel(configuracoes.campeonatoPrincipal)
   const { docs } = await payload.find({
     collection: 'campeonatos',
-    where: principal !== null ? { or: [{ sigla: { equals: 'BKS' } }, { id: { equals: principal } }] } : { sigla: { equals: 'BKS' } },
+    where:
+      principal !== null
+        ? { or: [{ sigla: { equals: 'BKS' } }, { id: { equals: principal } }] }
+        : { sigla: { equals: 'BKS' } },
     limit: 10,
     depth: 0,
     overrideAccess: true,
   })
-  const campeonatos = docs as unknown as { id: number; nome?: string | null; cores?: CoresGravadas }[]
+  const campeonatos = docs as unknown as {
+    id: number
+    nome?: string | null
+    cores?: CoresGravadas
+  }[]
   if (!campeonatos.length) return 'nada a fazer: campeonato BKS não encontrado'
   const trocados: string[] = []
   const mantidos: string[] = []
@@ -785,7 +1092,13 @@ async function coresDoBks(payload: Payload): Promise<string> {
       mantidos.push(`"${c.nome ?? c.id}"`)
       continue
     }
-    await payload.update({ collection: 'campeonatos', id: c.id, data: { cores: { ...CORES_BKS } } as never, overrideAccess: true, context: { ...contexto } })
+    await payload.update({
+      collection: 'campeonatos',
+      id: c.id,
+      data: { cores: { ...CORES_BKS } } as never,
+      overrideAccess: true,
+      context: { ...contexto },
+    })
     trocados.push(`"${c.nome ?? c.id}"`)
   }
   return [
@@ -805,7 +1118,11 @@ async function coresDoBks(payload: Payload): Promise<string> {
  * e, se havia um rascunho em edição, grava-o de novo (com os mesmos cuidados) para ele continuar sendo o mais
  * recente no painel — o mesmo jeito do topo da página inicial.
  */
-type MudancaNoKartodromo = (doc: Record<string, unknown>) => { dados: Record<string, unknown>; feitos: string[]; avisos: string[] }
+type MudancaNoKartodromo = (doc: Record<string, unknown>) => {
+  dados: Record<string, unknown>
+  feitos: string[]
+  avisos: string[]
+}
 
 const taxaDePistaEMensalidade = (payload: Payload) => atualizarKartodromo(payload, taxasDe2026)
 
@@ -840,15 +1157,50 @@ async function iniciantesSoAmbulancia(payload: Payload): Promise<string> {
   return `${noKartodromo}. Pergunta frequente das taxas: ${perguntas ? 'resposta atualizada' : 'mantida (já mudada no painel ou inexistente)'}`
 }
 
-async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodromo): Promise<string> {
-  const slug = 'kartodromo' as const
+const atualizarKartodromo = (payload: Payload, mudanca: MudancaNoKartodromo) =>
+  atualizarGlobal(payload, 'kartodromo', mudanca)
+
+/** Instagram oficial do BKS; sai o perfil de exemplo ("[DEMONSTRAÇÃO] @perfil"). Perfis reais ficam. */
+const instagramDoBks: MudancaNoKartodromo = (doc) => {
+  const redes = (doc.redes ?? []) as { usuario?: string | null; url?: string | null }[]
+  const reais = redes.filter((r) => !(r.usuario ?? '').includes('DEMONSTRAÇÃO'))
+  const temBks = reais.some((r) =>
+    (r.url ?? '').toLowerCase().includes('instagram.com/brasiliakartseries'),
+  )
+  if (temBks && reais.length === redes.length)
+    return { dados: {}, feitos: [], avisos: ['o Instagram do BKS já estava cadastrado'] }
+  return {
+    dados: { redes: temBks ? reais : [...reais, { ...INSTAGRAM_BKS }] },
+    feitos: [
+      temBks ? 'perfil de exemplo removido' : 'Instagram do BKS cadastrado',
+      ...(reais.length < redes.length && !temBks ? ['perfil de exemplo removido'] : []),
+    ],
+    avisos: [],
+  }
+}
+
+async function atualizarGlobal(
+  payload: Payload,
+  slug: 'kartodromo' | 'contato',
+  mudanca: MudancaNoKartodromo,
+): Promise<string> {
   const global = payload.config.globals.find((g) => g.slug === slug)
-  if (!global) return 'global do kartódromo não encontrado: nada feito'
+  if (!global) return `global ${slug} não encontrado: nada feito`
   const comRascunho = Boolean(global.versions && global.versions.drafts)
 
-  const publicado = (await payload.findGlobal({ slug, depth: 0, draft: false, overrideAccess: true })) as unknown as Record<string, unknown>
+  const publicado = (await payload.findGlobal({
+    slug,
+    depth: 0,
+    draft: false,
+    overrideAccess: true,
+  })) as unknown as Record<string, unknown>
   const ultima = comRascunho
-    ? ((await payload.findGlobal({ slug, depth: 0, draft: true, overrideAccess: true })) as unknown as Record<string, unknown>)
+    ? ((await payload.findGlobal({
+        slug,
+        depth: 0,
+        draft: true,
+        overrideAccess: true,
+      })) as unknown as Record<string, unknown>)
     : null
   const rascunho = ultima?._status === 'draft' ? ultima : null
 
@@ -856,7 +1208,8 @@ async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodrom
   const noRascunho = rascunho ? mudanca(rascunho) : null
   const mudaPublicado = noPublicado.feitos.length > 0
   const mudaRascunho = Boolean(noRascunho?.feitos.length)
-  if (!mudaPublicado && !mudaRascunho) return `nada a fazer: ${noPublicado.avisos.join('; ') || 'tudo já estava preenchido'}`
+  if (!mudaPublicado && !mudaRascunho)
+    return `nada a fazer: ${noPublicado.avisos.join('; ') || 'tudo já estava preenchido'}`
 
   if (mudaPublicado) {
     await payload.updateGlobal({
@@ -864,7 +1217,11 @@ async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodrom
       draft: false,
       overrideAccess: true,
       context: { ...contexto },
-      data: { ...semControle(publicado), ...noPublicado.dados, ...(comRascunho ? { _status: 'published' } : {}) } as never,
+      data: {
+        ...semControle(publicado),
+        ...noPublicado.dados,
+        ...(comRascunho ? { _status: 'published' } : {}),
+      } as never,
     })
   }
   if (rascunho) {
@@ -877,9 +1234,15 @@ async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodrom
     })
   }
   return [
-    mudaPublicado ? `site (versão publicada): ${noPublicado.feitos.join(', ')}` : 'versão publicada sem mudança',
+    mudaPublicado
+      ? `site (versão publicada): ${noPublicado.feitos.join(', ')}`
+      : 'versão publicada sem mudança',
     noPublicado.avisos.length ? `mantido no publicado: ${noPublicado.avisos.join('; ')}` : null,
-    rascunho ? (mudaRascunho ? `rascunho em edição: ${noRascunho!.feitos.join(', ')}` : 'o rascunho em edição foi mantido') : null,
+    rascunho
+      ? mudaRascunho
+        ? `rascunho em edição: ${noRascunho!.feitos.join(', ')}`
+        : 'o rascunho em edição foi mantido'
+      : null,
   ]
     .filter(Boolean)
     .join('. ')
@@ -888,28 +1251,72 @@ async function atualizarKartodromo(payload: Payload, mudanca: MudancaNoKartodrom
 /* ───────────────────────────── execução ───────────────────────────── */
 
 const ATUALIZACOES: Atualizacao[] = [
-  { chave: 'atualizacao:2026-10-versoes-iniciais', descricao: 'Versões publicadas do que já existia', aplicar: criarVersoesIniciais },
-  { chave: 'atualizacao:2026-10-aba-avisos-no-menu', descricao: 'Aba "Avisos" no menu', aplicar: adicionarAbaAvisos },
-  { chave: 'atualizacao:2026-10-sem-avisos-de-exemplo', descricao: 'Aba Avisos sem exemplos', aplicar: removerAvisosDeDemonstracao },
-  { chave: 'atualizacao:2026-10-subcategorias', descricao: 'Subcategorias do F400 e da 125cc', aplicar: preencherSubcategorias },
-  { chave: 'atualizacao:2026-10-categorias-indoor', descricao: 'Categorias de kart indoor', aplicar: criarCategoriasIndoor },
-  { chave: 'atualizacao:2026-10-evento-publico', descricao: 'Texto do evento aberto ao público', aplicar: atualizarEventoPublico },
-  { chave: 'atualizacao:2026-10-kart-indoor-subcategorias', descricao: 'Kart indoor com subcategorias', aplicar: unificarKartIndoor },
-  { chave: 'atualizacao:2026-10-exemplos-por-subcategoria', descricao: 'Exemplos com subcategorias e melhor volta', aplicar: exemplosComSubcategorias },
+  {
+    chave: 'atualizacao:2026-10-versoes-iniciais',
+    descricao: 'Versões publicadas do que já existia',
+    aplicar: criarVersoesIniciais,
+  },
+  {
+    chave: 'atualizacao:2026-10-aba-avisos-no-menu',
+    descricao: 'Aba "Avisos" no menu',
+    aplicar: adicionarAbaAvisos,
+  },
+  {
+    chave: 'atualizacao:2026-10-sem-avisos-de-exemplo',
+    descricao: 'Aba Avisos sem exemplos',
+    aplicar: removerAvisosDeDemonstracao,
+  },
+  {
+    chave: 'atualizacao:2026-10-subcategorias',
+    descricao: 'Subcategorias do F400 e da 125cc',
+    aplicar: preencherSubcategorias,
+  },
+  {
+    chave: 'atualizacao:2026-10-categorias-indoor',
+    descricao: 'Categorias de kart indoor',
+    aplicar: criarCategoriasIndoor,
+  },
+  {
+    chave: 'atualizacao:2026-10-evento-publico',
+    descricao: 'Texto do evento aberto ao público',
+    aplicar: atualizarEventoPublico,
+  },
+  {
+    chave: 'atualizacao:2026-10-kart-indoor-subcategorias',
+    descricao: 'Kart indoor com subcategorias',
+    aplicar: unificarKartIndoor,
+  },
+  {
+    chave: 'atualizacao:2026-10-exemplos-por-subcategoria',
+    descricao: 'Exemplos com subcategorias e melhor volta',
+    aplicar: exemplosComSubcategorias,
+  },
   {
     chave: 'atualizacao:2026-10-exemplos-horarios-por-subcategoria',
     descricao: 'Exemplos de horários por subcategoria',
     aplicar: exemplosDeHorariosPorSubcategoria,
   },
-  { chave: 'atualizacao:2026-10-exemplos-do-indoor', descricao: 'Exemplos do Kart indoor por subcategoria', aplicar: exemplosDoIndoor },
+  {
+    chave: 'atualizacao:2026-10-exemplos-do-indoor',
+    descricao: 'Exemplos do Kart indoor por subcategoria',
+    aplicar: exemplosDoIndoor,
+  },
 
   {
     chave: 'atualizacao:2026-10-etapa-pela-media-das-corridas',
     descricao: 'Regra do BKS: etapa pela média das corridas, por subcategoria',
     aplicar: etapaPelaMediaDasCorridas,
   },
-  { chave: 'atualizacao:2026-10-topo-da-askart', descricao: 'Topo da página inicial com a apresentação da ASKART', aplicar: topoDaAskart },
-  { chave: 'atualizacao:2026-10-cores-do-bks', descricao: 'Cores do BKS pela logo (azul royal, vermelho e branco)', aplicar: coresDoBks },
+  {
+    chave: 'atualizacao:2026-10-topo-da-askart',
+    descricao: 'Topo da página inicial com a apresentação da ASKART',
+    aplicar: topoDaAskart,
+  },
+  {
+    chave: 'atualizacao:2026-10-cores-do-bks',
+    descricao: 'Cores do BKS pela logo (azul royal, vermelho e branco)',
+    aplicar: coresDoBks,
+  },
   {
     chave: 'atualizacao:2026-10-taxa-de-pista-e-mensalidade',
     descricao: 'Taxa de pista R$ 80,00 (avulsa) e mensalidade da taxa de pista',
@@ -927,10 +1334,20 @@ const ATUALIZACOES: Atualizacao[] = [
   },
   {
     chave: 'atualizacao:2026-10-pista-obrigatoria-fora-do-iniciante',
-    descricao: 'Fora do horário de iniciante: taxa de pista e de ambulância obrigatórias, ou a mensalidade com as duas',
+    descricao:
+      'Fora do horário de iniciante: taxa de pista e de ambulância obrigatórias, ou a mensalidade com as duas',
     aplicar: iniciantesSoAmbulancia,
   },
-  { chave: 'atualizacao:2026-10-izy-pass-geral', descricao: 'Link geral da IZY Pass do BKS (todas as etapas)', aplicar: linkGeralDaIzy },
+  {
+    chave: 'atualizacao:2026-10-izy-pass-geral',
+    descricao: 'Link geral da IZY Pass do BKS (todas as etapas)',
+    aplicar: linkGeralDaIzy,
+  },
+  {
+    chave: 'atualizacao:2026-10-instagram-bks',
+    descricao: 'Instagram oficial do BKS',
+    aplicar: (payload) => atualizarGlobal(payload, 'contato', instagramDoBks),
+  },
 ]
 
 async function principal() {
@@ -946,7 +1363,10 @@ async function principal() {
       payload.logger.info(`Atualização "${a.descricao}": ${mensagem}.`)
     } catch (erro) {
       // Não interrompe a publicação: tenta de novo na próxima
-      payload.logger.error({ err: erro }, `Atualização "${a.descricao}" falhou (será tentada na próxima publicação).`)
+      payload.logger.error(
+        { err: erro },
+        `Atualização "${a.descricao}" falhou (será tentada na próxima publicação).`,
+      )
     }
   }
 }

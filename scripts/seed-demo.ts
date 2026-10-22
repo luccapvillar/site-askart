@@ -10,10 +10,19 @@
  * pista nem "Como treinar" (dados oficiais, de scripts/dados-oficiais.ts e scripts/atualizacoes.ts). No kartódromo,
  * só a história de exemplo — e o Payload mantém os demais campos do global como estão.
  */
+import { INSTAGRAM_BKS } from '../src/lib/site'
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
-import { contexto, criarSessoesDeExemplo, DEMO, emBrasilia, fotosOficiais, type Id, publicarPorPadrao } from './comum'
+import {
+  contexto,
+  criarSessoesDeExemplo,
+  DEMO,
+  emBrasilia,
+  fotosOficiais,
+  type Id,
+  publicarPorPadrao,
+} from './comum'
 
 const d = (texto: string) => `${DEMO} ${texto}`
 const ANO = 2026
@@ -31,28 +40,48 @@ function embaralhar<T>(lista: T[], semente: number): T[] {
 }
 
 export async function semearDemonstracao(payload: Payload) {
-  const existente = await payload.find({ collection: 'temporadas', where: { nome: { like: DEMO } }, limit: 1, depth: 0 })
+  const existente = await payload.find({
+    collection: 'temporadas',
+    where: { nome: { like: DEMO } },
+    limit: 1,
+    depth: 0,
+  })
   if (existente.totalDocs > 0) {
-    payload.logger.info('Os dados de demonstração já existem. Para recriar: npm run seed:limpar && npm run seed:demo')
+    payload.logger.info(
+      'Os dados de demonstração já existem. Para recriar: npm run seed:limpar && npm run seed:demo',
+    )
     return
   }
   // Depois de uma limpeza, a implantação não recarrega exemplos por cima dos dados reais
-  const marca = (await payload.findGlobal({ slug: 'configuracoes', depth: 0 })).demonstracaoCarregadaEm
+  const marca = (await payload.findGlobal({ slug: 'configuracoes', depth: 0 }))
+    .demonstracaoCarregadaEm
   if (marca && process.env.FORCAR_DEMO !== '1') {
-    payload.logger.info(`Exemplos já foram carregados em ${marca} e depois removidos: nada a fazer (FORCAR_DEMO=1 para carregar de novo).`)
+    payload.logger.info(
+      `Exemplos já foram carregados em ${marca} e depois removidos: nada a fazer (FORCAR_DEMO=1 para carregar de novo).`,
+    )
     return
   }
   const fotos = await fotosOficiais(payload)
 
   payload.logger.info('Campeonato, temporada e categorias…')
-  let bks = (await payload.find({ collection: 'campeonatos', where: { sigla: { equals: 'BKS' } }, limit: 1, depth: 0 })).docs[0]
-  if (!bks) throw new Error('Rode antes: npm run dados:oficiais (cria o BKS, as categorias e a grade).')
+  let bks = (
+    await payload.find({
+      collection: 'campeonatos',
+      where: { sigla: { equals: 'BKS' } },
+      limit: 1,
+      depth: 0,
+    })
+  ).docs[0]
+  if (!bks)
+    throw new Error('Rode antes: npm run dados:oficiais (cria o BKS, as categorias e a grade).')
   bks = await payload.update({
     collection: 'campeonatos',
     id: bks.id,
     context: contexto,
     data: {
-      descricao: textoParaLexical(`${DEMO} Apresentação do campeonato. A ASKART vai escrever este texto.`) as never,
+      descricao: textoParaLexical(
+        `${DEMO} Apresentação do campeonato. A ASKART vai escrever este texto.`,
+      ) as never,
       historia: textoParaLexical(
         `${DEMO} Aqui entra a história do BKS: quando começou, como evoluiu e os campeões de cada ano. A ASKART vai escrever este texto.`,
       ) as never,
@@ -64,10 +93,20 @@ export async function semearDemonstracao(payload: Payload) {
   // Subcategorias oficiais de cada categoria (F400 e 125cc têm; Cadete e Mirim não), para distribuir os pilotos de exemplo
   const subcategoriasDe = new Map<Id, string[]>()
   for (const nome of ['F400', '125cc', 'Cadete', 'Mirim']) {
-    const c = (await payload.find({ collection: 'categorias', where: { nome: { equals: nome } }, limit: 1, depth: 0 })).docs[0]
+    const c = (
+      await payload.find({
+        collection: 'categorias',
+        where: { nome: { equals: nome } },
+        limit: 1,
+        depth: 0,
+      })
+    ).docs[0]
     if (!c) continue
     categorias.push(c.id as Id)
-    subcategoriasDe.set(c.id as Id, (c.subcategorias ?? []).map((s) => s.nome?.trim() ?? '').filter(Boolean))
+    subcategoriasDe.set(
+      c.id as Id,
+      (c.subcategorias ?? []).map((s) => s.nome?.trim() ?? '').filter(Boolean),
+    )
   }
 
   const regra = await payload.create({
@@ -96,16 +135,32 @@ export async function semearDemonstracao(payload: Payload) {
       categorias,
       regra: regra.id,
       fonteDados: 'resultados',
-      formatoEtapa: [{ nome: 'Final', tipo: 'final', tabela: 'Final', contaParaClassificacao: true, fator: 1 }],
+      formatoEtapa: [
+        { nome: 'Final', tipo: 'final', tabela: 'Final', contaParaClassificacao: true, fator: 1 },
+      ],
       visibilidade: 'visivel',
     },
   })
-  await payload.update({ collection: 'campeonatos', id: bks.id, data: { temporadaAtual: temporada.id }, context: contexto })
+  await payload.update({
+    collection: 'campeonatos',
+    id: bks.id,
+    data: { temporadaAtual: temporada.id },
+    context: contexto,
+  })
 
   // Classificações (criadas sozinhas pela temporada): publicar
-  const classificacoes = await payload.find({ collection: 'temporada-categorias', where: { temporada: { equals: temporada.id } }, depth: 0 })
+  const classificacoes = await payload.find({
+    collection: 'temporada-categorias',
+    where: { temporada: { equals: temporada.id } },
+    depth: 0,
+  })
   for (const c of classificacoes.docs) {
-    await payload.update({ collection: 'temporada-categorias', id: c.id, data: { publicada: true }, context: contexto })
+    await payload.update({
+      collection: 'temporada-categorias',
+      id: c.id,
+      data: { publicada: true },
+      context: contexto,
+    })
   }
 
   payload.logger.info('Equipes, pilotos e inscrições…')
@@ -118,7 +173,10 @@ export async function semearDemonstracao(payload: Payload) {
     })
     equipes.push(e.id as Id)
   }
-  const numeros = [7, 12, 21, 33, 44, 5, 18, 27, 9, 14, 30, 42, 3, 23, 11, 77, 8, 16, 25, 31, 2, 19, 55, 70, 4, 10, 15, 22, 28, 36, 51, 88]
+  const numeros = [
+    7, 12, 21, 33, 44, 5, 18, 27, 9, 14, 30, 42, 3, 23, 11, 77, 8, 16, 25, 31, 2, 19, 55, 70, 4, 10,
+    15, 22, 28, 36, 51, 88,
+  ]
   const inscricoesPorCategoria = new Map<Id, Id[]>()
   let p = 0
   for (const [ci, categoria] of categorias.entries()) {
@@ -129,7 +187,12 @@ export async function semearDemonstracao(payload: Payload) {
       const piloto = await payload.create({
         collection: 'pilotos',
         context: contexto,
-        data: { nome: d(`Piloto ${String(p).padStart(2, '0')}`), cidade: 'Brasília', uf: 'DF', visibilidade: 'visivel' },
+        data: {
+          nome: d(`Piloto ${String(p).padStart(2, '0')}`),
+          cidade: 'Brasília',
+          uf: 'DF',
+          visibilidade: 'visivel',
+        },
       })
       const inscricao = await payload.create({
         collection: 'inscricoes',
@@ -140,7 +203,9 @@ export async function semearDemonstracao(payload: Payload) {
           piloto: piloto.id,
           numero: numeros[ci * 8 + i],
           // Exemplo: os 8 pilotos divididos entre as subcategorias da categoria (F400: 2, 2, 1, 2, 1; 125cc: 2 em cada)
-          ...(subcategorias.length ? { subcategoria: subcategorias[Math.floor((i * subcategorias.length) / 8)] } : {}),
+          ...(subcategorias.length
+            ? { subcategoria: subcategorias[Math.floor((i * subcategorias.length) / 8)] }
+            : {}),
           equipe: equipes[(i + ci) % equipes.length],
           condicao: 'titular',
           status: 'ativa',
@@ -169,8 +234,17 @@ export async function semearDemonstracao(payload: Payload) {
         status: realizada ? 'confirmada' : 'agendada',
         categorias,
         local: 'Kartódromo Ayrton Senna do Guará',
-        imagem: [fotos.grid, fotos.panning, fotos.curva42, fotos.pelotao, fotos.chuva, fotos.curvaAberta][i],
-        descricao: textoParaLexical(`${DEMO} Informações da etapa (programação, inscrições e avisos) aparecem aqui.`) as never,
+        imagem: [
+          fotos.grid,
+          fotos.panning,
+          fotos.curva42,
+          fotos.pelotao,
+          fotos.chuva,
+          fotos.curvaAberta,
+        ][i],
+        descricao: textoParaLexical(
+          `${DEMO} Informações da etapa (programação, inscrições e avisos) aparecem aqui.`,
+        ) as never,
         visibilidade: 'visivel',
       },
     })
@@ -179,8 +253,15 @@ export async function semearDemonstracao(payload: Payload) {
     // uma no seu horário (exemplo para o seletor "Escolha a subcategoria"); as demais categorias, a Final
     const porSubcategoria = realizada
       ? []
-      : categorias.map((id) => ({ id, subcategorias: subcategoriasDe.get(id) ?? [] })).filter((c) => c.subcategorias.length > 0)
-    if (porSubcategoria.length) await criarSessoesDeExemplo(payload, { id: etapa.id as Id, inicio: etapa.inicio as string }, porSubcategoria)
+      : categorias
+          .map((id) => ({ id, subcategorias: subcategoriasDe.get(id) ?? [] }))
+          .filter((c) => c.subcategorias.length > 0)
+    if (porSubcategoria.length)
+      await criarSessoesDeExemplo(
+        payload,
+        { id: etapa.id as Id, inicio: etapa.inicio as string },
+        porSubcategoria,
+      )
     for (const [ci, categoria] of categorias.entries()) {
       if (porSubcategoria.some((c) => c.id === categoria)) continue
       const inscritos = inscricoesPorCategoria.get(categoria) ?? []
@@ -203,10 +284,14 @@ export async function semearDemonstracao(payload: Payload) {
             ? ordem.map((inscricao, pos) => ({
                 inscricao,
                 posicaoChegada: pos + 1,
-                status: pos === ordem.length - 1 && i === 2 ? ('abandono' as const) : ('classificado' as const),
+                status:
+                  pos === ordem.length - 1 && i === 2
+                    ? ('abandono' as const)
+                    : ('classificado' as const),
                 voltas: pos === ordem.length - 1 && i === 2 ? 12 : 20,
                 // Melhor volta de exemplo (ms): sobe com a posição, com variação — nem sempre o vencedor tem a mais rápida
-                melhorVoltaMs: 50_000 + ci * 1_500 + pos * 110 + ((pos * 7_919 + i * 104_729 + ci * 31) % 640),
+                melhorVoltaMs:
+                  50_000 + ci * 1_500 + pos * 110 + ((pos * 7_919 + i * 104_729 + ci * 31) % 640),
               }))
             : [],
         },
@@ -215,12 +300,21 @@ export async function semearDemonstracao(payload: Payload) {
   }
 
   payload.logger.info('Notícias e comunicado…')
-  const catBks = await payload.create({ collection: 'categorias-noticia', context: contexto, data: { nome: d('BKS') } })
-  const catKartodromo = await payload.create({ collection: 'categorias-noticia', context: contexto, data: { nome: d('Kartódromo') } })
+  const catBks = await payload.create({
+    collection: 'categorias-noticia',
+    context: contexto,
+    data: { nome: d('BKS') },
+  })
+  const catKartodromo = await payload.create({
+    collection: 'categorias-noticia',
+    context: contexto,
+    data: { nome: d('Kartódromo') },
+  })
   const noticias = [
     {
       titulo: d('Resultado da 4ª etapa do BKS'),
-      subtitulo: 'Exemplo de notícia de resultado, ligada à etapa: aparece também na página da etapa.',
+      subtitulo:
+        'Exemplo de notícia de resultado, ligada à etapa: aparece também na página da etapa.',
       capa: fotos.pelotao,
       categoria: catBks.id,
       etapa: etapas[3],
@@ -269,31 +363,54 @@ export async function semearDemonstracao(payload: Payload) {
   // Avisos: nenhum de exemplo (o cliente quer a aba vazia até o moderador publicar)
 
   payload.logger.info('Textos de exemplo e contato provisório…')
-  await payload.updateGlobal({ slug: 'configuracoes', context: contexto, data: { faixaDemonstracao: true } })
+  await payload.updateGlobal({
+    slug: 'configuracoes',
+    context: contexto,
+    data: { faixaDemonstracao: true },
+  })
   // Campo travado para o painel: gravado direto no banco
-  await payload.db.updateGlobal({ slug: 'configuracoes', data: { demonstracaoCarregadaEm: new Date().toISOString() } as never })
+  await payload.db.updateGlobal({
+    slug: 'configuracoes',
+    data: { demonstracaoCarregadaEm: new Date().toISOString() } as never,
+  })
   await payload.updateGlobal({
     slug: 'contato',
     context: contexto,
     data: {
       canais: [
-        { tipo: 'whatsapp', rotulo: 'Contato provisório', valor: '+55 61 00000-0000', exibirEm: ['rodape', 'contato', 'kartodromo', 'bks'] },
-        { tipo: 'telefone', rotulo: 'Contato provisório', valor: '+55 61 00000-0000', exibirEm: ['contato', 'kartodromo'] },
+        {
+          tipo: 'whatsapp',
+          rotulo: 'Contato provisório',
+          valor: '+55 61 00000-0000',
+          exibirEm: ['rodape', 'contato', 'kartodromo', 'bks'],
+        },
+        {
+          tipo: 'telefone',
+          rotulo: 'Contato provisório',
+          valor: '+55 61 00000-0000',
+          exibirEm: ['contato', 'kartodromo'],
+        },
       ],
-      redes: [{ rede: 'instagram', usuario: d('@perfil'), url: 'https://www.instagram.com/', referente: 'askart' }],
+      redes: [{ ...INSTAGRAM_BKS }],
     },
   })
   await payload.updateGlobal({
     slug: 'kartodromo',
     context: contexto,
     data: {
-      historia: textoParaLexical(`${DEMO} A história do Kartódromo Ayrton Senna do Guará entra aqui. A ASKART vai escrever este texto.`) as never,
+      historia: textoParaLexical(
+        `${DEMO} A história do Kartódromo Ayrton Senna do Guará entra aqui. A ASKART vai escrever este texto.`,
+      ) as never,
     },
   })
   await payload.updateGlobal({
     slug: 'institucional',
     context: contexto,
-    data: { sobre: textoParaLexical(`${DEMO} Texto de apresentação da ASKART. A diretoria vai escrever este texto.`) as never },
+    data: {
+      sobre: textoParaLexical(
+        `${DEMO} Texto de apresentação da ASKART. A diretoria vai escrever este texto.`,
+      ) as never,
+    },
   })
 
   payload.logger.info('Pronto: dados de demonstração criados.')
@@ -301,7 +418,9 @@ export async function semearDemonstracao(payload: Payload) {
 
 async function principal() {
   if (process.env.NODE_ENV === 'production' && process.env.PERMITIR_DEMO !== '1') {
-    throw new Error('Dados de demonstração não entram em produção. Para uma prévia, defina PERMITIR_DEMO=1.')
+    throw new Error(
+      'Dados de demonstração não entram em produção. Para uma prévia, defina PERMITIR_DEMO=1.',
+    )
   }
   const payload = publicarPorPadrao(await getPayload({ config }))
   await semearDemonstracao(payload)

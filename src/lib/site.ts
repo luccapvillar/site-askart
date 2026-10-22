@@ -4,7 +4,15 @@
  */
 import type { Configuracoe, Contato, Etapa, Navegacao } from '@/payload-types'
 import { ROTAS_FIXAS, atributosDoLink, rotuloDoLink, type ValorLink } from '@/fields/link'
-import { chaveDia, diaDaSemana, formatarHora, instanteDeChave, minutosEntre, partes, somarDias } from './datas'
+import {
+  chaveDia,
+  diaDaSemana,
+  formatarHora,
+  instanteDeChave,
+  minutosEntre,
+  partes,
+  somarDias,
+} from './datas'
 
 export type ItemMenu = { rotulo: string; href: string; externo?: boolean; subitens?: ItemMenu[] }
 
@@ -26,7 +34,11 @@ export function itemDoLink(link: ValorLink | null | undefined): ItemMenu | null 
   const curto = link?.tipo === 'rota' && link.rota ? ROTULOS_CURTOS[link.rota] : undefined
   const rotulo = digitado || curto || rotuloDoLink(link)
   if (!rotulo) return null
-  return { rotulo, href: attrs.href, externo: attrs.target === '_blank' || link?.tipo === 'externo' }
+  return {
+    rotulo,
+    href: attrs.href,
+    externo: attrs.target === '_blank' || link?.tipo === 'externo',
+  }
 }
 
 export function menuDoSite(navegacao: Navegacao | null | undefined): ItemMenu[] {
@@ -34,7 +46,9 @@ export function menuDoSite(navegacao: Navegacao | null | undefined): ItemMenu[] 
     .map((i) => {
       const item = itemDoLink(i.link as ValorLink)
       if (!item) return null
-      const subitens = (i.subitens ?? []).map((s) => itemDoLink(s.link as ValorLink)).filter((s): s is ItemMenu => s !== null)
+      const subitens = (i.subitens ?? [])
+        .map((s) => itemDoLink(s.link as ValorLink))
+        .filter((s): s is ItemMenu => s !== null)
       return subitens.length ? { ...item, subitens } : item
     })
     .filter((i): i is ItemMenu => i !== null)
@@ -44,10 +58,22 @@ export function menuDoSite(navegacao: Navegacao | null | undefined): ItemMenu[] 
 /* ───────────────────────────── contato ───────────────────────────── */
 
 export type TipoCanal = 'telefone' | 'whatsapp' | 'email' | 'outro'
-export type Canal = { tipo: TipoCanal; rotulo: string; valor: string; href: string | null; provisorio: boolean; observacao?: string | null }
+export type Canal = {
+  tipo: TipoCanal
+  rotulo: string
+  valor: string
+  href: string | null
+  provisorio: boolean
+  observacao?: string | null
+}
 export type LocalCanal = 'rodape' | 'contato' | 'kartodromo' | 'bks'
 
-const ROTULO_TIPO: Record<TipoCanal, string> = { telefone: 'Telefone', whatsapp: 'WhatsApp', email: 'E-mail', outro: 'Contato' }
+const ROTULO_TIPO: Record<TipoCanal, string> = {
+  telefone: 'Telefone',
+  whatsapp: 'WhatsApp',
+  email: 'E-mail',
+  outro: 'Contato',
+}
 
 /** Link de cada canal. Contato provisório nunca ganha link (não é contato oficial). */
 export function hrefDoCanal(tipo: TipoCanal, valor: string, provisorio: boolean): string | null {
@@ -107,7 +133,8 @@ export function contraste(a: string, b: string): number {
 }
 
 /** Texto legível sobre a cor: preto ou branco, o que tiver mais contraste. */
-export const textoSobre = (fundo: string) => (contraste(fundo, '#111111') >= contraste(fundo, '#FFFFFF') ? '#111111' : '#FFFFFF')
+export const textoSobre = (fundo: string) =>
+  contraste(fundo, '#111111') >= contraste(fundo, '#FFFFFF') ? '#111111' : '#FFFFFF'
 
 const misturar = (hex: string, alvo: number, t: number) =>
   `#${[1, 3, 5]
@@ -133,7 +160,9 @@ export function fundoLegivel(hex: string): { fundo: string; texto: string } {
 /** Variáveis CSS das cores da marca (Configurações), com padrão da logo. */
 export function variaveisDeCor(config: Configuracoe | null | undefined): Record<string, string> {
   const primaria = hexValido(config?.corPrimaria) ? config.corPrimaria : CORES_PADRAO.primaria
-  const secundaria = hexValido(config?.corSecundaria) ? config.corSecundaria : CORES_PADRAO.secundaria
+  const secundaria = hexValido(config?.corSecundaria)
+    ? config.corSecundaria
+    : CORES_PADRAO.secundaria
   const escura = hexValido(config?.corEscura) ? config.corEscura : CORES_PADRAO.escura
   const p = fundoLegivel(primaria)
   const sec = fundoLegivel(secundaria)
@@ -148,7 +177,12 @@ export function variaveisDeCor(config: Configuracoe | null | undefined): Record<
 }
 
 /** Cores de um campeonato (aba BKS), com o texto legível sobre cada uma. */
-export function variaveisDoCampeonato(cores: { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined) {
+export function variaveisDoCampeonato(
+  cores:
+    | { primaria?: string | null; secundaria?: string | null; destaque?: string | null }
+    | null
+    | undefined,
+) {
   const v: Record<string, string> = {}
   if (hexValido(cores?.primaria)) {
     const c = fundoLegivel(cores.primaria)
@@ -166,20 +200,31 @@ export function variaveisDoCampeonato(cores: { primaria?: string | null; secunda
 
 /* ───────────────────────────── tema da aba BKS ───────────────────────────── */
 
-type CoresCampeonato = { primaria?: string | null; secundaria?: string | null; destaque?: string | null } | null | undefined
+type CoresCampeonato =
+  | { primaria?: string | null; secundaria?: string | null; destaque?: string | null }
+  | null
+  | undefined
 
 /**
  * Cores da logo do BKS (bandeira em ondas azul royal e vermelha, letras brancas): o padrão da aba BKS.
  * Principal = azul (topo, faixas, títulos e botões); apoio = vermelho (onda do topo, compra, selos);
  * destaque = branco (fios e pequenos detalhes). Os mesmos valores estão em Bks.module.css (.tema).
  */
-export const CORES_BKS = { primaria: '#0A1AB4', secundaria: '#D52E20', destaque: '#FFFFFF' } as const
+export const CORES_BKS = {
+  primaria: '#0A1AB4',
+  secundaria: '#D52E20',
+  destaque: '#FFFFFF',
+} as const
 
 /**
  * Cores gravadas antes no BKS (npm run dados:oficiais), com o vermelho como principal. Valem como "sem cores":
  * a aba usa as da logo, e a atualização do banco (scripts/atualizacoes.ts) troca pelas novas.
  */
-export const CORES_BKS_ANTIGAS = { primaria: '#D02D21', secundaria: '#0201B8', destaque: '#FFFFFF' } as const
+export const CORES_BKS_ANTIGAS = {
+  primaria: '#D02D21',
+  secundaria: '#0201B8',
+  destaque: '#FFFFFF',
+} as const
 
 const vazia = (v: unknown) => !(typeof v === 'string' && v.trim())
 const igual = (v: unknown, cor: string) => typeof v === 'string' && v.trim().toUpperCase() === cor
@@ -220,7 +265,8 @@ export function variaveisDoTemaBks(cores: CoresCampeonato): Record<string, strin
   const vermelho = hexValido(cores?.secundaria) ? escurecidaParaBranco(cores.secundaria, 4.5) : null
   if (azul && azul !== CORES_BKS.primaria) v['--bks-azul'] = azul
   if (vermelho && vermelho !== CORES_BKS.secundaria) v['--bks-vermelho'] = vermelho
-  if (hexValido(cores?.destaque) && cores.destaque.toUpperCase() !== CORES_BKS.destaque) v['--bks-detalhe'] = cores.destaque.toUpperCase()
+  if (hexValido(cores?.destaque) && cores.destaque.toUpperCase() !== CORES_BKS.destaque)
+    v['--bks-detalhe'] = cores.destaque.toUpperCase()
   return v
 }
 
@@ -251,8 +297,10 @@ export const mapaDaEtapa = (etapa: Pick<Etapa, 'localMapa'>, contato: Contato | 
  * Link de compra da IZY Pass: o da etapa ou, na falta, o geral (Configurações). Só para chamadas gerais
  * (ex.: bloco "Ingressos" da página inicial); a página e o cartão da etapa usam só o link da própria etapa.
  */
-export const ingressosDaEtapa = (etapa: Pick<Etapa, 'linkIngressos'> | null, config: Configuracoe | null | undefined) =>
-  etapa?.linkIngressos || config?.izyPass || null
+export const ingressosDaEtapa = (
+  etapa: Pick<Etapa, 'linkIngressos'> | null,
+  config: Configuracoe | null | undefined,
+) => etapa?.linkIngressos || config?.izyPass || null
 
 type DatasEtapa = Pick<Etapa, 'inicio' | 'status'> & Partial<Pick<Etapa, 'fim'>>
 
@@ -294,24 +342,49 @@ export const MENSAGENS_ETAPA = {
 /** "1º" no primeiro dia do mês, como se escreve no Brasil. */
 const diaDoMes = (dia: number) => (dia === 1 ? '1º' : String(dia))
 
-const MESES_EXTENSO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const MESES_EXTENSO = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+]
 
 /** "17 de outubro de 2026"; dois dias: "17 e 18 de outubro de 2026"; mais: "de 16 a 18 de outubro de 2026". */
-export function periodoPorExtenso(etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>): string | null {
+export function periodoPorExtenso(
+  etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>,
+): string | null {
   const a = etapa.inicio || etapa.fim
   if (!a) return null
   const ini = partes(a)
   const fim = etapa.fim && etapa.inicio ? partes(etapa.fim) : null
-  const extenso = (p: typeof ini, comAno = true) => `${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}${comAno ? ` de ${p.ano}` : ''}`
+  const extenso = (p: typeof ini, comAno = true) =>
+    `${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}${comAno ? ` de ${p.ano}` : ''}`
   if (!fim || chaveDia(etapa.fim!) <= chaveDia(a)) return extenso(ini)
-  const dias = Math.round((Date.UTC(fim.ano, fim.mes - 1, fim.dia) - Date.UTC(ini.ano, ini.mes - 1, ini.dia)) / 864e5)
+  const dias = Math.round(
+    (Date.UTC(fim.ano, fim.mes - 1, fim.dia) - Date.UTC(ini.ano, ini.mes - 1, ini.dia)) / 864e5,
+  )
   const mesmoMes = ini.mes === fim.mes && ini.ano === fim.ano
-  if (dias === 1) return mesmoMes ? `${diaDoMes(ini.dia)} e ${extenso(fim)}` : `${extenso(ini, ini.ano !== fim.ano)} e ${extenso(fim)}`
-  return mesmoMes ? `de ${diaDoMes(ini.dia)} a ${extenso(fim)}` : `de ${extenso(ini, ini.ano !== fim.ano)} a ${extenso(fim)}`
+  if (dias === 1)
+    return mesmoMes
+      ? `${diaDoMes(ini.dia)} e ${extenso(fim)}`
+      : `${extenso(ini, ini.ano !== fim.ano)} e ${extenso(fim)}`
+  return mesmoMes
+    ? `de ${diaDoMes(ini.dia)} a ${extenso(fim)}`
+    : `de ${extenso(ini, ini.ano !== fim.ano)} a ${extenso(fim)}`
 }
 
 /** "Esta etapa já ocorreu em 17 de outubro de 2026. Não é mais possível realizar a compra." */
-export function mensagemJaOcorreu(etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>): string {
+export function mensagemJaOcorreu(
+  etapa: Pick<Etapa, 'inicio'> & Partial<Pick<Etapa, 'fim'>>,
+): string {
   const periodo = periodoPorExtenso(etapa)
   const fim = 'Não é mais possível realizar a compra.'
   if (!periodo) return `Esta etapa já ocorreu. ${fim}`
@@ -373,13 +446,23 @@ export function enderecoDoPlayer(video: VideoYoutube): string {
   return `https://www.youtube-nocookie.com/embed/${video.id}?${busca.toString()}`
 }
 
-export type Transmissao = { tipo: Modalidade; rotulo: string; href: string | null; video: VideoYoutube | null }
+export type Transmissao = {
+  tipo: Modalidade
+  rotulo: string
+  href: string | null
+  video: VideoYoutube | null
+}
 
 export type CamposEtapaSite = DatasEtapa &
   Partial<
     Pick<
       Etapa,
-      'linkIngressos' | 'linkTreinosLivres' | 'gradeTreinosLivres' | 'imagemGradeTreinosLivres' | 'transmissaoProfissional' | 'transmissaoIndoor'
+      | 'linkIngressos'
+      | 'linkTreinosLivres'
+      | 'gradeTreinosLivres'
+      | 'imagemGradeTreinosLivres'
+      | 'transmissaoProfissional'
+      | 'transmissaoIndoor'
     >
   >
 
@@ -401,44 +484,81 @@ export type SituacaoEtapa = {
  * Etapa sem link de compra próprio usa o link geral da IZY Pass (Configurações gerais), que vale para
  * todas as etapas, profissionais e indoor (cliente, 21/10/2026).
  */
+/** Instagram oficial do BKS (cliente, 22/10/2026). */
+export const INSTAGRAM_BKS = {
+  rede: 'instagram' as const,
+  usuario: '@brasiliakartseries',
+  url: 'https://www.instagram.com/brasiliakartseries/',
+  referente: 'bks' as const,
+}
+
+/** "Instagram do BKS" / "Instagram da ASKART": com dois perfis na mesma rede, o nome sozinho confunde. */
+export const nomeDaRedeComPerfil = (nome: string, referente?: string | null) =>
+  referente === 'bks' ? `${nome} do BKS` : referente === 'askart' ? `${nome} da ASKART` : nome
+
 /** Link da IZY Pass do BKS para todas as etapas, profissionais e indoor (cliente, 21/10/2026). */
 export const IZY_PASS_BKS = 'https://izypass.com.br/produtor/eventos/bks'
 
-export function situacaoDaEtapa(etapa: CamposEtapaSite, agora: Date = new Date(), linkGeral: string | null = null): SituacaoEtapa {
+export function situacaoDaEtapa(
+  etapa: CamposEtapaSite,
+  agora: Date = new Date(),
+  linkGeral: string | null = null,
+): SituacaoEtapa {
   const cancelada = etapa.status === 'cancelada'
   const jaOcorreu = etapaJaOcorreu(etapa, agora)
   const antes = !cancelada && !jaOcorreu
   const transmissao = (tipo: Modalidade, link: unknown): Transmissao => {
     const href = linkExterno(link)
-    return { tipo, rotulo: ROTULO_MODALIDADE[tipo], href, video: href ? videoDoYoutube(href) : null }
+    return {
+      tipo,
+      rotulo: ROTULO_MODALIDADE[tipo],
+      href,
+      video: href ? videoDoYoutube(href) : null,
+    }
   }
-  const transmissoes: Transmissao[] = [transmissao('profissional', etapa.transmissaoProfissional), transmissao('indoor', etapa.transmissaoIndoor)]
+  const transmissoes: Transmissao[] = [
+    transmissao('profissional', etapa.transmissaoProfissional),
+    transmissao('indoor', etapa.transmissaoIndoor),
+  ]
   return {
     cancelada,
     jaOcorreu,
     antes,
     linkCompra: antes ? linkExterno(etapa.linkIngressos) || linkExterno(linkGeral) : null,
     linkTreinosLivres: antes ? linkExterno(etapa.linkTreinosLivres) : null,
-    temGradeTreinos: antes && (Boolean(etapa.gradeTreinosLivres?.length) || Boolean(etapa.imagemGradeTreinosLivres)),
+    temGradeTreinos:
+      antes &&
+      (Boolean(etapa.gradeTreinosLivres?.length) || Boolean(etapa.imagemGradeTreinosLivres)),
     transmissoes,
     temTransmissao: transmissoes.some((t) => t.href),
   }
 }
 
 export type CategoriaTreino = { nome: string; cor: string | null }
-export type HorarioTreinoLivre = { inicio: string; fim: string | null; categorias: CategoriaTreino[]; observacao: string | null }
+export type HorarioTreinoLivre = {
+  inicio: string
+  fim: string | null
+  categorias: CategoriaTreino[]
+  observacao: string | null
+}
 export type DiaTreinosLivres = { chave: string; titulo: string; horarios: HorarioTreinoLivre[] }
 
 const maiuscula = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
 /** Grade dos treinos livres agrupada por dia (em ordem de dia e de horário). Título: "Sexta-feira, 16 de outubro". */
-export function gradeTreinosPorDia(grade: Etapa['gradeTreinosLivres'] | null | undefined): DiaTreinosLivres[] {
+export function gradeTreinosPorDia(
+  grade: Etapa['gradeTreinosLivres'] | null | undefined,
+): DiaTreinosLivres[] {
   const dias = new Map<string, DiaTreinosLivres>()
   for (const linha of grade ?? []) {
     if (!linha?.dia || !linha.inicio || !Number.isFinite(new Date(linha.dia).getTime())) continue
     const chave = chaveDia(linha.dia)
     const p = partes(linha.dia)
-    const dia = dias.get(chave) ?? { chave, titulo: `${maiuscula(diaDaSemana(linha.dia))}, ${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}`, horarios: [] }
+    const dia = dias.get(chave) ?? {
+      chave,
+      titulo: `${maiuscula(diaDaSemana(linha.dia))}, ${diaDoMes(p.dia)} de ${MESES_EXTENSO[p.mes - 1]}`,
+      horarios: [],
+    }
     dia.horarios.push({
       inicio: linha.inicio,
       fim: linha.fim || null,
@@ -473,11 +593,17 @@ export const ITENS_EVENTO_PUBLICO_PADRAO: ItemEventoPublico[] = [
  * com o padrão pedido pelo cliente. Null = desligado no painel.
  */
 export function eventoPublico(
-  config: Pick<Configuracoe, 'exibirEventoPublico' | 'textoEventoPublico' | 'itensEventoPublico'> | null | undefined,
+  config:
+    | Pick<Configuracoe, 'exibirEventoPublico' | 'textoEventoPublico' | 'itensEventoPublico'>
+    | null
+    | undefined,
 ): InfoEventoPublico | null {
   if (config?.exibirEventoPublico === false) return null
   const itens = (config?.itensEventoPublico ?? [])
-    .map((i) => ({ titulo: i?.texto?.trim() ?? '', descricao: (i as { descricao?: string | null } | null)?.descricao?.trim() || null }))
+    .map((i) => ({
+      titulo: i?.texto?.trim() ?? '',
+      descricao: (i as { descricao?: string | null } | null)?.descricao?.trim() || null,
+    }))
     .filter((i) => i.titulo)
   return {
     texto: config?.textoEventoPublico?.trim() || TEXTO_EVENTO_PUBLICO_PADRAO,
@@ -490,20 +616,31 @@ export function eventoPublico(
 /** Modalidade da categoria (campo "modalidade" das categorias): divide a aba BKS em duas áreas. */
 export type Modalidade = 'profissional' | 'indoor'
 
-export const ROTULO_MODALIDADE: Record<Modalidade, string> = { profissional: 'Karts profissionais', indoor: 'Karts indoor' }
+export const ROTULO_MODALIDADE: Record<Modalidade, string> = {
+  profissional: 'Karts profissionais',
+  indoor: 'Karts indoor',
+}
 
 /** As duas áreas, na ordem do controle "Karts profissionais | Karts indoor". */
 export const MODALIDADES: Modalidade[] = ['profissional', 'indoor']
 
 export type SecaoArea = 'calendario' | 'classificacao' | 'resultados'
 
-const SUFIXO_SECAO: Record<SecaoArea, string> = { calendario: '', classificacao: '/classificacao', resultados: '/resultados' }
+const SUFIXO_SECAO: Record<SecaoArea, string> = {
+  calendario: '',
+  classificacao: '/classificacao',
+  resultados: '/resultados',
+}
 
 /**
  * Endereço de uma seção da área. Os endereços antigos continuam sendo a área dos karts profissionais
  * (/bks, /bks/classificacao, /bks/resultados/2); a área indoor fica em /bks/indoor/….
  */
-export function caminhoDaArea(modalidade: Modalidade, secao: SecaoArea = 'calendario', numeroEtapa?: number | null): string {
+export function caminhoDaArea(
+  modalidade: Modalidade,
+  secao: SecaoArea = 'calendario',
+  numeroEtapa?: number | null,
+): string {
   const base = modalidade === 'indoor' ? '/bks/indoor' : '/bks'
   const etapa = secao === 'resultados' && numeroEtapa != null ? `/${numeroEtapa}` : ''
   return `${base}${SUFIXO_SECAO[secao]}${etapa}`
@@ -512,24 +649,33 @@ export function caminhoDaArea(modalidade: Modalidade, secao: SecaoArea = 'calend
 type ComModalidade = { id?: number | string; modalidade?: string | null }
 
 /** Modalidade de uma categoria (sem valor: karts profissionais, o padrão). */
-export const modalidadeDe = (categoria: ComModalidade | null | undefined): Modalidade => (categoria?.modalidade === 'indoor' ? 'indoor' : 'profissional')
+export const modalidadeDe = (categoria: ComModalidade | null | undefined): Modalidade =>
+  categoria?.modalidade === 'indoor' ? 'indoor' : 'profissional'
 
 /** Só as categorias que vieram completas (as ocultas chegam só como número e ficam de fora). */
 const categoriasCompletas = (lista: unknown): ComModalidade[] =>
-  (Array.isArray(lista) ? lista : []).filter((c): c is ComModalidade => typeof c === 'object' && c !== null)
+  (Array.isArray(lista) ? lista : []).filter(
+    (c): c is ComModalidade => typeof c === 'object' && c !== null,
+  )
 
 /**
  * A etapa entra na área de cada modalidade que tiver pelo menos uma categoria nela (pode estar nas duas).
  * Etapa ainda sem categoria fica na área dos karts profissionais, como era antes da divisão.
  */
-export function etapaNaModalidade(etapa: { categorias?: unknown }, modalidade: Modalidade): boolean {
+export function etapaNaModalidade(
+  etapa: { categorias?: unknown },
+  modalidade: Modalidade,
+): boolean {
   const categorias = categoriasCompletas(etapa.categorias)
   if (!categorias.length) return modalidade === 'profissional'
   return categorias.some((c) => modalidadeDe(c) === modalidade)
 }
 
 /** Corrida da área: tem categoria da modalidade. Sem categoria (vale para todas), aparece em todas as áreas. */
-export function corridaNaModalidade(corrida: { categorias?: unknown }, modalidade: Modalidade): boolean {
+export function corridaNaModalidade(
+  corrida: { categorias?: unknown },
+  modalidade: Modalidade,
+): boolean {
   const categorias = categoriasCompletas(corrida.categorias)
   return !categorias.length || categorias.some((c) => modalidadeDe(c) === modalidade)
 }
@@ -538,8 +684,14 @@ export function corridaNaModalidade(corrida: { categorias?: unknown }, modalidad
  * Modalidades presentes numa etapa (pelas categorias da etapa e das corridas), na ordem do site.
  * Sem nenhuma categoria: só karts profissionais.
  */
-export function modalidadesDaEtapa(etapa: { categorias?: unknown }, corridas: { categorias?: unknown }[] = []): Modalidade[] {
-  const todas = [...categoriasCompletas(etapa.categorias), ...corridas.flatMap((c) => categoriasCompletas(c.categorias))]
+export function modalidadesDaEtapa(
+  etapa: { categorias?: unknown },
+  corridas: { categorias?: unknown }[] = [],
+): Modalidade[] {
+  const todas = [
+    ...categoriasCompletas(etapa.categorias),
+    ...corridas.flatMap((c) => categoriasCompletas(c.categorias)),
+  ]
   if (!todas.length) return ['profissional']
   return MODALIDADES.filter((m) => todas.some((c) => modalidadeDe(c) === m))
 }
@@ -547,7 +699,8 @@ export function modalidadesDaEtapa(etapa: { categorias?: unknown }, corridas: { 
 /** Ids das categorias (completas) de etapas e corridas. */
 export function idsDasCategorias(itens: { categorias?: unknown }[]): Set<number> {
   const ids = new Set<number>()
-  for (const item of itens) for (const c of categoriasCompletas(item.categorias)) if (c.id != null) ids.add(Number(c.id))
+  for (const item of itens)
+    for (const c of categoriasCompletas(item.categorias)) if (c.id != null) ids.add(Number(c.id))
   return ids
 }
 

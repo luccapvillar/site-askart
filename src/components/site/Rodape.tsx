@@ -1,9 +1,19 @@
 import Link from 'next/link'
+import { nomeDaRedeComPerfil } from '@/lib/site'
 import s from './Rodape.module.css'
 
-export type CanalContato = { tipo: 'telefone' | 'whatsapp' | 'email' | 'outro'; rotulo: string; valor: string; href?: string | null; provisorio?: boolean }
-export type ColunaRodape = { titulo: string; links: { rotulo: string; href: string; externo?: boolean }[] }
-export type RedeSocial = { rede: string; url: string }
+export type CanalContato = {
+  tipo: 'telefone' | 'whatsapp' | 'email' | 'outro'
+  rotulo: string
+  valor: string
+  href?: string | null
+  provisorio?: boolean
+}
+export type ColunaRodape = {
+  titulo: string
+  links: { rotulo: string; href: string; externo?: boolean }[]
+}
+export type RedeSocial = { rede: string; url: string; referente?: string | null }
 
 type Props = {
   sigla: string
@@ -23,9 +33,21 @@ type Props = {
 
 const EMAIL_CREDITO = 'luccapvillar@gmail.com'
 
-const NOMES_REDES: Record<string, string> = { instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', tiktok: 'TikTok', x: 'X', whatsapp: 'WhatsApp' }
+const NOMES_REDES: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+  tiktok: 'TikTok',
+  x: 'X',
+  whatsapp: 'WhatsApp',
+}
 
-const TIPO_CANAL: Record<CanalContato['tipo'], string> = { telefone: 'Telefone', whatsapp: 'WhatsApp', email: 'E-mail', outro: 'Contato' }
+const TIPO_CANAL: Record<CanalContato['tipo'], string> = {
+  telefone: 'Telefone',
+  whatsapp: 'WhatsApp',
+  email: 'E-mail',
+  outro: 'Contato',
+}
 
 function NovaAba() {
   return <span className="visualmente-oculto"> (abre em nova aba)</span>
@@ -36,7 +58,18 @@ function NovaAba() {
  * Contato provisório aparece com o selo "Contato provisório" e SEM link de ligação, como pediu o cliente.
  * Na base: crédito de quem fez o site, ao lado do acesso discreto ao painel.
  */
-export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, ano, mapa, local }: Props) {
+export function Rodape({
+  sigla,
+  nome,
+  texto,
+  colunas,
+  canais,
+  endereco,
+  redes,
+  ano,
+  mapa,
+  local,
+}: Props) {
   const corte = sigla.toUpperCase().startsWith('AS') ? 2 : 0
   const temContato = canais.length > 0 || Boolean(endereco)
   return (
@@ -62,7 +95,7 @@ export function Rodape({ sigla, nome, texto, colunas, canais, endereco, redes, a
                 {redes.map((r) => (
                   <li key={r.url}>
                     <a href={r.url} target="_blank" rel="noopener noreferrer">
-                      {NOMES_REDES[r.rede] ?? r.rede}
+                      {nomeDaRedeComPerfil(NOMES_REDES[r.rede] ?? r.rede, r.referente)}
                       <span aria-hidden="true" className={s.externo}>
                         ↗
                       </span>

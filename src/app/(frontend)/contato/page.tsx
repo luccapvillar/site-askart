@@ -10,7 +10,7 @@ import { Secao, Sumario, TopoPagina } from '@/components/site/paginas/TopoPagina
 import { semDemo, TextoDemo } from '@/components/site/TextoDemo'
 import { TituloSecao } from '@/components/site/TituloSecao'
 import { comoDoc, lerContato, lerKartodromo, lerPerguntas, textosDaSecao } from '@/lib/publico'
-import { canaisDoContato, NOMES_REDES } from '@/lib/site'
+import { canaisDoContato, nomeDaRedeComPerfil, NOMES_REDES } from '@/lib/site'
 import type { Midia } from '@/payload-types'
 
 export const revalidate = 60
@@ -19,7 +19,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const textos = await textosDaSecao('contato')
   return {
     title: textos?.seoTitulo || 'Contato',
-    description: textos?.seoDescricao || 'Telefone, WhatsApp, endereço do Kartódromo do Guará, redes sociais e dúvidas frequentes da ASKART.',
+    description:
+      textos?.seoDescricao ||
+      'Telefone, WhatsApp, endereço do Kartódromo do Guará, redes sociais e dúvidas frequentes da ASKART.',
     alternates: { canonical: '/contato' },
   }
 }
@@ -43,7 +45,18 @@ function IconeRede({ rede }: { rede: string }) {
     facebook: <path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z" />,
   }
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
       {caminhos[rede] ?? <circle cx="12" cy="12" r="9" />}
     </svg>
   )
@@ -77,7 +90,10 @@ export default async function Contato() {
         trilha={[{ rotulo: 'Contato' }]}
         rotulo="Fale com a ASKART"
         titulo={textos?.titulo || 'Contato'}
-        intro={textos?.introducao || 'Telefone, WhatsApp, endereço do kartódromo, redes sociais e respostas para as dúvidas mais comuns.'}
+        intro={
+          textos?.introducao ||
+          'Telefone, WhatsApp, endereço do kartódromo, redes sociais e respostas para as dúvidas mais comuns.'
+        }
         foto={comoDoc<Midia>(textos?.imagem)}
         acoes={
           mapa ? (
@@ -97,7 +113,10 @@ export default async function Contato() {
             {horarios.length ? (
               <Dados
                 colunas={1}
-                itens={horarios.map((h) => ({ termo: <TextoDemo texto={h.dias} />, valor: <TextoDemo texto={h.horario} /> }))}
+                itens={horarios.map((h) => ({
+                  termo: <TextoDemo texto={h.dias} />,
+                  valor: <TextoDemo texto={h.horario} />,
+                }))}
               />
             ) : (
               <p className="texto-2">O horário de atendimento ainda não foi divulgado.</p>
@@ -157,7 +176,9 @@ export default async function Contato() {
                     <IconeRede rede={r.rede} />
                   </span>
                   <span className={i.redeTextos}>
-                    <strong>{NOMES_REDES[r.rede] ?? r.rede}</strong>
+                    <strong>
+                      {nomeDaRedeComPerfil(NOMES_REDES[r.rede] ?? r.rede, r.referente)}
+                    </strong>
                     {r.usuario && (
                       <span className="texto-2">
                         <TextoDemo texto={r.usuario} />
@@ -191,12 +212,40 @@ export default async function Contato() {
 
       <section className="secao-compacta fundo-branco" aria-labelledby="atalhos-contato">
         <div className="conteiner">
-          <TituloSecao id="atalhos-contato" rotulo="Atalhos" titulo="Procurando outra informação?" />
+          <TituloSecao
+            id="atalhos-contato"
+            rotulo="Atalhos"
+            titulo="Procurando outra informação?"
+          />
           <div className={i.atalhos}>
-            <CartaoAtalho href="/kartodromo#grade" rotulo="Kartódromo" titulo="Grade de treinos" texto="Dias e horários de treino de cada categoria." acao="Ver a grade" />
-            <CartaoAtalho href="/kartodromo" rotulo="Kartódromo" titulo="Taxas e como treinar" texto="Taxa de ambulância, taxa de pista e o passo a passo." acao="Ver o kartódromo" />
-            <CartaoAtalho href="/bks" rotulo="BKS" titulo="Calendário das etapas" texto="Datas, horários por categoria, compra e transmissão." acao="Ver o calendário" />
-            <CartaoAtalho href="/avisos" rotulo="Oficial" titulo="Avisos" texto="Mudanças de treino, de etapa e comunicados." acao="Ver os avisos" />
+            <CartaoAtalho
+              href="/kartodromo#grade"
+              rotulo="Kartódromo"
+              titulo="Grade de treinos"
+              texto="Dias e horários de treino de cada categoria."
+              acao="Ver a grade"
+            />
+            <CartaoAtalho
+              href="/kartodromo"
+              rotulo="Kartódromo"
+              titulo="Taxas e como treinar"
+              texto="Taxa de ambulância, taxa de pista e o passo a passo."
+              acao="Ver o kartódromo"
+            />
+            <CartaoAtalho
+              href="/bks"
+              rotulo="BKS"
+              titulo="Calendário das etapas"
+              texto="Datas, horários por categoria, compra e transmissão."
+              acao="Ver o calendário"
+            />
+            <CartaoAtalho
+              href="/avisos"
+              rotulo="Oficial"
+              titulo="Avisos"
+              texto="Mudanças de treino, de etapa e comunicados."
+              acao="Ver os avisos"
+            />
           </div>
         </div>
       </section>
