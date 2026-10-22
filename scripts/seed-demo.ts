@@ -10,7 +10,7 @@
  * pista nem "Como treinar" (dados oficiais, de scripts/dados-oficiais.ts e scripts/atualizacoes.ts). No kartódromo,
  * só a história de exemplo — e o Payload mantém os demais campos do global como estão.
  */
-import { INSTAGRAM_BKS } from '../src/lib/site'
+import { INSTAGRAM_ASKART, INSTAGRAM_BKS } from '../src/lib/site'
 import { getPayload, type Payload } from 'payload'
 import config from '../src/payload.config'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
@@ -391,7 +391,7 @@ export async function semearDemonstracao(payload: Payload) {
           exibirEm: ['contato', 'kartodromo'],
         },
       ],
-      redes: [{ ...INSTAGRAM_BKS }],
+      redes: [{ ...INSTAGRAM_ASKART }, { ...INSTAGRAM_BKS }],
     },
   })
   await payload.updateGlobal({

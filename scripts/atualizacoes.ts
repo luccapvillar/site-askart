@@ -41,7 +41,13 @@ import {
 import { CONTEXTO_CALCULO_ANTIGO } from '../src/hooks/competicao/regras'
 import { classificacoesDaTemporada } from '../src/lib/carregar-competicao'
 import type { CalculoDaEtapa } from '../src/lib/classificacao'
-import { CORES_BKS, coresDoBksSemEscolha, INSTAGRAM_BKS, IZY_PASS_BKS } from '../src/lib/site'
+import {
+  CORES_BKS,
+  coresDoBksSemEscolha,
+  INSTAGRAM_ASKART,
+  INSTAGRAM_BKS,
+  IZY_PASS_BKS,
+} from '../src/lib/site'
 import { textoParaLexical } from '../src/collections/conteudo/editores'
 import {
   iniciantesSemTaxaDePista,
@@ -1179,6 +1185,18 @@ const instagramDoBks: MudancaNoKartodromo = (doc) => {
   }
 }
 
+/** Instagram oficial da ASKART, antes do BKS na lista (o topo do site usa o perfil da ASKART). */
+const instagramDaAskart: MudancaNoKartodromo = (doc) => {
+  const redes = (doc.redes ?? []) as { url?: string | null }[]
+  if (redes.some((r) => (r.url ?? '').toLowerCase().includes('instagram.com/askartdf')))
+    return { dados: {}, feitos: [], avisos: ['o Instagram da ASKART já estava cadastrado'] }
+  return {
+    dados: { redes: [{ ...INSTAGRAM_ASKART }, ...redes] },
+    feitos: ['Instagram da ASKART cadastrado'],
+    avisos: [],
+  }
+}
+
 async function atualizarGlobal(
   payload: Payload,
   slug: 'kartodromo' | 'contato',
@@ -1347,6 +1365,11 @@ const ATUALIZACOES: Atualizacao[] = [
     chave: 'atualizacao:2026-10-instagram-bks',
     descricao: 'Instagram oficial do BKS',
     aplicar: (payload) => atualizarGlobal(payload, 'contato', instagramDoBks),
+  },
+  {
+    chave: 'atualizacao:2026-10-instagram-askart',
+    descricao: 'Instagram oficial da ASKART',
+    aplicar: (payload) => atualizarGlobal(payload, 'contato', instagramDaAskart),
   },
 ]
 

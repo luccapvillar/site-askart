@@ -484,6 +484,14 @@ export type SituacaoEtapa = {
  * Etapa sem link de compra próprio usa o link geral da IZY Pass (Configurações gerais), que vale para
  * todas as etapas, profissionais e indoor (cliente, 21/10/2026).
  */
+/** Instagram oficial da ASKART (cliente, 22/10/2026). */
+export const INSTAGRAM_ASKART = {
+  rede: 'instagram' as const,
+  usuario: '@askartdf',
+  url: 'https://www.instagram.com/askartdf/',
+  referente: 'askart' as const,
+}
+
 /** Instagram oficial do BKS (cliente, 22/10/2026). */
 export const INSTAGRAM_BKS = {
   rede: 'instagram' as const,

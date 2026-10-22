@@ -21,7 +21,7 @@ import {
   ITENS_EVENTO_PUBLICO_PADRAO,
   TEXTO_EVENTO_PUBLICO_PADRAO,
 } from '../src/globals/Configuracoes'
-import { CORES_BKS, INSTAGRAM_BKS, IZY_PASS_BKS } from '../src/lib/site'
+import { CORES_BKS, INSTAGRAM_ASKART, INSTAGRAM_BKS, IZY_PASS_BKS } from '../src/lib/site'
 import {
   INTRODUCAO_MENSALIDADE_PADRAO,
   INTRODUCAO_TAXAS,
@@ -365,7 +365,7 @@ export async function carregarDadosOficiais(payload: Payload) {
     context: contexto,
     data: {
       endereco: { ...contato.endereco, texto: ENDERECO, linkMapa: MAPA, imagemMapa: fotos.aereo },
-      redes: [{ ...INSTAGRAM_BKS }],
+      redes: [{ ...INSTAGRAM_ASKART }, { ...INSTAGRAM_BKS }],
     },
   })
   await payload.updateGlobal({
